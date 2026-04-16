@@ -1,0 +1,28 @@
+{
+  "name": "AFlix — Stream Movies & TV",
+  "short_name": "AFlix",
+  "description": "Stream movies and TV shows with AFlix",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070708",
+  "theme_color": "#070708",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["entertainment"],
+  "lang": "en",
+  "dir": "ltr"
+}
