@@ -436,27 +436,188 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
   .iptv-ch-list{max-height:150px}
 }
 
-/* ── RESPONSIVE ── */
+/* ══════════════════════════════════════════
+   RESPONSIVE — TABLET
+══════════════════════════════════════════ */
 @media(max-width:900px){
-  nav{padding:0 1.4rem;gap:1rem}
-  main{padding:0 1.4rem 5rem}
-  .hero-content{padding:0 1.4rem 3.5rem}
-  .hero-inds{right:1.4rem}
+  nav{padding:0 1.2rem;gap:.8rem}
+  main{padding:0 1.2rem 5rem}
+  .hero-content{padding:0 1.2rem 3.5rem}
+  .hero-inds{right:1.2rem}
   .grid{grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:.75rem}
-  footer{padding:2rem 1.4rem}
+  footer{padding:2rem 1.2rem}
 }
+
+/* ══════════════════════════════════════════
+   RESPONSIVE — MOBILE  (≤ 640px)
+   Strategy:
+   • Header = Logo + Search + Watchlist + Settings (4 items max)
+   • Nav links move to a BOTTOM TAB BAR
+   • Search expands as full-width overlay on mobile
+══════════════════════════════════════════ */
 @media(max-width:640px){
-  .hero-title{font-size:2.1rem}
-  .hero-desc,.btn-info,.btn-wl{display:none}
-  .hero-inds{display:none}
-  .grid{grid-template-columns:repeat(3,1fr);gap:.55rem}
-  .search-bar.open{width:240px}
-  .search-drop{width:270px}
-  .player-modal.open{padding:.5rem 0}
-  .player-wrap{border-radius:var(--r) var(--r) 0 0;min-height:90vh}
-  .wl-panel{width:100%}
-  nav{gap:.7rem}
-  .foot-links{display:none}
+
+  /* ── Header slim down ── */
+  nav{
+    padding:0 1rem;
+    height:56px;
+    gap:.5rem;
+  }
+
+  /* Hide desktop nav links — they move to bottom tab bar */
+  .nav-links{ display:none; }
+  .nav-spacer{ flex:1; }
+
+  /* Logo smaller */
+  .logo{ font-size:1.25rem; }
+
+  /* Search: when closed, just the icon button */
+  .search-wrap{ position:static; flex-shrink:0; }
+  .search-bar{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    width:100% !important;
+    border-radius:0;
+    border:none;
+    border-bottom:1px solid var(--b1);
+    background:var(--bg2);
+    z-index:1010;
+    padding:0 1rem;
+    height:56px;
+    display:flex;
+    align-items:center;
+    opacity:0;
+    pointer-events:none;
+    transform:translateY(-100%);
+    transition:opacity .22s, transform .22s cubic-bezier(.4,0,.2,1);
+  }
+  .search-bar.open{
+    opacity:1;
+    pointer-events:all;
+    transform:translateY(env(safe-area-inset-top, 0px));
+  }
+  .search-wrap.open .search-btn{
+    border-radius:50%;
+    border-left:1px solid var(--b1);
+    background:rgba(255,255,255,.06);
+  }
+  .search-drop{
+    position:fixed;
+    top:calc(56px + env(safe-area-inset-top, 0px));
+    left:0;
+    right:0;
+    width:100%;
+    border-radius:0 0 var(--rl) var(--rl);
+    max-height:60vh;
+  }
+  #searchInput{ font-size:1rem; padding:.6rem .5rem; }
+
+  /* Icon buttons — slightly smaller hit targets */
+  .nav-icon-btn{ width:36px; height:36px; flex-shrink:0; }
+  .search-btn{ width:36px; height:36px; flex-shrink:0; }
+
+  /* ── Bottom Tab Bar ── */
+  .bottom-tab-bar{
+    display:flex !important;
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    height:calc(56px + env(safe-area-inset-bottom));
+    padding-bottom:env(safe-area-inset-bottom);
+    background:rgba(7,7,8,.96);
+    backdrop-filter:blur(20px) saturate(180%);
+    -webkit-backdrop-filter:blur(20px) saturate(180%);
+    border-top:1px solid var(--b1);
+    z-index:990;
+    align-items:center;
+    justify-content:space-around;
+  }
+  .tab-item{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:.2rem;
+    cursor:pointer;
+    padding:.5rem 0;
+    color:var(--text3);
+    transition:color .18s;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;
+  }
+  .tab-item.active{ color:var(--red); }
+  .tab-item svg{ width:22px; height:22px; flex-shrink:0; }
+  .tab-item span{ font-size:.62rem; font-weight:600; letter-spacing:.02em; }
+
+  /* Push main content above the tab bar */
+  main{ padding:0 1rem calc(80px + env(safe-area-inset-bottom)); }
+  footer{ display:none; }
+
+  /* ── Hero ── */
+  .hero{ max-height:620px; }
+  .hero-content{ padding:0 1rem 5rem; }
+  .hero-title{ font-size:1.9rem; }
+  .hero-desc{ display:none; }
+  .btn-info,.btn-wl{ display:none; }
+  .hero-inds{ display:none; }
+  .hero-btns{ gap:.5rem; }
+  .btn-play{ padding:.75rem 1.4rem; font-size:.85rem; }
+
+  /* ── Grids ── */
+  .grid{ grid-template-columns:repeat(3,1fr); gap:.5rem; }
+
+  /* ── Player modal ── */
+  .player-modal.open{ padding:0; }
+  .player-wrap{
+    border-radius:0;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* ── Watchlist panel ── */
+  .wl-panel{ width:100%; }
+
+  /* ── Detail modal ── */
+  .detail-modal.open{ padding:.75rem .5rem; }
+
+  /* ── Settings modal ── */
+  .settings-panel{ max-width:100vw; border-radius:var(--rl) var(--rl) 0 0; position:fixed; bottom:0; left:0; right:0; }
+  .settings-modal.open{ align-items:flex-end; }
+}
+
+/* ══════════════════════════════════════════
+   LANDSCAPE PHONE  (short viewport, wide)
+══════════════════════════════════════════ */
+@media(max-width:900px) and (orientation:landscape) and (max-height:500px){
+  .hero{ height:100vw; max-height:340px; min-height:240px; }
+  .hero-title{ font-size:1.5rem; }
+  .hero-content{ padding:0 1.2rem 2rem; }
+
+  /* Keep bottom tab bar but slimmer */
+  .bottom-tab-bar{
+    height:calc(44px + env(safe-area-inset-bottom));
+  }
+  .tab-item span{ display:none; }
+  .tab-item svg{ width:20px; height:20px; }
+  main{ padding:0 1.2rem calc(60px + env(safe-area-inset-bottom)); }
+
+  /* Search bar full width in landscape */
+  .search-bar{
+    height:50px;
+  }
+  .search-drop{
+    top:calc(50px + env(safe-area-inset-top,0px));
+  }
+
+  /* Player goes edge-to-edge in landscape */
+  .player-modal.open{ padding:0; }
+  .player-wrap{ border-radius:0; width:100vw; }
+  .stage{ padding-top:56.25%; }
 }
 </style>
 </head>
@@ -1682,3 +1843,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
+<!-- ── BOTTOM TAB BAR (mobile only) ── -->
+<style>
+  .bottom-tab-bar{ display:none; }
+</style>
+<nav class="bottom-tab-bar" id="bottomTabBar" aria-label="Main navigation">
+  <div class="tab-item active" id="tab-home" onclick="tabNav('all')" role="button" aria-label="Home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+    <span>Home</span>
+  </div>
+  <div class="tab-item" id="tab-movie" onclick="tabNav('movie')" role="button" aria-label="Movies">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 4v16M17 4v16M2 12h20M2 8h5M17 8h5M2 16h5M17 16h5"/></svg>
+    <span>Movies</span>
+  </div>
+  <div class="tab-item" id="tab-tv" onclick="tabNav('tv')" role="button" aria-label="Series">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M16 3l-4 4-4-4"/></svg>
+    <span>Series</span>
+  </div>
+  <div class="tab-item" id="tab-live" onclick="openIPTV()" role="button" aria-label="Live TV">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 000 11.4M17.7 17.7a8 8 0 000-11.4"/><path d="M3.5 3.5a13 13 0 000 17M20.5 20.5a13 13 0 000-17"/></svg>
+    <span>Live</span>
+  </div>
+  <div class="tab-item" id="tab-wl" onclick="openWatchlist()" role="button" aria-label="Watchlist">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14a1 1 0 011 1v17l-7-4.5L5 21V4a1 1 0 011-1z"/></svg>
+    <span>Saved</span>
+  </div>
+</nav>
+<script>
+function tabNav(type) {
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  const tabEl = document.getElementById('tab-' + type);
+  if (tabEl) tabEl.classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(l => {
+    l.classList.toggle('active', l.dataset.type === type);
+  });
+  S.filter = type;
+  S.genre = null;
+  document.querySelectorAll('.gchip').forEach(c => c.classList.toggle('active', c.dataset.genre === 'all'));
+  filterContent();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
