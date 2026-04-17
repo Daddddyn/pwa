@@ -1414,7 +1414,7 @@ async function loadRemoteConfig() {
         'vidsrc-cc':  { n:'VidSrc',  imdb:false, movie:id=>`https://vidsrc.cc/v2/embed/movie/${id}`,   tv:(id,s,e)=>`https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}` },
         'vembed':     { n:'VEmbed',  imdb:false, movie:id=>`https://vembed.stream/play/${id}`,          tv:(id,s,e)=>`https://vembed.stream/play/${id}_s${s}` },
         'vidsrc-to':  { n:'VidSrc2', imdb:true,  movie:id=>`https://vidsrc.to/embed/movie/${id}`,      tv:(id,s,e)=>`https://vidsrc.to/embed/tv/${id}/${s}/${e}` },
-        'vidsrc-ts':  { n:'VidSrc TS', imdb:false, hls:true, movie:id=>`https://vidsrcs.vercel.app/api?id=${id}&type=movie`, tv:(id,s,e)=>`https://vidsrcs.vercel.app/api?id=${id}&type=tv&season=${s}&episode=${e}` }
+        'vidsrc-ts':  { n:'VidSrc TS', imdb:false, hls:true, movie:id=>`https://vidsrcs.vercel.app/${id}`, tv:(id,s,e)=>`https://vidsrcs.vercel.app/${id}/${s}/${e}` }
       };
     }
     IPTV_PLAYLISTS = cfg.iptv_playlists || [];
@@ -2007,10 +2007,10 @@ async function setFrame(src, isHls=false){
     const res=await fetch(src);
     if(!res.ok) throw new Error('API '+res.status);
     const data=await res.json();
-    const streams=Array.isArray(data)?data:(data.sources||data.streams||[]);
+    const streams=Array.isArray(data)?data:[];
     if(!streams.length) throw new Error('No streams');
     const best=streams[0];
-    const m3u8=best.stream||best.url||best.src||best.file;
+    const m3u8=best.stream;
     const referer=best.referer||'https://vidsrc.me/';
     if(!m3u8) throw new Error('No stream URL');
 
