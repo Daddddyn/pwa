@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>AFlix — Stream Movies & TV</title>
 
 <!-- ── PWA / iOS HOME SCREEN ── -->
@@ -21,6 +21,29 @@
       navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW registration failed:', err));
     });
   }
+  // ── iOS INPUT ZOOM RESET ──
+  // After any input loses focus, snap the viewport scale back to 1
+  // in case the browser still shifted it (belt-and-suspenders fix).
+  (function() {
+    function resetViewportZoom() {
+      var mv = document.querySelector('meta[name="viewport"]');
+      if (!mv) return;
+      var c = mv.content;
+      // Briefly re-assert maximum-scale=1 to force iOS to reset zoom
+      mv.content = c.replace('maximum-scale=1.0', 'maximum-scale=1.0') + '';
+      // Force a reflow tick then restore (ensures scroll position resets)
+      setTimeout(function() { mv.content = c; }, 50);
+    }
+    document.addEventListener('focusout', function(e) {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        resetViewportZoom();
+        // Also scroll back to top of viewport if page shifted up
+        setTimeout(function() {
+          window.scrollTo({ top: window.scrollY, behavior: 'instant' });
+        }, 100);
+      }
+    }, true);
+  })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -61,6 +84,22 @@ body.no-scroll{overflow:hidden}
 .genre-strip,.top10-grid,.cw-grid,.cast-row,.eps-grid,.seasons-row,.iptv-ch-list,.wl-body,.search-drop{-webkit-overflow-scrolling:touch}
 /* bottom nav bar safe area */
 footer{padding-bottom:calc(2.5rem + var(--sab))}
+/* ── iOS INPUT ZOOM FIX ── */
+/* iOS Safari zooms into any input with font-size < 16px. Force 16px on mobile. */
+@media (max-width: 768px) and (hover: none) {
+  #searchInput,
+  .iptv-url-input,
+  .iptv-ch-search,
+  .iptv-add-input,
+  input[type="text"],
+  input[type="url"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  textarea {
+    font-size: 16px !important;
+  }
+}
 ::selection{background:var(--red);color:#fff}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
