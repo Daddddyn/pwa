@@ -726,13 +726,11 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
 /* ══════════════════════════════════════════
    IPTV / LIVE TV MODAL
    ─────────────────────────────────────────
-   Layout: VERTICAL STACK — player on top, channels below
-   (same as original index.html layout)
+   Layout: VERTICAL STACK — player on top, channels below (vertical list)
 ══════════════════════════════════════════ */
 .iptv-modal{
   position:fixed;inset:0;background:rgba(0,0,0,.97);
   z-index:19000;display:none;flex-direction:column;overflow:hidden;
-  /* safe area for dynamic island */
   padding-top:var(--sat);
 }
 .iptv-modal.open{display:flex;animation:fadein .22s ease}
@@ -751,41 +749,36 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
   flex:1;padding:.5rem .9rem;background:var(--bg4);
   border:1px solid var(--b1);border-radius:8px;
   color:var(--text);font-size:.83rem;font-family:inherit;
-  outline:none;min-width:0;
-  -webkit-appearance:none;
+  outline:none;min-width:0;-webkit-appearance:none;
 }
 .iptv-url-input:focus{border-color:rgba(232,25,44,.5)}
 .iptv-url-input::placeholder{color:var(--text3)}
 .iptv-load-btn{
   padding:.5rem 1rem;background:var(--red);color:#fff;
   border:none;border-radius:8px;font-size:.82rem;font-weight:600;
-  cursor:pointer;white-space:nowrap;transition:background .2s;
-  font-family:inherit;
+  cursor:pointer;white-space:nowrap;transition:background .2s;font-family:inherit;
 }
 .iptv-load-btn:hover{background:var(--red2)}
 
 /* Body: vertical stack */
 .iptv-body{
   display:flex;
-  flex-direction:column;   /* ← KEY: player on top, channels below */
+  flex-direction:column;
   flex:1;
   overflow:hidden;
 }
 
-/* Player stage — takes available vertical space */
+/* Player stage */
 .iptv-stage{
-  flex:1;
-  display:flex;flex-direction:column;
-  overflow:hidden;background:#000;
-  min-height:0;
+  flex-shrink:0;
+  background:#000;
 }
 .iptv-player-wrap{
   position:relative;
-  /* 16:9 aspect ratio on desktop, flexible on mobile */
   aspect-ratio:16/9;
   max-height:55vh;
   background:#000;
-  flex-shrink:0;
+  width:100%;
 }
 .iptv-video{width:100%;height:100%;display:block;object-fit:contain;background:#000}
 .iptv-overlay{
@@ -807,15 +800,14 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
 .iptv-now-name{font-size:.88rem;font-weight:600;letter-spacing:-.01em}
 .iptv-now-sub{font-size:.78rem;color:var(--text3)}
 
-/* Channel list panel — below the player */
+/* Channel list panel — vertical scrolling below player */
 .iptv-sidebar{
-  flex-shrink:0;
+  flex:1;
   background:var(--bg2);
   border-top:1px solid var(--b1);
   display:flex;flex-direction:column;
-  /* Limit height so it doesn't push video off screen */
-  max-height:38vh;
   overflow:hidden;
+  min-height:0;
 }
 .iptv-sidebar-hd{
   padding:.6rem 1rem;border-bottom:1px solid var(--b1);
@@ -834,50 +826,45 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
 .iptv-ch-search::placeholder{color:var(--text3)}
 .iptv-ch-search:focus{border-color:rgba(232,25,44,.4)}
 
-/* Horizontal scrolling channel list */
+/* VERTICAL channel list */
 .iptv-ch-list{
-  flex:1;overflow-x:auto;overflow-y:hidden;
-  display:flex;align-items:flex-start;
-  padding:.5rem;gap:.5rem;
-  scrollbar-width:thin;
+  flex:1;
+  overflow-y:auto;overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
 }
-.iptv-ch-list::-webkit-scrollbar{height:3px}
+.iptv-ch-list::-webkit-scrollbar{width:3px}
 .iptv-ch-list::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:2px}
 
-/* Channel cards — horizontal tiles */
+/* Channel rows — vertical */
 .iptv-ch{
-  flex-shrink:0;
-  display:flex;flex-direction:column;align-items:center;
-  gap:.35rem;padding:.6rem .5rem;
-  border-radius:10px;cursor:pointer;
-  transition:background .14s;
-  width:80px;text-align:center;
-  border:1px solid transparent;
+  display:flex;flex-direction:row;align-items:center;
+  gap:.7rem;padding:.6rem 1rem;
+  cursor:pointer;transition:background .12s;
+  border-bottom:1px solid var(--b2);
 }
-.iptv-ch:hover{background:rgba(255,255,255,.05)}
+.iptv-ch:hover{background:rgba(255,255,255,.04)}
 .iptv-ch.active{
-  background:rgba(232,25,44,.12);
-  border-color:rgba(232,25,44,.28);
+  background:rgba(232,25,44,.1);
+  border-left:2px solid var(--red);
+  padding-left:calc(1rem - 2px);
 }
 .iptv-ch-logo{
-  width:40px;height:40px;object-fit:contain;
-  border-radius:8px;background:var(--bg4);
+  width:32px;height:32px;object-fit:contain;
+  border-radius:6px;background:var(--bg4);flex-shrink:0;
 }
 .iptv-ch-logo-placeholder{
-  width:40px;height:40px;border-radius:8px;
+  width:32px;height:32px;border-radius:6px;
   background:var(--bg5);display:flex;align-items:center;
-  justify-content:center;font-size:.7rem;color:var(--text3);
-  font-weight:700;
+  justify-content:center;font-size:.65rem;color:var(--text3);
+  font-weight:700;flex-shrink:0;
 }
-.iptv-ch-info{width:100%}
+.iptv-ch-info{flex:1;min-width:0}
 .iptv-ch-name{
-  font-size:.65rem;font-weight:500;
+  font-size:.84rem;font-weight:500;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  color:var(--text2);
 }
 .iptv-ch-group{
-  font-size:.58rem;color:var(--text3);
+  font-size:.7rem;color:var(--text3);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 
@@ -885,9 +872,9 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
 .iptv-loading-ch{
   padding:2rem;text-align:center;color:var(--text3);
   font-size:.84rem;display:flex;align-items:center;
-  justify-content:center;gap:.6rem;flex-shrink:0;
+  justify-content:center;gap:.6rem;
 }
-.iptv-err{color:var(--red);font-size:.8rem;padding:.4rem .8rem;text-align:center;flex-shrink:0}
+.iptv-err{color:var(--red);font-size:.8rem;padding:.8rem 1rem;text-align:center;}
 
 /* Preset pills */
 .iptv-preset-row{
@@ -914,10 +901,14 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
 }
 .iptv-close-btn:hover{background:var(--red);border-color:var(--red);color:#fff}
 
-/* On tall screens, let player be bigger */
-@media(min-height:700px){
-  .iptv-player-wrap{ max-height:60vh; }
-  .iptv-sidebar{ max-height:35vh; }
+/* Landscape: side-by-side */
+@media(max-width:900px) and (orientation:landscape) and (max-height:500px){
+  .iptv-body{ flex-direction:row; }
+  .iptv-player-wrap{ max-height:none; aspect-ratio:auto; flex:1; }
+  .iptv-sidebar{
+    width:220px; border-top:none;
+    border-left:1px solid var(--b1);
+  }
 }
 
 /* ══════════════════════════════════════════
@@ -1064,9 +1055,8 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
   }
   .settings-modal.open{ align-items:flex-end; }
 
-  /* IPTV on mobile — smaller player */
-  .iptv-player-wrap{ max-height:40vw; aspect-ratio:16/9; }
-  .iptv-sidebar{ max-height:calc(100dvh - 40vw - 120px); }
+  /* IPTV on mobile */
+  .iptv-player-wrap{ max-height:42vw; aspect-ratio:16/9; }
   .iptv-hd{ flex-wrap:wrap; gap:.5rem; }
   .iptv-url-wrap{ min-width:100%; order:3; }
 }
@@ -1091,22 +1081,13 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
   .player-wrap{ border-radius:0; width:100vw; }
   .stage{ padding-top:56.25%; }
 
-  /* Landscape IPTV: side by side makes more sense */
+  /* Landscape IPTV: side by side */
   .iptv-body{ flex-direction:row; }
   .iptv-player-wrap{ max-height:none; aspect-ratio:auto; flex:1; }
   .iptv-sidebar{
-    width:200px; max-height:none; border-top:none;
+    width:220px; border-top:none;
     border-left:1px solid var(--b1);
   }
-  .iptv-ch-list{
-    flex-direction:column; overflow-y:auto; overflow-x:hidden;
-    flex:1; max-height:none;
-  }
-  .iptv-ch{
-    width:100%; flex-direction:row; text-align:left;
-    gap:.5rem; padding:.45rem .6rem;
-  }
-  .iptv-ch-logo,.iptv-ch-logo-placeholder{ width:32px; height:32px; flex-shrink:0; }
 }
 </style>
 </head>
@@ -2549,23 +2530,24 @@ async function profSyncToCloud(){
     </div>
     <button class="iptv-close-btn" onclick="closeIPTV()" title="Close">×</button>
   </div>
-  <!-- Body: player on top, channels below -->
+  <!-- Body: player on top, vertical channel list below -->
   <div class="iptv-body">
     <!-- Video stage — top -->
     <div class="iptv-stage">
       <div class="iptv-player-wrap">
-        <video class="iptv-video" id="iptvVideo" controls playsinline></video>
+        <video class="iptv-video" id="iptvVideo" controls playsinline webkit-playsinline></video>
         <div class="iptv-overlay" id="iptvOverlay">
           <div class="iptv-overlay-icon">📡</div>
           <div class="iptv-overlay-msg">Select a channel to start watching,<br>or load a playlist / stream URL.</div>
         </div>
       </div>
       <div class="iptv-now-bar" id="iptvNowBar" style="display:none">
+        <div class="iptv-live-dot"></div>
         <span class="iptv-now-name" id="iptvNowName">—</span>
         <span class="iptv-now-sub" id="iptvNowSub"></span>
       </div>
     </div>
-    <!-- Channel list — below -->
+    <!-- Channel list — vertical scroll below player -->
     <div class="iptv-sidebar" id="iptvSidebar">
       <div class="iptv-sidebar-hd">
         <span class="iptv-sidebar-title">Channels</span>
@@ -2573,10 +2555,10 @@ async function profSyncToCloud(){
       </div>
       <div id="iptvPresetRow" class="iptv-preset-row" style="display:none"></div>
       <div class="iptv-search" id="iptvSearchWrap" style="display:none">
-        <input class="iptv-ch-search" id="iptvChSearch" type="text" placeholder="Filter channels…" oninput="iptvFilterChannels(this.value)">
+        <input class="iptv-ch-search" id="iptvChSearch" type="text" placeholder="Filter channels…" oninput="iptvFilterChannels(this.value)" autocomplete="off">
       </div>
       <div class="iptv-ch-list" id="iptvChList">
-        <div style="padding:1.5rem;text-align:center;color:var(--text3);font-size:.83rem;line-height:1.6;flex-shrink:0">
+        <div style="padding:1.5rem;text-align:center;color:var(--text3);font-size:.83rem;line-height:1.6">
           Paste an M3U playlist URL above and click <strong style="color:var(--text2)">Load</strong>,<br>or type a direct HLS/stream URL.
         </div>
       </div>
