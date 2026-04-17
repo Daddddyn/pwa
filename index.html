@@ -3283,7 +3283,8 @@ function tabNav(type) {
 .music-track:hover .music-track-play-icon { opacity:1; }
 .music-track.playing .music-track-play-icon { opacity:1; }
 
-/* Hidden audio element for playback */
+/* SC iframe embed (hidden audio only) */
+/* audio element (hidden) */
 #musicAudio { display:none; }
 
 /* Featured playlist cards */
@@ -3411,8 +3412,8 @@ body.music-playing footer { padding-bottom:calc(2.5rem + 62px + var(--sab)); }
     </div>
   </div>
 
-  <!-- Hidden HTML5 audio element for playback -->
-  <audio id="musicAudio" preload="none" style="display:none"></audio>
+  <!-- Native audio element for Jamendo streaming -->
+  <audio id="musicAudio" preload="none" style="display:none" crossorigin="anonymous"></audio>
 </div>
 
 <!-- ── MINI PLAYER BAR ── -->
@@ -3443,12 +3444,16 @@ body.music-playing footer { padding-bottom:calc(2.5rem + 62px + var(--sab)); }
 <!-- ── MUSIC JS ── -->
 <script>
 /* ══════════════════════════════════════════
-   MUSIC SYSTEM — iTunes Search API
-   Free, no-key, CORS-friendly API from Apple.
-   Returns real tracks with 30-sec previews,
-   artwork, artist, album. Plays via native
-   HTML5 <audio> — works on iOS Safari PWA.
+   MUSIC SYSTEM — Jamendo API v3
+   Free, open, CORS-friendly music API with
+   500k+ tracks, direct MP3 stream URLs, and
+   real album artwork. No OAuth needed for reads.
+   API docs: https://developer.jamendo.com/v3.0
+   Test client_id: 709fa152 (official dev key)
 ══════════════════════════════════════════ */
+
+const JAMENDO_ID = '709fa152'; // Official Jamendo public test client_id
+const JAMENDO   = 'https://api.jamendo.com/v3.0';
 
 const MUSIC = {
   tracks: [],
@@ -3460,21 +3465,22 @@ const MUSIC = {
   progressTimer: null
 };
 
-// Map genre chip labels to best iTunes search terms
-const ITUNES_GENRE_MAP = {
-  'top hits 2024':           { term: 'top hits',         entity: 'song', limit: 50 },
-  'hip hop rap 2024':        { term: 'hip hop rap',      entity: 'song', limit: 50 },
-  'r&b soul 2024':           { term: 'r&b soul',         entity: 'song', limit: 50 },
-  'pop hits 2024':           { term: 'pop hits',         entity: 'song', limit: 50 },
-  'rock hits':               { term: 'rock hits',        entity: 'song', limit: 50 },
-  'afrobeats 2024':          { term: 'afrobeats',        entity: 'song', limit: 50 },
-  'latin reggaeton 2024':    { term: 'reggaeton latino', entity: 'song', limit: 50 },
-  'country hits 2024':       { term: 'country hits',     entity: 'song', limit: 50 },
-  'electronic dance music 2024': { term: 'electronic dance', entity: 'song', limit: 50 },
-  'drill trap 2024':         { term: 'trap drill',       entity: 'song', limit: 50 },
-  'lofi chill beats':        { term: 'lofi chill',       entity: 'song', limit: 50 },
-  'gospel worship 2024':     { term: 'gospel worship',   entity: 'song', limit: 50 },
-  'jazz blues':              { term: 'jazz blues',       entity: 'song', limit: 50 }
+
+/* ── Genre → Jamendo tag mapping ── */
+const GENRE_TAGS = {
+  'top hits 2024':           { tags: 'pop',          featured: 1, boost: 'popularity_week' },
+  'hip hop rap 2024':        { tags: 'hiphop',        featured: 1, boost: 'popularity_week' },
+  'r&b soul 2024':           { tags: 'rnb',           featured: 0, boost: 'popularity_total' },
+  'pop hits 2024':           { tags: 'pop',           featured: 1, boost: 'popularity_week' },
+  'rock hits':               { tags: 'rock',          featured: 1, boost: 'popularity_week' },
+  'afrobeats 2024':          { tags: 'afrobeat',      featured: 0, boost: 'popularity_total' },
+  'latin reggaeton 2024':    { tags: 'latin',         featured: 0, boost: 'popularity_total' },
+  'country hits 2024':       { tags: 'country',       featured: 0, boost: 'popularity_total' },
+  'electronic dance music 2024': { tags: 'electronic', featured: 1, boost: 'popularity_week' },
+  'drill trap 2024':         { tags: 'hiphop',        featured: 0, boost: 'popularity_month' },
+  'lofi chill beats':        { tags: 'lounge',        featured: 1, boost: 'popularity_total' },
+  'gospel worship 2024':     { tags: 'gospel',        featured: 0, boost: 'popularity_total' },
+  'jazz blues':              { tags: 'jazz',          featured: 1, boost: 'popularity_total' }
 };
 
 /* ── Open / Close ── */
@@ -3500,66 +3506,85 @@ function musicPickGenre(el, q) {
   musicLoadGenre(q);
 }
 
-/* ── Search ── */
+/* ── Search (debounced) ── */
 function musicSearch(val) {
   clearTimeout(MUSIC.searchTimer);
-  if (!val || val.length < 2) {
-    if (!val) musicLoadGenre(MUSIC.currentQuery);
-    return;
-  }
-  MUSIC.searchTimer = setTimeout(() => musicLoadGenre(val), 380);
+  const v = val.trim();
+  if (!v) { musicLoadGenre(MUSIC.currentQuery); return; }
+  if (v.length < 2) return;
+  MUSIC.searchTimer = setTimeout(() => musicSearchJamendo(v), 400);
 }
 
-/* ── iTunes Search API — free, no key, CORS OK ── */
+/* ── Fetch by genre tag (featured charts) ── */
 async function musicLoadGenre(q) {
-  const body = document.getElementById('musicBody');
-  body.innerHTML = `<div class="music-loading"><div class="spin"></div> Loading…</div>`;
+  showMusicLoading();
+  const cfg = GENRE_TAGS[q] || { tags: q, featured: 0, boost: 'popularity_total' };
 
-  // Resolve to best iTunes search term
-  const mapped = ITUNES_GENRE_MAP[q] || { term: q, entity: 'song', limit: 50 };
+  const params = new URLSearchParams({
+    client_id:    JAMENDO_ID,
+    format:       'json',
+    limit:        '50',
+    include:      'musicinfo',
+    groupby:      'artist_id',
+    tags:         cfg.tags,
+    boost:        cfg.boost,
+    audioformat:  'mp31',
+    imagesize:    '300'
+  });
+  if (cfg.featured) params.set('featured', '1');
 
-  // iTunes Search API — no API key needed, open CORS
-  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(mapped.term)}&entity=${mapped.entity}&limit=${mapped.limit}&media=music`;
+  const url = `${JAMENDO}/tracks/?${params}`;
+  await musicFetch(url, q);
+}
 
+/* ── Fetch by free-text search ── */
+async function musicSearchJamendo(q) {
+  showMusicLoading();
+  const params = new URLSearchParams({
+    client_id:   JAMENDO_ID,
+    format:      'json',
+    limit:       '50',
+    namesearch:  q,
+    audioformat: 'mp31',
+    imagesize:   '300'
+  });
+  const url = `${JAMENDO}/tracks/?${params}`;
+  await musicFetch(url, q);
+}
+
+function showMusicLoading() {
+  document.getElementById('musicBody').innerHTML =
+    `<div class="music-loading"><div class="spin"></div> Loading…</div>`;
+}
+
+async function musicFetch(url, q) {
   let results = [];
   try {
     const r = await fetch(url);
     if (r.ok) {
       const data = await r.json();
-      // Only keep tracks that have a 30-sec preview URL
-      results = (data.results || []).filter(t => t.previewUrl);
+      // Only keep tracks that have a direct audio stream URL
+      results = (data.results || []).filter(t => t.audio && t.audio.startsWith('http'));
     }
   } catch(e) {
-    console.warn('iTunes fetch error:', e);
-  }
-
-  if (!results.length) {
-    // Broaden the search if no previews found
-    try {
-      const fallbackUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=50&media=music`;
-      const r2 = await fetch(fallbackUrl);
-      if (r2.ok) {
-        const d2 = await r2.json();
-        results = (d2.results || []).filter(t => t.previewUrl);
-      }
-    } catch(e) {}
+    console.warn('Jamendo fetch error:', e);
   }
 
   MUSIC.tracks = results.map(t => ({
-    title:    t.trackName    || t.collectionName || 'Unknown',
-    artist:   t.artistName  || 'Unknown Artist',
-    album:    t.collectionName || '',
-    artwork:  (t.artworkUrl100 || '').replace('100x100bb', '300x300bb'),
-    previewUrl: t.previewUrl || '',   // 30-sec MP3 preview
-    trackUrl:   t.trackViewUrl || '', // iTunes Store link
-    duration: t.trackTimeMillis || 0,
-    id:       t.trackId
+    title:    t.name        || 'Unknown Track',
+    artist:   t.artist_name || 'Unknown Artist',
+    album:    t.album_name  || '',
+    artwork:  t.album_image || t.image || '',
+    audioUrl: t.audio,          // direct MP3 stream
+    duration: (t.duration || 0) * 1000, // Jamendo gives seconds, convert to ms
+    id:       t.id,
+    shareUrl: t.shareurl || ''
   }));
 
   renderMusicBody(q);
 }
 
-/* ── Render ── */
+/* ── Render track list ── */
 function renderMusicBody(q) {
   const body = document.getElementById('musicBody');
   if (!MUSIC.tracks.length) {
@@ -3572,19 +3597,19 @@ function renderMusicBody(q) {
     <div class="music-track-list" id="musicTrackList">
       ${MUSIC.tracks.map((t, i) => musicTrackHTML(t, i)).join('')}
     </div>
-    <div style="padding:.8rem 1.2rem 1rem;font-size:.72rem;color:var(--text3);text-align:center">
-      🎧 30-second previews via iTunes · Tap to play
+    <div style="padding:.8rem 1.2rem 1.5rem;font-size:.71rem;color:var(--text3);text-align:center">
+      Powered by <a href="https://www.jamendo.com" target="_blank" style="color:var(--text3)">Jamendo</a> · Free & legal music streaming
     </div>`;
 }
 
 function musicTrackHTML(t, i) {
-  const ms = t.duration || 30000;
+  const ms = t.duration || 0;
   const mins = Math.floor(ms / 60000);
-  const secs = Math.floor((ms % 60000) / 1000).toString().padStart(2,'0');
-  const dur = `${mins}:${secs}`;
+  const secs = Math.floor((ms % 60000) / 1000).toString().padStart(2, '0');
+  const dur = ms ? `${mins}:${secs}` : '';
   const isPlaying = i === MUSIC.idx && MUSIC.playing;
-  return `<div class="music-track${isPlaying?' playing':''}" data-idx="${i}" onclick="musicPlay(${i})">
-    <div class="music-track-num">${isPlaying ? '♪' : i+1}</div>
+  return `<div class="music-track${isPlaying ? ' playing' : ''}" data-idx="${i}" onclick="musicPlay(${i})">
+    <div class="music-track-num">${isPlaying ? '♪' : i + 1}</div>
     ${t.artwork
       ? `<img class="music-track-art" src="${t.artwork}" loading="lazy" onerror="this.style.background='var(--bg5)'">`
       : `<div class="music-track-art"></div>`}
@@ -3592,38 +3617,28 @@ function musicTrackHTML(t, i) {
       <div class="music-track-title">${esc(t.title)}</div>
       <div class="music-track-artist">${esc(t.artist)}</div>
     </div>
-    <div class="music-track-dur">${dur}</div>
+    ${dur ? `<div class="music-track-dur">${dur}</div>` : ''}
     <div class="music-track-play-icon">
       <svg width="11" height="11" viewBox="0 0 11 11" fill="white"><path d="M2 1l7 4.5L2 10V1z"/></svg>
     </div>
   </div>`;
 }
 
-/* ── Playback via native HTML5 <audio> ── */
-function musicGetAudio() {
-  return document.getElementById('musicAudio');
-}
+/* ── Playback via native <audio> ── */
+function musicGetAudio() { return document.getElementById('musicAudio'); }
 
 function musicPlay(idx) {
   if (idx < 0 || idx >= MUSIC.tracks.length) return;
   const track = MUSIC.tracks[idx];
 
-  if (!track.previewUrl) {
-    toast('No preview available for this track', 'err');
-    return;
-  }
+  if (!track.audioUrl) { toast('No stream available', 'err'); return; }
 
   const audio = musicGetAudio();
 
-  // If same track — toggle play/pause
+  // Same track: toggle play/pause
   if (idx === MUSIC.idx && audio.src) {
-    if (MUSIC.playing) {
-      audio.pause();
-      MUSIC.playing = false;
-    } else {
-      audio.play().catch(()=>{});
-      MUSIC.playing = true;
-    }
+    MUSIC.playing = !MUSIC.playing;
+    MUSIC.playing ? audio.play().catch(() => {}) : audio.pause();
     updatePlayBtn();
     document.getElementById('mpEq').style.display = MUSIC.playing ? 'flex' : 'none';
     updateTrackHighlight(idx);
@@ -3631,26 +3646,28 @@ function musicPlay(idx) {
   }
 
   // New track
-  MUSIC.idx = idx;
+  MUSIC.idx    = idx;
   MUSIC.playing = true;
-
   audio.pause();
-  audio.src = track.previewUrl;
+  audio.src  = track.audioUrl;
   audio.load();
   audio.play().catch(e => {
     console.warn('Audio play failed:', e);
-    toast('Playback blocked — tap again', 'err');
     MUSIC.playing = false;
     updatePlayBtn();
+    toast('Tap play to start', 'err');
   });
 
-  // Wire events once
-  audio.onended = () => { musicNext(); };
+  audio.onended      = () => musicNext();
   audio.ontimeupdate = () => {
     if (!audio.duration) return;
     const pct = (audio.currentTime / audio.duration) * 100;
     const bar = document.getElementById('mpProgress');
     if (bar) bar.style.width = pct + '%';
+  };
+  audio.onerror = () => {
+    toast('Stream error — trying next', 'err');
+    setTimeout(musicNext, 800);
   };
 
   updateMiniPlayer(track);
@@ -3660,17 +3677,10 @@ function musicPlay(idx) {
 }
 
 function musicTogglePlay() {
-  if (MUSIC.idx === -1) {
-    if (MUSIC.tracks.length) musicPlay(0);
-    return;
-  }
+  if (MUSIC.idx === -1) { if (MUSIC.tracks.length) musicPlay(0); return; }
   const audio = musicGetAudio();
   MUSIC.playing = !MUSIC.playing;
-  if (MUSIC.playing) {
-    audio.play().catch(()=>{});
-  } else {
-    audio.pause();
-  }
+  MUSIC.playing ? audio.play().catch(() => {}) : audio.pause();
   updatePlayBtn();
   document.getElementById('mpEq').style.display = MUSIC.playing ? 'flex' : 'none';
   updateTrackHighlight(MUSIC.idx);
@@ -3678,13 +3688,11 @@ function musicTogglePlay() {
 
 function musicNext() {
   if (!MUSIC.tracks.length) return;
-  const next = (MUSIC.idx + 1) % MUSIC.tracks.length;
-  musicPlay(next);
+  musicPlay((MUSIC.idx + 1) % MUSIC.tracks.length);
 }
 function musicPrev() {
   if (!MUSIC.tracks.length) return;
-  const prev = (MUSIC.idx - 1 + MUSIC.tracks.length) % MUSIC.tracks.length;
-  musicPlay(prev);
+  musicPlay((MUSIC.idx - 1 + MUSIC.tracks.length) % MUSIC.tracks.length);
 }
 
 function updateMiniPlayer(track) {
@@ -3718,13 +3726,8 @@ function updateLikeBtn() {
 
 function musicToggleLike() {
   if (MUSIC.idx === -1) return;
-  if (MUSIC.liked.has(MUSIC.idx)) {
-    MUSIC.liked.delete(MUSIC.idx);
-    toast('Removed from liked');
-  } else {
-    MUSIC.liked.add(MUSIC.idx);
-    toast('♥ Added to Liked Songs', 'ok');
-  }
+  if (MUSIC.liked.has(MUSIC.idx)) { MUSIC.liked.delete(MUSIC.idx); toast('Removed from liked'); }
+  else { MUSIC.liked.add(MUSIC.idx); toast('♥ Added to Liked Songs', 'ok'); }
   updateLikeBtn();
 }
 
