@@ -2191,6 +2191,7 @@ function iptvShowControls(ch, idx){
   const numEl=document.getElementById('iptvChNum');
   if(numEl) numEl.textContent='CH '+(idx+1);
 }
+function detailWlToggle(id,type,title,poster,rating,year){
   wlToggle({id,type,title,poster:poster||null,rating,year});
   const btn=document.getElementById('detailWlBtn');
   if(btn){ const inWl=wlHas(id); btn.className='btn-wl'+(inWl?' in-list':''); btn.textContent=inWl?'✓ In Watchlist':'+ Watchlist'; }
