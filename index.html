@@ -950,6 +950,37 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
   }
 }
 
+/* ── IPTV orientation-reset: ensure portrait styles are never inherited from fullscreen/landscape ── */
+@media(orientation:portrait){
+  .iptv-body{ flex-direction:column !important; }
+  .iptv-player-wrap{
+    max-height:55vh !important;
+    aspect-ratio:16/9 !important;
+    flex:unset !important;
+    width:100% !important;
+    transform:none !important;
+    zoom:1 !important;
+  }
+  .iptv-sidebar{
+    width:auto !important;
+    border-left:none !important;
+    border-top:1px solid var(--b1) !important;
+    flex:1 !important;
+    transform:none !important;
+  }
+  .iptv-ch{
+    transform:none !important;
+    zoom:1 !important;
+  }
+  .iptv-ch-list{
+    transform:none !important;
+    zoom:1 !important;
+  }
+}
+@media(max-width:900px) and (orientation:portrait){
+  .iptv-player-wrap{ max-height:42vw !important; aspect-ratio:16/9 !important; }
+}
+
 /* ══════════════════════════════════════════
    RESPONSIVE — TABLET
 ══════════════════════════════════════════ */
@@ -2607,6 +2638,58 @@ async function profSyncToCloud(){
 
 <!-- HLS.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
+
+<script>
+/* ── IPTV fullscreen / orientation reset ──
+   When the user exits native fullscreen (e.g. after watching a channel
+   sideways) the browser sometimes leaves stale inline styles or a
+   stretched layout on the channel list. This listener forces a clean
+   relayout every time orientation changes or fullscreen is exited.       */
+(function(){
+  function resetIPTVLayout(){
+    var modal = document.getElementById('iptvModal');
+    if (!modal || !modal.classList.contains('open')) return;
+
+    var playerWrap = document.querySelector('.iptv-player-wrap');
+    var sidebar    = document.querySelector('.iptv-sidebar');
+    var body       = document.querySelector('.iptv-body');
+    var chList     = document.getElementById('iptvChList');
+
+    // Strip any inline styles that might have been set by fullscreen/landscape handling
+    if (playerWrap) { playerWrap.removeAttribute('style'); }
+    if (sidebar)    { sidebar.removeAttribute('style'); }
+    if (body)       { body.removeAttribute('style'); }
+    if (chList)     { chList.removeAttribute('style'); }
+
+    // Force a reflow so the CSS media queries re-evaluate cleanly
+    if (modal) {
+      modal.style.display = 'none';
+      void modal.offsetHeight;
+      modal.style.display = '';
+    }
+  }
+
+  // Fullscreen exit
+  document.addEventListener('fullscreenchange',       resetIPTVLayout);
+  document.addEventListener('webkitfullscreenchange', resetIPTVLayout);
+
+  // Orientation change (covers iOS which fires this on phone rotation)
+  window.addEventListener('orientationchange', function(){
+    // Small delay lets the browser finish rotating before we relayout
+    setTimeout(resetIPTVLayout, 120);
+  });
+
+  // Resize fallback (covers cases where orientationchange doesn't fire)
+  var _lastW = window.innerWidth;
+  window.addEventListener('resize', function(){
+    var w = window.innerWidth;
+    if (w !== _lastW) {
+      _lastW = w;
+      setTimeout(resetIPTVLayout, 150);
+    }
+  });
+})();
+</script>
 
 <!-- ── BOTTOM TAB BAR (mobile only) ── -->
 <style>
