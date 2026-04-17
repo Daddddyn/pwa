@@ -1361,7 +1361,7 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
         <button class="srv-pill active" data-srv="vidsrc-cc" onclick="switchServer('vidsrc-cc')"><span class="srv-dot"></span>VidSrc<span class="srv-q">4K</span></button>
         <button class="srv-pill" data-srv="vembed" onclick="switchServer('vembed')"><span class="srv-dot"></span>VEmbed<span class="srv-q">HD</span></button>
         <button class="srv-pill" data-srv="vidsrc-to" onclick="switchServer('vidsrc-to')"><span class="srv-dot"></span>VidSrc 2<span class="srv-q">HD</span></button>
-        <button class="srv-pill" data-srv="vidsrc-xyz" onclick="switchServer('vidsrc-xyz')"><span class="srv-dot"></span>VidSrc 3<span class="srv-q">HD</span></button>
+        <button class="srv-pill" data-srv="vidsrc-ts" onclick="switchServer('vidsrc-ts')"><span class="srv-dot"></span>VidSrc TS<span class="srv-q">4K</span></button>
       </div>
     </div>
 
@@ -1404,6 +1404,7 @@ async function loadRemoteConfig() {
         SRVS[s.id] = {
           n: s.name,
           imdb: !!s.imdb,
+          hls: !!s.hls,
           movie: id => s.movie_url.replace('{id}', id),
           tv:   (id,se,ep) => s.tv_url.replace('{id}',id).replace('{s}',se).replace('{e}',ep)
         };
@@ -1413,7 +1414,7 @@ async function loadRemoteConfig() {
         'vidsrc-cc':  { n:'VidSrc',  imdb:false, movie:id=>`https://vidsrc.cc/v2/embed/movie/${id}`,   tv:(id,s,e)=>`https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}` },
         'vembed':     { n:'VEmbed',  imdb:false, movie:id=>`https://vembed.stream/play/${id}`,          tv:(id,s,e)=>`https://vembed.stream/play/${id}_s${s}` },
         'vidsrc-to':  { n:'VidSrc2', imdb:true,  movie:id=>`https://vidsrc.to/embed/movie/${id}`,      tv:(id,s,e)=>`https://vidsrc.to/embed/tv/${id}/${s}/${e}` },
-        'vidsrc-xyz': { n:'VidSrc3', imdb:true,  movie:id=>`https://vidsrc.xyz/embed/movie/${id}`,     tv:(id,s,e)=>`https://vidsrc.xyz/embed/tv/${id}/${s}/${e}` }
+        'vidsrc-ts':  { n:'VidSrc TS', imdb:false, hls:true, movie:id=>`https://vidsrcs.vercel.app/api?id=${id}&type=movie`, tv:(id,s,e)=>`https://vidsrcs.vercel.app/api?id=${id}&type=tv&season=${s}&episode=${e}` }
       };
     }
     IPTV_PLAYLISTS = cfg.iptv_playlists || [];
@@ -1956,9 +1957,9 @@ async function playContent(id, mediaType, title){
     document.getElementById('tvCtrl').style.display='block';
     renderSeasons(seasons,id,title,imdbId);
     await loadEpisodes(id,1);
-    setFrame(srv.tv(useId,1,1));
+    setFrame(srv.tv(useId,1,1), !!srv.hls);
   } else {
-    setFrame(srv.movie(useId));
+    setFrame(srv.movie(useId), !!srv.hls);
   }
 
   const r=details.vote_average?.toFixed(1)||'—';
@@ -1975,12 +1976,74 @@ async function playContent(id, mediaType, title){
     </div>`;
 }
 
-function setFrame(src){
+/* ── HLS player state ── */
+let _hlsInst = null;
+let _hlsVideo = null;
+
+function _destroyHls(){
+  if(_hlsInst){ try{ _hlsInst.destroy(); }catch(e){} _hlsInst=null; }
+  if(_hlsVideo){ _hlsVideo.pause(); _hlsVideo.src=''; _hlsVideo.remove(); _hlsVideo=null; }
+  const stage=document.getElementById('playerStage');
+  const old=stage.querySelector('.hls-video-el');
+  if(old) old.remove();
+  document.getElementById('playerFrame').style.display='';
+}
+
+async function setFrame(src, isHls=false){
   const iframe=document.getElementById('playerFrame'), ov=document.getElementById('pLoading');
+  _destroyHls();
   ov.classList.add('show');
-  iframe.src=src;
-  iframe.onload=()=>ov.classList.remove('show');
-  setTimeout(()=>ov.classList.remove('show'),10000);
+
+  if(!isHls){
+    iframe.src=src;
+    iframe.onload=()=>ov.classList.remove('show');
+    setTimeout(()=>ov.classList.remove('show'),10000);
+    return;
+  }
+
+  /* HLS path — fetch API, get m3u8, play via HLS.js video element */
+  iframe.style.display='none';
+  try{
+    const res=await fetch(src);
+    if(!res.ok) throw new Error('API '+res.status);
+    const data=await res.json();
+    const streams=Array.isArray(data)?data:(data.sources||data.streams||[]);
+    if(!streams.length) throw new Error('No streams');
+    const best=streams[0];
+    const m3u8=best.stream||best.url||best.src||best.file;
+    const referer=best.referer||'https://vidsrc.me/';
+    if(!m3u8) throw new Error('No stream URL');
+
+    const stage=document.getElementById('playerStage');
+    const vid=document.createElement('video');
+    vid.className='hls-video-el p-iframe';
+    vid.controls=true;
+    vid.autoplay=true;
+    vid.playsInline=true;
+    vid.setAttribute('webkit-playsinline','');
+    vid.style.cssText='position:absolute;inset:0;width:100%;height:100%;background:#000;border-radius:inherit';
+    stage.appendChild(vid);
+    _hlsVideo=vid;
+
+    if(Hls.isSupported()){
+      const hls=new Hls({ xhrSetup:(xhr)=>{ xhr.setRequestHeader('Referer',referer); } });
+      _hlsInst=hls;
+      hls.loadSource(m3u8);
+      hls.attachMedia(vid);
+      hls.on(Hls.Events.MANIFEST_PARSED,()=>{ vid.play().catch(()=>{}); ov.classList.remove('show'); });
+      hls.on(Hls.Events.ERROR,(_,d)=>{ if(d.fatal){ toast('Stream error — try another server','err'); ov.classList.remove('show'); } });
+    } else if(vid.canPlayType('application/vnd.apple.mpegurl')){
+      vid.src=m3u8;
+      vid.addEventListener('loadedmetadata',()=>{ vid.play().catch(()=>{}); ov.classList.remove('show'); },{once:true});
+    } else {
+      throw new Error('HLS not supported');
+    }
+  } catch(err){
+    console.error('[AFlix HLS]',err);
+    iframe.style.display='';
+    ov.classList.remove('show');
+    toast('VidSrc TS failed: '+err.message,'err');
+  }
 }
 function showUnavail(){
   document.getElementById('playerFrame').srcdoc=`<style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#000;color:#fff;font-family:'DM Sans',sans-serif;text-align:center}</style><div><h2 style="font-size:1rem;margin-bottom:.5rem">Unavailable on this server</h2><p style="color:#666;font-size:.82rem">Try VidSrc or VEmbed</p></div>`;
@@ -2013,7 +2076,7 @@ function selectSeason(tvId,season,imdbId){
   loadEpisodes(tvId,season);
   const srv=SRVS[S.srv], useId=srv.imdb?imdbId:S.content.id;
   if(srv.imdb&&!imdbId){ showUnavail(); return; }
-  setFrame(srv.tv(useId,season,1));
+  setFrame(srv.tv(useId,season,1), !!srv.hls);
 }
 function selectEpisode(ep){
   if(!S.content) return;
@@ -2023,7 +2086,7 @@ function selectEpisode(ep){
   if(active) active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
   const srv=SRVS[S.srv], useId=srv.imdb?S.content.imdbId:S.content.id;
   if(srv.imdb&&!S.content.imdbId){ showUnavail(); return; }
-  setFrame(srv.tv(useId,S.content.season,ep));
+  setFrame(srv.tv(useId,S.content.season,ep), !!srv.hls);
 }
 function switchServer(key){
   S.srv=key;
@@ -2031,12 +2094,13 @@ function switchServer(key){
   if(!S.content) return;
   const srv=SRVS[key], useId=srv.imdb?S.content.imdbId:S.content.id;
   if(srv.imdb&&!S.content.imdbId){ showUnavail(); return; }
-  setFrame(S.content.type==='tv'?srv.tv(useId,S.content.season,S.content.episode):srv.movie(useId));
+  setFrame(S.content.type==='tv'?srv.tv(useId,S.content.season,S.content.episode):srv.movie(useId), !!srv.hls);
 }
 function closePlayer(){
   document.getElementById('playerModal').classList.remove('open');
   document.getElementById('playerFrame').src='about:blank';
   document.body.classList.remove('no-scroll','ci');
+  _destroyHls();
   cancelAutoNext();
   S.srv='vidsrc-cc';
   document.querySelectorAll('.srv-pill').forEach(p=>p.classList.toggle('active',p.dataset.srv==='vidsrc-cc'));
