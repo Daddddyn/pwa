@@ -12,9 +12,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AFlix">
+<!-- iOS touch icons (Safari uses these when adding to Home Screen) -->
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
 <link rel="apple-touch-startup-image" href="icon-512.png">
+<!-- Service Worker registration -->
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -47,13 +49,15 @@
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased;cursor:default}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased;cursor:default;padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
 body.no-scroll{overflow:hidden}
 
 /* ── iOS PWA Enhancements ── */
 @media (hover:none){#cur-dot,#cur-ring{display:none!important}}
 *{-webkit-tap-highlight-color:transparent}
 .genre-strip,.top10-grid,.cw-grid,.cast-row,.eps-grid,.seasons-row,.iptv-ch-list,.wl-body,.search-drop{-webkit-overflow-scrolling:touch}
+/* bottom nav bar safe area */
+footer{padding-bottom:calc(2.5rem + env(safe-area-inset-bottom))}
 ::selection{background:var(--red);color:#fff}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -72,12 +76,6 @@ body.ci #cur-dot,body.ci #cur-ring{opacity:0}
 body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.022;pointer-events:none;z-index:99997}
 
 /* ── HEADER ── */
-/* 
-  KEY FIX: The header uses padding-top for the safe-area (Dynamic Island).
-  The nav inside has a fixed height of 66px for the actual content.
-  This means the full header height = env(safe-area-inset-top) + 66px.
-  All content that needs to clear the header must account for both.
-*/
 header{position:fixed;top:0;left:0;right:0;z-index:1000;transition:background .4s,border-color .4s;padding-top:env(safe-area-inset-top)}
 header.top{background:transparent;border-bottom:1px solid transparent}
 header.scrolled{background:rgba(7,7,8,.94);backdrop-filter:blur(22px) saturate(180%);border-bottom:1px solid var(--b1)}
@@ -123,12 +121,7 @@ nav{max-width:1440px;margin:0 auto;padding:0 2.5rem;height:66px;display:flex;ali
 .wl-count.show{display:flex}
 
 /* ── HERO ── */
-/*
-  KEY FIX: Hero uses 100svh (small viewport height) which is more reliable
-  on iOS Safari/PWA than 100vh. The hero content gets padding-top to push
-  it below the Dynamic Island header.
-*/
-.hero{position:relative;height:100svh;min-height:580px;max-height:880px;overflow:hidden;display:flex;align-items:flex-end}
+.hero{position:relative;height:100vh;min-height:580px;max-height:880px;overflow:hidden;display:flex;align-items:flex-end}
 .hero-bg{position:absolute;inset:0;background-size:cover;background-position:center 18%;transform:scale(1.06);transition:opacity 1.1s ease,background-image .1s}
 .hero-vignette{position:absolute;inset:0;background:linear-gradient(to top,var(--bg) 0%,rgba(7,7,8,.55) 42%,rgba(7,7,8,.1) 72%,transparent 100%),linear-gradient(to right,rgba(7,7,8,.72) 0%,transparent 58%)}
 .hero-content{position:relative;z-index:2;padding:0 2.5rem 4.5rem;max-width:1440px;width:100%;margin:0 auto}
@@ -191,6 +184,7 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
 .card-star{color:var(--gold);font-size:.7rem;font-weight:700}
 .ctag{position:absolute;top:.55rem;left:.55rem;font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:rgba(7,7,8,.72);backdrop-filter:blur(6px);border:1px solid var(--b1);color:var(--text2);padding:.18rem .48rem;border-radius:5px}
 .ctag.tv{color:var(--green);border-color:rgba(61,220,132,.28)}
+/* watchlist heart on card */
 .card-wl-btn{position:absolute;top:.55rem;right:.55rem;width:28px;height:28px;border-radius:50%;background:rgba(7,7,8,.7);backdrop-filter:blur(6px);border:1px solid var(--b1);color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:all .2s;font-size:.8rem;z-index:2}
 .card:hover .card-wl-btn{opacity:1}
 .card-wl-btn:hover{background:rgba(232,25,44,.2);border-color:rgba(232,25,44,.4);color:var(--red)}
@@ -225,7 +219,7 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
 /* ── WATCHLIST SIDEBAR ── */
 .wl-panel{position:fixed;top:0;right:0;bottom:0;width:340px;background:var(--bg2);border-left:1px solid var(--b1);z-index:9000;transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
 .wl-panel.open{transform:translateX(0)}
-.wl-head{padding:1.4rem 1.5rem;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;padding-top:calc(1.4rem + env(safe-area-inset-top))}
+.wl-head{padding:1.4rem 1.5rem;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .wl-head h2{font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;letter-spacing:-.02em}
 .wl-body{flex:1;overflow-y:auto;padding:.8rem}
 .wl-item{display:flex;gap:.7rem;padding:.6rem .5rem;border-radius:8px;cursor:pointer;transition:background .15s;align-items:center}
@@ -285,6 +279,7 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
 .close-btn{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid var(--b1);color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;font-size:1.15rem;line-height:1;flex-shrink:0}
 .close-btn:hover{background:var(--red);border-color:var(--red);color:#fff}
 
+/* autoplay notice bar */
 .autonext-bar{display:none;align-items:center;justify-content:space-between;padding:.65rem 1.4rem;background:rgba(232,25,44,.1);border-bottom:1px solid rgba(232,25,44,.2)}
 .autonext-bar.show{display:flex}
 .autonext-txt{font-size:.82rem;color:var(--text2);display:flex;align-items:center;gap:.5rem}
@@ -293,6 +288,7 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
 .autonext-cancel{font-size:.78rem;color:var(--text3);cursor:pointer;padding:.2rem .5rem;border-radius:5px;transition:all .18s;white-space:nowrap;background:none;border:1px solid var(--b1);font-family:inherit}
 .autonext-cancel:hover{color:var(--text);border-color:var(--b1)}
 
+/* servers */
 .server-row{padding:.9rem 1.4rem;border-bottom:1px solid var(--b1);background:var(--bg3);display:flex;align-items:center;gap:.9rem;flex-wrap:wrap}
 .server-lbl{font-size:.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;flex-shrink:0}
 .srv-pills{display:flex;gap:.45rem;flex-wrap:wrap}
@@ -303,12 +299,14 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
 .srv-q{font-size:.62rem;font-weight:700;color:var(--gold);letter-spacing:.05em}
 .srv-pill.active .srv-q{color:var(--red2)}
 
+/* tv controls */
 .tv-ctrl{border-bottom:1px solid var(--b1);background:var(--bg3)}
 .seasons-row{padding:.7rem 1.4rem;display:flex;align-items:center;gap:.4rem;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--b2)}
 .seasons-row::-webkit-scrollbar{display:none}
 .stab{flex-shrink:0;padding:.35rem .8rem;border-radius:6px;background:transparent;border:1px solid transparent;font-size:.8rem;font-weight:700;color:var(--text3);cursor:pointer;transition:all .17s;font-family:inherit}
 .stab:hover{color:var(--text2);border-color:var(--b1)}
 .stab.active{color:var(--text);background:var(--bg5);border-color:var(--b1)}
+/* episodes as cards with thumbnails */
 .eps-grid{padding:.8rem 1.4rem;display:flex;gap:.6rem;overflow-x:auto;scrollbar-width:none;max-height:220px}
 .eps-grid::-webkit-scrollbar{display:none}
 .ep-card{flex-shrink:0;width:140px;border-radius:8px;background:var(--bg4);border:1px solid var(--b2);cursor:pointer;overflow:hidden;transition:all .18s}
@@ -321,11 +319,13 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
 .ep-card.active .ep-num{color:var(--red)}
 .ep-card.active .ep-name{color:var(--text)}
 
+/* video stage */
 .stage{position:relative;width:100%;padding-top:56.25%;background:#000}
 .p-iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
 .p-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#000;opacity:0;pointer-events:none;transition:opacity .25s}
 .p-loading.show{opacity:1;pointer-events:all}
 
+/* info bar */
 .p-info{padding:1.3rem 1.4rem;background:var(--bg3);border-top:1px solid var(--b1)}
 .p-overview{font-size:.86rem;color:var(--text2);line-height:1.65;font-weight:300;margin-bottom:.9rem}
 .p-stats{display:flex;gap:2.5rem;flex-wrap:wrap}
@@ -350,7 +350,7 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
 .tog.on::after{transform:translateX(19px);background:#fff}
 .s-ver{padding:.7rem .9rem;font-size:.75rem;color:var(--text3);text-align:center;border-top:1px solid var(--b2);margin-top:.5rem}
 
-/* ── SPINNER / SKELETON ── */
+/* ── SPINNER ── */
 .spin{display:inline-block;width:20px;height:20px;border:2px solid rgba(255,255,255,.1);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .skel{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shim 1.5s infinite}
@@ -365,7 +365,7 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
 @keyframes tin{from{opacity:0;transform:translateY(-10px) scale(.96)}to{opacity:1;transform:none}}
 
 /* ── FOOTER ── */
-footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:gap}
 .foot-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;letter-spacing:-.04em;color:var(--text)}
 .foot-logo em{color:var(--red);font-style:normal}
 .foot-txt{font-size:.78rem;color:var(--text3)}
@@ -381,259 +381,29 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
 .reveal{opacity:0;transform:translateY(18px);transition:opacity .5s ease,transform .5s ease}
 .reveal.in{opacity:1;transform:none}
 
-/* ── PROFILE SYSTEM ── */
-.prof-avatar-btn{
-  position:relative; width:38px; height:38px; border-radius:50%;
-  background:rgba(255,255,255,.06); border:1px solid var(--b1);
-  color:var(--text2); display:flex; align-items:center; justify-content:center;
-  cursor:pointer; transition:all .2s; flex-shrink:0;
-  font-size:.72rem; font-weight:700; font-family:'Syne',sans-serif;
-  letter-spacing:.01em; overflow:hidden;
-}
-.prof-avatar-btn:hover{ background:rgba(255,255,255,.1); color:var(--text); }
-.prof-avatar-btn.signed-in{
-  background:linear-gradient(135deg,rgba(232,25,44,.25),rgba(232,25,44,.08));
-  border-color:rgba(232,25,44,.4); color:var(--red);
-}
-.prof-online-dot{
-  position:absolute; bottom:1px; right:1px; width:8px; height:8px;
-  border-radius:50%; background:var(--green); border:2px solid var(--bg); display:none;
-}
-.prof-avatar-btn.signed-in .prof-online-dot{ display:block; }
-
-.profile-modal{
-  position:fixed; inset:0; z-index:25000;
-  display:none; align-items:flex-end; justify-content:center;
-  background:rgba(0,0,0,.88); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
-}
-.profile-modal.open{ display:flex; animation:fadein .22s ease; }
-
-.prof-panel{
-  background:var(--bg2); border:1px solid var(--b1);
-  border-radius:var(--rl) var(--rl) 0 0;
-  width:100%; max-width:480px; max-height:92dvh;
-  overflow-y:auto; overflow-x:hidden;
-  box-shadow:0 -24px 80px rgba(0,0,0,.9);
-  animation:profUp .32s cubic-bezier(.4,0,.2,1);
-  padding-bottom:env(safe-area-inset-bottom);
-  -webkit-overflow-scrolling:touch;
-}
-@keyframes profUp{ from{transform:translateY(48px);opacity:0} to{transform:none;opacity:1} }
-
-.prof-handle{ width:36px; height:4px; border-radius:2px; background:var(--bg5); margin:.7rem auto .3rem; }
-.prof-hd{ display:flex; align-items:center; justify-content:space-between; padding:.9rem 1.3rem .7rem; }
-.prof-hd-title{ font-family:'Syne',sans-serif; font-weight:700; font-size:1rem; letter-spacing:-.02em; }
-.prof-close{
-  width:30px; height:30px; border-radius:50%;
-  background:rgba(255,255,255,.06); border:1px solid var(--b1);
-  color:var(--text2); display:flex; align-items:center; justify-content:center;
-  cursor:pointer; transition:all .2s; font-size:1rem; line-height:1;
-}
-.prof-close:hover{ background:var(--red); border-color:var(--red); color:#fff; }
-
-.auth-tabs{
-  display:flex; gap:0; margin:.1rem 1.3rem .9rem;
-  background:var(--bg3); border-radius:9px; padding:3px; border:1px solid var(--b2);
-}
-.auth-tab{
-  flex:1; text-align:center; padding:.55rem; border-radius:7px;
-  font-size:.82rem; font-weight:600; color:var(--text3); cursor:pointer;
-  transition:all .2s; user-select:none; -webkit-tap-highlight-color:transparent;
-}
-.auth-tab.active{ background:var(--bg5); color:var(--text); box-shadow:0 1px 4px rgba(0,0,0,.35); }
-
-.auth-body{ padding:0 1.3rem 1.1rem; }
-
-.inp-group{ margin-bottom:.9rem; }
-.inp-label{ display:block; font-size:.72rem; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:.08em; margin-bottom:.38rem; }
-.inp-field{
-  width:100%; padding:.78rem 1rem;
-  background:var(--bg4); border:1px solid var(--b1); border-radius:9px;
-  color:var(--text); font-size:.92rem; font-family:'DM Sans',sans-serif;
-  outline:none; transition:border-color .18s, box-shadow .18s;
-  -webkit-text-fill-color:var(--text); caret-color:var(--red);
-  -webkit-appearance:none; appearance:none;
-}
-.inp-field::placeholder{ color:var(--text3); }
-.inp-field:focus{ border-color:rgba(232,25,44,.55); box-shadow:0 0 0 3px rgba(232,25,44,.1); }
-.inp-field:-webkit-autofill,
-.inp-field:-webkit-autofill:hover,
-.inp-field:-webkit-autofill:focus{
-  -webkit-box-shadow:0 0 0 100px var(--bg4) inset;
-  -webkit-text-fill-color:var(--text); border-color:rgba(232,25,44,.3);
-}
-.inp-field.err{ border-color:rgba(232,25,44,.7); }
-
-.inp-pw-wrap{ position:relative; }
-.inp-pw-wrap .inp-field{ padding-right:2.8rem; }
-.inp-pw-eye{
-  position:absolute; right:.8rem; top:50%; transform:translateY(-50%);
-  color:var(--text3); cursor:pointer; background:none; border:none;
-  padding:.25rem; display:flex; align-items:center; transition:color .18s;
-  -webkit-tap-highlight-color:transparent;
-}
-.inp-pw-eye:hover{ color:var(--text2); }
-
-.inp-hint{ font-size:.72rem; color:var(--text3); margin-top:.32rem; min-height:.9rem; transition:color .18s; }
-.inp-hint.err{ color:var(--red2); }
-.inp-hint.ok{ color:var(--green); }
-
-.auth-submit{
-  width:100%; padding:.88rem; margin-top:.4rem;
-  background:var(--red); color:#fff; border:none; border-radius:9px;
-  font-family:'DM Sans',sans-serif; font-size:.92rem; font-weight:700;
-  cursor:pointer; transition:all .22s cubic-bezier(.4,0,.2,1);
-  position:relative; overflow:hidden; letter-spacing:.01em;
-}
-.auth-submit::before{ content:''; position:absolute; inset:0; background:linear-gradient(to bottom,rgba(255,255,255,.12),transparent); }
-.auth-submit:hover{ background:var(--red2); transform:translateY(-1px); box-shadow:0 8px 24px rgba(232,25,44,.38); }
-.auth-submit:active{ transform:none; }
-.auth-submit:disabled{ opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
-.auth-submit .spin{ width:16px; height:16px; border-width:2px; vertical-align:middle; margin-right:.4rem; }
-
-.auth-divider{ display:flex; align-items:center; gap:.7rem; margin:.9rem 0; color:var(--text3); font-size:.72rem; }
-.auth-divider::before,.auth-divider::after{ content:''; flex:1; height:1px; background:var(--b1); }
-
-.auth-foot{ text-align:center; font-size:.76rem; color:var(--text3); padding:.5rem 0 .2rem; line-height:1.55; }
-.auth-foot span{ color:var(--text2); cursor:pointer; }
-.auth-foot span:hover{ color:var(--text); text-decoration:underline; }
-
-.prof-user-hero{
-  display:flex; align-items:center; gap:1rem;
-  padding:.5rem 1.3rem 1.1rem; border-bottom:1px solid var(--b2); margin-bottom:.5rem;
-}
-.prof-big-av{
-  width:58px; height:58px; border-radius:50%;
-  background:linear-gradient(135deg,var(--red),#6b0010);
-  display:flex; align-items:center; justify-content:center;
-  font-family:'Syne',sans-serif; font-weight:800; font-size:1.3rem; color:#fff;
-  flex-shrink:0; border:2px solid rgba(232,25,44,.4);
-}
-.prof-user-name{ font-family:'Syne',sans-serif; font-weight:700; font-size:1.05rem; letter-spacing:-.02em; margin-bottom:.18rem; }
-.prof-user-since{ font-size:.72rem; color:var(--text3); }
-
-.prof-sec-lbl{ font-size:.68rem; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:.1em; padding:.7rem 1.3rem .35rem; }
-
-.prof-stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:.5rem; padding:.3rem 1.3rem .8rem; }
-.prof-stat{ background:var(--bg3); border:1px solid var(--b2); border-radius:10px; padding:.7rem .5rem; text-align:center; }
-.prof-stat-val{ font-family:'Syne',sans-serif; font-weight:700; font-size:1.2rem; color:var(--text); margin-bottom:.18rem; }
-.prof-stat-lbl{ font-size:.65rem; color:var(--text3); font-weight:500; text-transform:uppercase; letter-spacing:.06em; }
-
-.prof-row{
-  display:flex; align-items:center; gap:.8rem;
-  padding:.8rem 1.3rem; border-radius:10px; cursor:pointer; transition:background .14s; margin:0 .4rem;
-}
-.prof-row:hover{ background:rgba(255,255,255,.04); }
-.prof-row-icon{ width:34px; height:34px; border-radius:9px; background:var(--bg3); border:1px solid var(--b2); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--text2); font-size:.95rem; }
-.prof-row-info{ flex:1; min-width:0; }
-.prof-row-title{ font-size:.88rem; font-weight:500; margin-bottom:.08rem; }
-.prof-row-sub{ font-size:.72rem; color:var(--text3); }
-.prof-row-arr{ color:var(--text3); font-size:.9rem; }
-
-.iptv-saved-list{ padding:0 1.3rem .5rem; }
-.iptv-saved-item{
-  display:flex; align-items:center; gap:.7rem;
-  padding:.62rem .7rem; border-radius:9px;
-  background:var(--bg3); border:1px solid var(--b2); margin-bottom:.45rem; transition:border-color .16s;
-}
-.iptv-saved-item:hover{ border-color:rgba(232,25,44,.3); }
-.iptv-saved-name{ flex:1; font-size:.84rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-.iptv-saved-url{ font-size:.68rem; color:var(--text3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px; }
-.iptv-saved-btns{ display:flex; gap:.35rem; flex-shrink:0; }
-.iptv-saved-btn{
-  width:28px; height:28px; border-radius:7px; background:var(--bg4); border:1px solid var(--b1);
-  color:var(--text3); display:flex; align-items:center; justify-content:center;
-  cursor:pointer; transition:all .16s; font-size:.75rem;
-}
-.iptv-saved-btn:hover{ border-color:var(--red); color:var(--red); background:rgba(232,25,44,.1); }
-.iptv-saved-btn.play-btn:hover{ color:var(--green); border-color:var(--green); background:rgba(61,220,132,.1); }
-
-.iptv-add-form{ display:flex; flex-direction:column; gap:.55rem; padding:.5rem 1.3rem .8rem; }
-.iptv-add-row{ display:flex; gap:.5rem; }
-.iptv-add-input{
-  flex:1; padding:.6rem .85rem; background:var(--bg4); border:1px solid var(--b1);
-  border-radius:8px; color:var(--text); font-size:.82rem; font-family:'DM Sans',sans-serif;
-  outline:none; transition:border-color .18s; -webkit-appearance:none;
-}
-.iptv-add-input::placeholder{ color:var(--text3); }
-.iptv-add-input:focus{ border-color:rgba(232,25,44,.45); }
-.iptv-add-btn{
-  padding:.6rem 1rem; background:var(--red); color:#fff; border:none;
-  border-radius:8px; font-size:.8rem; font-weight:700; cursor:pointer;
-  white-space:nowrap; transition:background .18s; font-family:'DM Sans',sans-serif;
-}
-.iptv-add-btn:hover{ background:var(--red2); }
-.iptv-add-btn:disabled{ opacity:.5; cursor:not-allowed; }
-
-.prof-history-list{ padding:0 1.3rem .6rem; }
-.prof-hist-item{
-  display:flex; align-items:center; gap:.7rem;
-  padding:.55rem 0; border-bottom:1px solid var(--b2); cursor:pointer; transition:opacity .15s;
-}
-.prof-hist-item:last-child{ border-bottom:none; }
-.prof-hist-item:hover{ opacity:.75; }
-.prof-hist-img{ width:38px; height:56px; border-radius:6px; object-fit:cover; background:var(--bg4); flex-shrink:0; }
-.prof-hist-info{ flex:1; min-width:0; }
-.prof-hist-title{ font-size:.84rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.prof-hist-meta{ font-size:.71rem; color:var(--text3); margin-top:.1rem; }
-.prof-hist-bar{ height:2px; background:var(--bg5); border-radius:1px; margin-top:.4rem; overflow:hidden; }
-.prof-hist-fill{ height:100%; background:var(--red); border-radius:1px; }
-
-.prof-signout{
-  display:flex; align-items:center; justify-content:center; gap:.5rem;
-  width:calc(100% - 2.6rem); margin:0 1.3rem .8rem; padding:.78rem; border-radius:9px;
-  background:rgba(232,25,44,.08); border:1px solid rgba(232,25,44,.2);
-  color:var(--red); font-size:.88rem; font-weight:600; cursor:pointer; transition:all .2s;
-  font-family:'DM Sans',sans-serif;
-}
-.prof-signout:hover{ background:rgba(232,25,44,.15); border-color:rgba(232,25,44,.4); }
-
-.sync-status{ display:flex; align-items:center; gap:.4rem; font-size:.68rem; color:var(--text3); padding:.4rem 1.3rem .5rem; }
-.sync-dot{ width:5px; height:5px; border-radius:50%; background:var(--text3); flex-shrink:0; }
-.sync-dot.ok{ background:var(--green); }
-.sync-dot.err{ background:var(--red); }
-.sync-dot.spin-dot{ animation:pdot 1.5s ease infinite; background:var(--gold); }
-
-@media(min-width:641px){
-  .profile-modal{ align-items:center; }
-  .prof-panel{ border-radius:var(--rl); max-height:88dvh; box-shadow:0 40px 80px rgba(0,0,0,.9); animation:slup .28s cubic-bezier(.4,0,.2,1); }
-  .prof-handle{ display:none; }
-}
 
 /* ── IPTV / LIVE TV MODAL ── */
-/*
-  KEY FIX: The IPTV modal is full-screen. On iOS PWA, the top
-  must respect env(safe-area-inset-top) so the header bar
-  doesn't sit under the Dynamic Island / status bar notch.
-  We apply padding-top to the .iptv-hd element.
-*/
 .iptv-modal{position:fixed;inset:0;background:rgba(0,0,0,.97);z-index:19000;display:none;flex-direction:column;overflow:hidden}
 .iptv-modal.open{display:flex;animation:fadein .22s ease}
-.iptv-hd{
-  display:flex;align-items:center;gap:.8rem;
-  padding:.9rem 1.4rem;
-  /* KEY FIX: push header content below Dynamic Island */
-  padding-top:calc(env(safe-area-inset-top) + .9rem);
-  background:var(--bg2);border-bottom:1px solid var(--b1);flex-shrink:0;flex-wrap:wrap
-}
+.iptv-hd{display:flex;align-items:center;gap:1rem;padding:.9rem 1.4rem;background:var(--bg2);border-bottom:1px solid var(--b1);flex-shrink:0;flex-wrap:wrap}
 .iptv-hd-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;letter-spacing:-.02em;flex-shrink:0}
 .iptv-live-dot{width:7px;height:7px;border-radius:50%;background:#e8192c;animation:pdot 1.8s ease infinite;flex-shrink:0}
-.iptv-url-wrap{display:flex;gap:.5rem;flex:1;min-width:0}
-.iptv-url-input{flex:1;padding:.52rem .9rem;background:var(--bg4);border:1px solid var(--b1);border-radius:8px;color:var(--text);font-size:.83rem;font-family:inherit;outline:none;min-width:0;-webkit-appearance:none}
+.iptv-url-wrap{display:flex;gap:.5rem;flex:1;min-width:220px}
+.iptv-url-input{flex:1;padding:.52rem .9rem;background:var(--bg4);border:1px solid var(--b1);border-radius:8px;color:var(--text);font-size:.83rem;font-family:inherit;outline:none;min-width:0}
 .iptv-url-input:focus{border-color:rgba(232,25,44,.5)}
 .iptv-url-input::placeholder{color:var(--text3)}
-.iptv-load-btn{padding:.52rem 1.1rem;background:var(--red);color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .2s;flex-shrink:0}
+.iptv-load-btn{padding:.52rem 1.1rem;background:var(--red);color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .2s}
 .iptv-load-btn:hover{background:var(--red2)}
-.iptv-body{display:flex;flex:1;overflow:hidden;min-height:0}
-.iptv-sidebar{width:260px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+.iptv-body{display:flex;flex:1;overflow:hidden}
+.iptv-sidebar{width:280px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
 .iptv-sidebar-hd{padding:.7rem 1rem;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .iptv-sidebar-title{font-size:.75rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.09em}
 .iptv-ch-count{font-size:.72rem;color:var(--text3)}
 .iptv-search{padding:.5rem .8rem;border-bottom:1px solid var(--b1);flex-shrink:0}
-.iptv-ch-search{width:100%;padding:.42rem .7rem;background:var(--bg4);border:1px solid var(--b1);border-radius:7px;color:var(--text);font-size:.8rem;font-family:inherit;outline:none;-webkit-appearance:none}
+.iptv-ch-search{width:100%;padding:.42rem .7rem;background:var(--bg4);border:1px solid var(--b1);border-radius:7px;color:var(--text);font-size:.8rem;font-family:inherit;outline:none}
 .iptv-ch-search::placeholder{color:var(--text3)}
 .iptv-ch-search:focus{border-color:rgba(232,25,44,.4)}
-.iptv-ch-list{flex:1;overflow-y:auto;padding:.35rem;-webkit-overflow-scrolling:touch}
+.iptv-ch-list{flex:1;overflow-y:auto;padding:.35rem}
 .iptv-ch{display:flex;align-items:center;gap:.65rem;padding:.52rem .65rem;border-radius:8px;cursor:pointer;transition:background .14s}
 .iptv-ch:hover{background:rgba(255,255,255,.05)}
 .iptv-ch.active{background:rgba(232,25,44,.12);border:1px solid rgba(232,25,44,.28)}
@@ -642,36 +412,33 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
 .iptv-ch-info{flex:1;min-width:0}
 .iptv-ch-name{font-size:.82rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .iptv-ch-group{font-size:.7rem;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.iptv-stage{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#000;min-width:0}
-.iptv-player-wrap{flex:1;position:relative;background:#000;min-height:0}
+.iptv-stage{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#000}
+.iptv-player-wrap{flex:1;position:relative;background:#000}
 .iptv-video{width:100%;height:100%;display:block;object-fit:contain;background:#000}
 .iptv-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.7rem;background:rgba(0,0,0,.7);pointer-events:none}
 .iptv-overlay.hidden{display:none}
 .iptv-overlay-msg{font-size:.9rem;color:var(--text2);text-align:center;padding:0 2rem;line-height:1.55}
 .iptv-overlay-icon{font-size:2.5rem;opacity:.4}
-.iptv-now-bar{
-  padding:.65rem 1.2rem;background:var(--bg3);border-top:1px solid var(--b1);
-  display:flex;align-items:center;gap:.9rem;flex-shrink:0;flex-wrap:wrap;
-  /* KEY FIX: bottom safe area so now-bar isn't hidden behind home indicator */
-  padding-bottom:calc(.65rem + env(safe-area-inset-bottom))
-}
+.iptv-now-bar{padding:.65rem 1.2rem;background:var(--bg3);border-top:1px solid var(--b1);display:flex;align-items:center;gap:.9rem;flex-shrink:0;flex-wrap:wrap}
 .iptv-now-name{font-size:.88rem;font-weight:600;letter-spacing:-.01em}
 .iptv-now-sub{font-size:.78rem;color:var(--text3)}
 .iptv-close-btn{margin-left:auto;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid var(--b1);color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .18s;font-size:1.1rem;flex-shrink:0}
 .iptv-close-btn:hover{background:var(--red);border-color:var(--red);color:#fff}
-.iptv-preset-row{display:flex;gap:.45rem;flex-wrap:wrap;padding:.6rem 1rem;border-bottom:1px solid var(--b1);flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.iptv-preset{padding:.3rem .75rem;background:var(--bg4);border:1px solid var(--b1);border-radius:100px;font-size:.74rem;font-weight:500;color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.iptv-preset-row{display:flex;gap:.45rem;flex-wrap:wrap;padding:.6rem 1rem;border-bottom:1px solid var(--b1);flex-shrink:0}
+.iptv-preset{padding:.3rem .75rem;background:var(--bg4);border:1px solid var(--b1);border-radius:100px;font-size:.74rem;font-weight:500;color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap}
 .iptv-preset:hover{border-color:rgba(232,25,44,.5);color:var(--text)}
 .iptv-preset.active{background:rgba(232,25,44,.15);border-color:var(--red);color:var(--red)}
 .iptv-err{color:var(--red);font-size:.8rem;padding:.4rem .8rem;text-align:center}
 .iptv-loading-ch{padding:2rem;text-align:center;color:var(--text3);font-size:.84rem;display:flex;align-items:center;justify-content:center;gap:.6rem}
+@media(max-width:700px){
+  .iptv-sidebar{width:100%;max-height:220px;border-right:none;border-bottom:1px solid var(--b1)}
+  .iptv-body{flex-direction:column}
+  .iptv-ch-list{max-height:150px}
+}
 
-/* ── BOTTOM TAB BAR (mobile only) ── */
-.bottom-tab-bar{ display:none; }
-
-/* ════════════════════════════════
+/* ══════════════════════════════════════════
    RESPONSIVE — TABLET
-════════════════════════════════ */
+══════════════════════════════════════════ */
 @media(max-width:900px){
   nav{padding:0 1.2rem;gap:.8rem}
   main{padding:0 1.2rem 5rem}
@@ -681,61 +448,83 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
   footer{padding:2rem 1.2rem}
 }
 
-/* ════════════════════════════════
-   RESPONSIVE — MOBILE (≤ 640px)
-   KEY FIXES:
-   1. Header nav height stays 56px; safe-area
-      padding is on the <header> element itself.
-   2. Hero uses padding-top to account for the
-      full header height (safe-area + 56px).
-   3. IPTV sidebar stacks below video on mobile.
-   4. Bottom tab bar appears and main gets bottom
-      padding to account for it + home indicator.
-   5. Search overlay drops below the full header.
-════════════════════════════════ */
+/* ══════════════════════════════════════════
+   RESPONSIVE — MOBILE  (≤ 640px)
+   Strategy:
+   • Header = Logo + Search + Watchlist + Settings (4 items max)
+   • Nav links move to a BOTTOM TAB BAR
+   • Search expands as full-width overlay on mobile
+══════════════════════════════════════════ */
 @media(max-width:640px){
 
-  /* Header */
-  nav{ padding:0 1rem; height:56px; gap:.5rem; }
+  /* ── Header slim down ── */
+  nav{
+    padding:0 1rem;
+    height:56px;
+    gap:.5rem;
+  }
+
+  /* Hide desktop nav links — they move to bottom tab bar */
   .nav-links{ display:none; }
+  .nav-spacer{ flex:1; }
+
+  /* Logo smaller */
   .logo{ font-size:1.25rem; }
 
-  /* Search full-width overlay on mobile */
+  /* Search: when closed, just the icon button */
   .search-wrap{ position:static; flex-shrink:0; }
   .search-bar{
-    position:fixed; top:0; left:0; right:0;
-    width:100% !important; border-radius:0; border:none;
-    border-bottom:1px solid var(--b1); background:var(--bg2);
-    z-index:1010; padding:0 1rem;
-    height:calc(56px + env(safe-area-inset-top));
-    padding-top:env(safe-area-inset-top);
-    display:flex; align-items:center;
-    opacity:0; pointer-events:none;
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    width:100% !important;
+    border-radius:0;
+    border:none;
+    border-bottom:1px solid var(--b1);
+    background:var(--bg2);
+    z-index:1010;
+    padding:0 1rem;
+    height:56px;
+    display:flex;
+    align-items:center;
+    opacity:0;
+    pointer-events:none;
     transform:translateY(-100%);
     transition:opacity .22s, transform .22s cubic-bezier(.4,0,.2,1);
   }
   .search-bar.open{
-    opacity:1; pointer-events:all; transform:translateY(0);
+    opacity:1;
+    pointer-events:all;
+    transform:translateY(env(safe-area-inset-top, 0px));
   }
   .search-wrap.open .search-btn{
-    border-radius:50%; border-left:1px solid var(--b1); background:rgba(255,255,255,.06);
+    border-radius:50%;
+    border-left:1px solid var(--b1);
+    background:rgba(255,255,255,.06);
   }
   .search-drop{
     position:fixed;
-    top:calc(56px + env(safe-area-inset-top));
-    left:0; right:0; width:100%;
-    border-radius:0 0 var(--rl) var(--rl); max-height:60vh;
+    top:calc(56px + env(safe-area-inset-top, 0px));
+    left:0;
+    right:0;
+    width:100%;
+    border-radius:0 0 var(--rl) var(--rl);
+    max-height:60vh;
   }
   #searchInput{ font-size:1rem; padding:.6rem .5rem; }
 
+  /* Icon buttons — slightly smaller hit targets */
   .nav-icon-btn{ width:36px; height:36px; flex-shrink:0; }
   .search-btn{ width:36px; height:36px; flex-shrink:0; }
-  .prof-avatar-btn{ width:36px; height:36px; }
 
-  /* Bottom Tab Bar */
+  /* ── Bottom Tab Bar ── */
   .bottom-tab-bar{
     display:flex !important;
-    position:fixed; bottom:0; left:0; right:0;
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
     height:calc(56px + env(safe-area-inset-bottom));
     padding-bottom:env(safe-area-inset-bottom);
     background:rgba(7,7,8,.96);
@@ -743,23 +532,32 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
     -webkit-backdrop-filter:blur(20px) saturate(180%);
     border-top:1px solid var(--b1);
     z-index:990;
-    align-items:center; justify-content:space-around;
+    align-items:center;
+    justify-content:space-around;
   }
   .tab-item{
-    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:.2rem; cursor:pointer; padding:.4rem 0;
-    color:var(--text3); transition:color .18s;
-    -webkit-tap-highlight-color:transparent; user-select:none;
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:.2rem;
+    cursor:pointer;
+    padding:.5rem 0;
+    color:var(--text3);
+    transition:color .18s;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;
   }
   .tab-item.active{ color:var(--red); }
-  .tab-item svg{ width:20px; height:20px; flex-shrink:0; }
-  .tab-item span{ font-size:.58rem; font-weight:600; letter-spacing:.02em; }
+  .tab-item svg{ width:22px; height:22px; flex-shrink:0; }
+  .tab-item span{ font-size:.62rem; font-weight:600; letter-spacing:.02em; }
 
-  /* Push content above tab bar + home indicator */
+  /* Push main content above the tab bar */
   main{ padding:0 1rem calc(80px + env(safe-area-inset-bottom)); }
   footer{ display:none; }
 
-  /* Hero */
+  /* ── Hero ── */
   .hero{ max-height:620px; }
   .hero-content{ padding:0 1rem 5rem; }
   .hero-title{ font-size:1.9rem; }
@@ -769,69 +567,61 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
   .hero-btns{ gap:.5rem; }
   .btn-play{ padding:.75rem 1.4rem; font-size:.85rem; }
 
-  /* Grids */
+  /* ── Grids ── */
   .grid{ grid-template-columns:repeat(3,1fr); gap:.5rem; }
 
-  /* Player */
+  /* ── Player modal ── */
   .player-modal.open{ padding:0; }
-  .player-wrap{ border-radius:0; min-height:100dvh; display:flex; flex-direction:column; }
+  .player-wrap{
+    border-radius:0;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+  }
 
-  /* Watchlist panel */
+  /* ── Watchlist panel ── */
   .wl-panel{ width:100%; }
 
-  /* Detail modal */
+  /* ── Detail modal ── */
   .detail-modal.open{ padding:.75rem .5rem; }
 
-  /* Settings */
+  /* ── Settings modal ── */
   .settings-panel{ max-width:100vw; border-radius:var(--rl) var(--rl) 0 0; position:fixed; bottom:0; left:0; right:0; }
   .settings-modal.open{ align-items:flex-end; }
-
-  /* IPTV on mobile: sidebar stacks above the video */
-  .iptv-body{ flex-direction:column; }
-  .iptv-sidebar{
-    width:100%; flex-shrink:0;
-    border-right:none; border-bottom:1px solid var(--b1);
-    max-height:240px;
-  }
-  .iptv-ch-list{ max-height:160px; }
-  .iptv-stage{ flex:1; min-height:220px; }
-  /* On mobile the now-bar safe area is also important */
-  .iptv-now-bar{
-    padding-bottom:calc(.65rem + env(safe-area-inset-bottom));
-    padding-left:calc(1.2rem + env(safe-area-inset-left));
-    padding-right:calc(1.2rem + env(safe-area-inset-right));
-  }
-  /* IPTV header on mobile: compact, single row */
-  .iptv-hd{ gap:.5rem; flex-wrap:nowrap; }
-  .iptv-url-wrap{ min-width:0; }
-  .iptv-hd-title{ display:none; } /* save space on small screens */
 }
 
-/* ════════════════════════════════
-   LANDSCAPE PHONE
-════════════════════════════════ */
+/* ══════════════════════════════════════════
+   LANDSCAPE PHONE  (short viewport, wide)
+══════════════════════════════════════════ */
 @media(max-width:900px) and (orientation:landscape) and (max-height:500px){
   .hero{ height:100vw; max-height:340px; min-height:240px; }
   .hero-title{ font-size:1.5rem; }
   .hero-content{ padding:0 1.2rem 2rem; }
-  .bottom-tab-bar{ height:calc(44px + env(safe-area-inset-bottom)); }
+
+  /* Keep bottom tab bar but slimmer */
+  .bottom-tab-bar{
+    height:calc(44px + env(safe-area-inset-bottom));
+  }
   .tab-item span{ display:none; }
   .tab-item svg{ width:20px; height:20px; }
   main{ padding:0 1.2rem calc(60px + env(safe-area-inset-bottom)); }
-  .search-bar{ height:calc(50px + env(safe-area-inset-top)); }
-  .search-drop{ top:calc(50px + env(safe-area-inset-top)); }
+
+  /* Search bar full width in landscape */
+  .search-bar{
+    height:50px;
+  }
+  .search-drop{
+    top:calc(50px + env(safe-area-inset-top,0px));
+  }
+
+  /* Player goes edge-to-edge in landscape */
   .player-modal.open{ padding:0; }
   .player-wrap{ border-radius:0; width:100vw; }
   .stage{ padding-top:56.25%; }
-  /* IPTV landscape: keep side-by-side but shorten sidebar */
-  .iptv-body{ flex-direction:row; }
-  .iptv-sidebar{ width:200px; max-height:none; border-right:1px solid var(--b1); border-bottom:none; }
-  .iptv-ch-list{ max-height:none; }
 }
 </style>
 </head>
 <body>
-
 <!-- cursor -->
 <div id="cur-dot"></div>
 <div id="cur-ring"></div>
@@ -877,13 +667,6 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
     <!-- settings -->
     <button class="nav-icon-btn" onclick="openSettings()" title="Settings">
       <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M17 8.1l-.8-1.9 1-1.3-2-2-1.3 1-1.9-.8L11.5 1h-3l-.5 2.1-1.9.8-1.3-1-2 2 1 1.3-.8 1.9L1 10v.2l2.1.5.8 1.9-1 1.3 2 2 1.3-1 1.9.8.5 2.1h3l.5-2.1 1.9-.8 1.3 1 2-2-1-1.3.8-1.9L19 10v-.2l-2-.7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-    </button>
-    <!-- profile -->
-    <button class="prof-avatar-btn" id="profNavBtn" onclick="openProfile()" title="Profile">
-      <span id="profNavInitial">
-        <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7.5" r="3.5" stroke="currentColor" stroke-width="1.6"/><path d="M3 18c0-4 3.1-6.5 7-6.5s7 2.5 7 6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-      </span>
-      <div class="prof-online-dot"></div>
     </button>
   </nav>
 </header>
@@ -933,6 +716,7 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
 <main>
   <div class="genre-strip" id="genreStrip"></div>
 
+  <!-- Continue Watching (only shown if items exist) -->
   <div class="section reveal" id="cwSection" style="display:none">
     <div class="sec-head">
       <h2 class="sec-title"><span class="sec-dot"></span>Continue Watching</h2>
@@ -976,6 +760,7 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
     <div class="grid" id="tvGrid"></div>
   </div>
 
+  <!-- Watchlist section -->
   <div class="section reveal" id="wlSection" style="display:none">
     <div style="height:1px;background:var(--b2);margin-bottom:3rem"></div>
     <div class="sec-head">
@@ -995,34 +780,6 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
     <span class="foot-link" onclick="openSettings()">Settings</span>
   </div>
 </footer>
-
-<!-- ── BOTTOM TAB BAR (mobile only — inside body, before modals) ── -->
-<nav class="bottom-tab-bar" id="bottomTabBar" aria-label="Main navigation">
-  <div class="tab-item active" id="tab-home" onclick="tabNav('all')" role="button" aria-label="Home">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
-    <span>Home</span>
-  </div>
-  <div class="tab-item" id="tab-movie" onclick="tabNav('movie')" role="button" aria-label="Movies">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 4v16M17 4v16M2 12h20M2 8h5M17 8h5M2 16h5M17 16h5"/></svg>
-    <span>Movies</span>
-  </div>
-  <div class="tab-item" id="tab-tv" onclick="tabNav('tv')" role="button" aria-label="Series">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M16 3l-4 4-4-4"/></svg>
-    <span>Series</span>
-  </div>
-  <div class="tab-item" id="tab-live" onclick="openIPTV()" role="button" aria-label="Live TV">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 000 11.4M17.7 17.7a8 8 0 000-11.4"/><path d="M3.5 3.5a13 13 0 000 17M20.5 20.5a13 13 0 000-17"/></svg>
-    <span>Live</span>
-  </div>
-  <div class="tab-item" id="tab-wl" onclick="openWatchlist()" role="button" aria-label="Watchlist">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14a1 1 0 011 1v17l-7-4.5L5 21V4a1 1 0 011-1z"/></svg>
-    <span>Saved</span>
-  </div>
-  <div class="tab-item" id="tab-profile" onclick="openProfile()" role="button" aria-label="Profile">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-    <span>Profile</span>
-  </div>
-</nav>
 
 <!-- ── DETAIL MODAL ── -->
 <div class="detail-modal" id="detailModal">
@@ -1046,6 +803,8 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
       </div>
       <button class="close-btn" onclick="closePlayer()">×</button>
     </div>
+
+    <!-- autonext bar -->
     <div class="autonext-bar" id="autonextBar">
       <span class="autonext-txt">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="var(--red)"><path d="M1 1L9 6L1 11V1Z"/><path d="M10 1V11" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -1054,6 +813,8 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
       <div class="autonext-progress"><div class="autonext-fill" id="autonextFill"></div></div>
       <button class="autonext-cancel" onclick="cancelAutoNext()">Cancel</button>
     </div>
+
+    <!-- servers -->
     <div class="server-row">
       <span class="server-lbl">Server</span>
       <div class="srv-pills" id="srvPills">
@@ -1063,210 +824,60 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
         <button class="srv-pill" data-srv="vidsrc-xyz" onclick="switchServer('vidsrc-xyz')"><span class="srv-dot"></span>VidSrc 3<span class="srv-q">HD</span></button>
       </div>
     </div>
+
+    <!-- tv controls -->
     <div class="tv-ctrl" id="tvCtrl" style="display:none">
       <div class="seasons-row" id="seasonsRow"></div>
       <div class="eps-grid" id="epsGrid"></div>
     </div>
+
+    <!-- video -->
     <div class="stage" id="playerStage">
       <iframe id="playerFrame" class="p-iframe" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture;web-share;fullscreen"></iframe>
       <div class="p-loading" id="pLoading"><div class="spin"></div></div>
     </div>
+
     <div class="p-info" id="pInfo"></div>
   </div>
 </div>
 
-<!-- ── PROFILE MODAL ── -->
-<div class="profile-modal" id="profileModal">
-  <div class="prof-panel" id="profPanel">
-    <div class="prof-handle"></div>
-
-    <!-- AUTH PANEL -->
-    <div id="authPanel">
-      <div class="prof-hd">
-        <div class="prof-hd-title">Account</div>
-        <button class="prof-close" onclick="closeProfile()">×</button>
-      </div>
-      <div class="auth-tabs">
-        <div class="auth-tab active" id="tabLogin" onclick="authSwitchTab('login')">Sign In</div>
-        <div class="auth-tab" id="tabRegister" onclick="authSwitchTab('register')">Create Account</div>
-      </div>
-      <!-- LOGIN FORM -->
-      <div class="auth-body" id="loginForm">
-        <div class="inp-group">
-          <label class="inp-label" for="loginUser">GitHub Username</label>
-          <input class="inp-field" id="loginUser" type="text" placeholder="your-github-username" autocomplete="username" autocorrect="off" autocapitalize="none" spellcheck="false">
-          <div class="inp-hint">Your GitHub account username</div>
-        </div>
-        <div class="inp-group">
-          <label class="inp-label" for="loginToken">Personal Access Token</label>
-          <div class="inp-pw-wrap">
-            <input class="inp-field" id="loginToken" type="password" placeholder="ghp_xxxxxxxxxxxx" autocomplete="current-password" autocorrect="off" autocapitalize="none" spellcheck="false">
-            <button class="inp-pw-eye" type="button" onclick="authTogglePw('loginToken',this)" aria-label="Show/hide token">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>
-            </button>
-          </div>
-          <div class="inp-hint">Token needs <strong>gist</strong> scope — <span style="color:var(--text2);cursor:pointer" onclick="authOpenGithubToken()">create one here ↗</span></div>
-        </div>
-        <button class="auth-submit" id="loginBtn" onclick="authLogin()">Sign In</button>
-        <div class="auth-foot">Don't have an account? <span onclick="authSwitchTab('register')">Create one free →</span></div>
-      </div>
-      <!-- REGISTER FORM -->
-      <div class="auth-body" id="registerForm" style="display:none">
-        <div class="inp-group">
-          <label class="inp-label" for="regUser">Display Name</label>
-          <input class="inp-field" id="regUser" type="text" placeholder="e.g. MovieFan2025" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" oninput="authValidateUsername(this)">
-          <div class="inp-hint" id="regUserHint">3–20 chars, letters/numbers/underscores</div>
-        </div>
-        <div class="inp-group">
-          <label class="inp-label" for="regToken">GitHub Personal Access Token</label>
-          <div class="inp-pw-wrap">
-            <input class="inp-field" id="regToken" type="password" placeholder="ghp_xxxxxxxxxxxx" autocomplete="new-password" autocorrect="off" autocapitalize="none" spellcheck="false">
-            <button class="inp-pw-eye" type="button" onclick="authTogglePw('regToken',this)" aria-label="Show/hide token">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>
-            </button>
-          </div>
-          <div class="inp-hint">Needs <strong>gist</strong> scope — <span style="color:var(--text2);cursor:pointer" onclick="authOpenGithubToken()">generate at GitHub ↗</span></div>
-        </div>
-        <div class="inp-group">
-          <label class="inp-label" for="regPassword">App Password</label>
-          <div class="inp-pw-wrap">
-            <input class="inp-field" id="regPassword" type="password" placeholder="Choose a password (6+ chars)" autocomplete="new-password" oninput="authCheckPwStrength(this)">
-            <button class="inp-pw-eye" type="button" onclick="authTogglePw('regPassword',this)" aria-label="Show/hide password">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>
-            </button>
-          </div>
-          <div class="inp-hint" id="regPwHint">At least 6 characters</div>
-        </div>
-        <button class="auth-submit" id="registerBtn" onclick="authRegister()">Create Account</button>
-        <div class="auth-foot">Already have an account? <span onclick="authSwitchTab('login')">Sign in →</span></div>
-      </div>
-    </div>
-
-    <!-- PROFILE DASHBOARD -->
-    <div id="profilePanel" style="display:none">
-      <div class="prof-hd">
-        <div class="prof-hd-title">My Profile</div>
-        <button class="prof-close" onclick="closeProfile()">×</button>
-      </div>
-      <div class="prof-user-hero">
-        <div class="prof-big-av" id="profBigAv">?</div>
-        <div>
-          <div class="prof-user-name" id="profDisplayName">—</div>
-          <div class="prof-user-since" id="profSince">Member since —</div>
-        </div>
-      </div>
-      <div class="sync-status" id="syncStatus">
-        <div class="sync-dot" id="syncDot"></div>
-        <span id="syncMsg">Not synced</span>
-      </div>
-      <div class="prof-stats">
-        <div class="prof-stat"><div class="prof-stat-val" id="statWl">0</div><div class="prof-stat-lbl">Watchlist</div></div>
-        <div class="prof-stat"><div class="prof-stat-val" id="statHist">0</div><div class="prof-stat-lbl">Watched</div></div>
-        <div class="prof-stat"><div class="prof-stat-val" id="statIptv">0</div><div class="prof-stat-lbl">IPTV Links</div></div>
-      </div>
-      <div class="prof-sec-lbl">📡 My IPTV Playlists</div>
-      <div class="iptv-saved-list" id="iptvSavedList"></div>
-      <div class="iptv-add-form">
-        <div class="iptv-add-row">
-          <input class="iptv-add-input" id="iptvAddName" type="text" placeholder="Name (e.g. My Channels)" autocomplete="off" autocorrect="off" autocapitalize="none">
-        </div>
-        <div class="iptv-add-row">
-          <input class="iptv-add-input" id="iptvAddUrl" type="url" placeholder="M3U playlist URL or stream URL" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
-          <button class="iptv-add-btn" onclick="profAddIPTV()">Save</button>
-        </div>
-      </div>
-      <div class="prof-sec-lbl">🎬 Watch History</div>
-      <div class="prof-history-list" id="profHistoryList"></div>
-      <div style="padding:.3rem 1.3rem .6rem">
-        <button class="prof-row" style="width:100%;margin:0;border:1px solid var(--b2);border-radius:10px;background:var(--bg3)" onclick="profSyncToCloud()">
-          <div class="prof-row-icon">☁</div>
-          <div class="prof-row-info"><div class="prof-row-title">Sync to Cloud</div><div class="prof-row-sub">Save watchlist + history to your Gist</div></div>
-          <div class="prof-row-arr">→</div>
-        </button>
-      </div>
-      <button class="prof-signout" onclick="authSignOut()">
-        <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M8 3H4a1 1 0 00-1 1v12a1 1 0 001 1h4M13 14l4-4-4-4M17 10H8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Sign Out
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ── IPTV / LIVE TV MODAL ── -->
-<div class="iptv-modal" id="iptvModal">
-  <div class="iptv-hd">
-    <div class="iptv-live-dot"></div>
-    <div class="iptv-hd-title">Live TV</div>
-    <div class="iptv-url-wrap">
-      <input class="iptv-url-input" id="iptvUrlInput" type="text" placeholder="Paste M3U playlist URL or stream URL…" autocomplete="off" spellcheck="false">
-      <button class="iptv-load-btn" onclick="iptvLoad()">▶ Load</button>
-    </div>
-    <button class="iptv-close-btn" onclick="closeIPTV()" title="Close">×</button>
-  </div>
-  <div class="iptv-body">
-    <div class="iptv-sidebar" id="iptvSidebar">
-      <div class="iptv-sidebar-hd">
-        <span class="iptv-sidebar-title">Channels</span>
-        <span class="iptv-ch-count" id="iptvChCount"></span>
-      </div>
-      <div id="iptvPresetRow" class="iptv-preset-row" style="display:none"></div>
-      <div class="iptv-search" id="iptvSearchWrap" style="display:none">
-        <input class="iptv-ch-search" id="iptvChSearch" type="text" placeholder="Filter channels…" oninput="iptvFilterChannels(this.value)">
-      </div>
-      <div class="iptv-ch-list" id="iptvChList">
-        <div style="padding:2rem 1rem;text-align:center;color:var(--text3);font-size:.83rem;line-height:1.6">
-          Paste an M3U playlist URL above and click <strong style="color:var(--text2)">Load</strong>,<br>or type a direct HLS/stream URL.
-        </div>
-      </div>
-    </div>
-    <div class="iptv-stage">
-      <div class="iptv-player-wrap">
-        <video class="iptv-video" id="iptvVideo" controls playsinline webkit-playsinline></video>
-        <div class="iptv-overlay" id="iptvOverlay">
-          <div class="iptv-overlay-icon">📡</div>
-          <div class="iptv-overlay-msg">Select a channel to start watching,<br>or load a playlist / stream URL.</div>
-        </div>
-      </div>
-      <div class="iptv-now-bar" id="iptvNowBar" style="display:none">
-        <span class="iptv-now-name" id="iptvNowName">—</span>
-        <span class="iptv-now-sub" id="iptvNowSub"></span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- HLS.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
-
 <script>
 /* ══════════════════════════════════════════
    REMOTE CONFIG
+   Fetched from your GitHub-hosted config.json
+   so the API key never lives in this file.
 ══════════════════════════════════════════ */
+
+// ► CHANGE THIS to the raw URL of your config.json on GitHub:
+//   e.g. https://raw.githubusercontent.com/YOU/REPO/main/aflix-config.json
 const CONFIG_URL = 'https://raw.githubusercontent.com/themillsteam11-code/tmd/refs/heads/main/aflix-config.json';
 
 let AK   = '';
 let TB   = 'https://api.themoviedb.org/3';
 const IMG  = 'https://image.tmdb.org/t/p';
 let SRVS = {};
-let IPTV_PLAYLISTS = [];
+let IPTV_PLAYLISTS = []; // populated from remote config
 
 async function loadRemoteConfig() {
   try {
-    const r = await fetch(CONFIG_URL + '?_=' + Date.now());
+    const r = await fetch(CONFIG_URL + '?_=' + Date.now()); // bust cache
     if (!r.ok) throw new Error('Config fetch failed: ' + r.status);
     const cfg = await r.json();
     AK   = cfg.tmdb_api_key || '';
     TB   = cfg.tmdb_base    || 'https://api.themoviedb.org/3';
+    // Build SRVS from config array or use defaults
     if (cfg.servers && cfg.servers.length) {
       SRVS = {};
       cfg.servers.forEach(s => {
         SRVS[s.id] = {
-          n: s.name, imdb: !!s.imdb,
+          n: s.name,
+          imdb: !!s.imdb,
           movie: id => s.movie_url.replace('{id}', id),
           tv:   (id,se,ep) => s.tv_url.replace('{id}',id).replace('{s}',se).replace('{e}',ep)
         };
       });
     } else {
+      // Fallback default servers (no key needed for these)
       SRVS = {
         'vidsrc-cc':  { n:'VidSrc',  imdb:false, movie:id=>`https://vidsrc.cc/v2/embed/movie/${id}`,   tv:(id,s,e)=>`https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}` },
         'vembed':     { n:'VEmbed',  imdb:false, movie:id=>`https://vembed.stream/play/${id}`,          tv:(id,s,e)=>`https://vembed.stream/play/${id}_s${s}` },
@@ -1274,11 +885,13 @@ async function loadRemoteConfig() {
         'vidsrc-xyz': { n:'VidSrc3', imdb:true,  movie:id=>`https://vidsrc.xyz/embed/movie/${id}`,     tv:(id,s,e)=>`https://vidsrc.xyz/embed/tv/${id}/${s}/${e}` }
       };
     }
+    // IPTV playlists from config
     IPTV_PLAYLISTS = cfg.iptv_playlists || [];
     renderSrvPills();
     return true;
   } catch(e) {
     console.error('[AFlix] Remote config load failed:', e);
+    // Show error in UI
     document.getElementById('configError')?.classList.add('show');
     return false;
   }
@@ -1300,31 +913,42 @@ function renderSrvPills() {
 const S = {
   filter:'all', genre:null, srv:'vidsrc-cc',
   content:null,
-  epList:[],
+  epList:[], // [{number, name, still}]
   heroItems:[], heroIdx:0, heroTimer:null,
   searchOpen:false, searchTimer:null,
-  anTimer:null, anInterval:null,
+  anTimer:null, anInterval:null,  // autonext
   cache: new Map(),
   settings:{ autoplay:true, reduceMotion:false }
 };
 
 /* ══════════════════════════════════════════
-   WATCHLIST
+   WATCHLIST (localStorage)
 ══════════════════════════════════════════ */
 function wlGet(){ try{ return JSON.parse(localStorage.getItem('aflix_wl')||'[]'); }catch{ return []; } }
 function wlSet(arr){ try{ localStorage.setItem('aflix_wl',JSON.stringify(arr)); }catch{} }
 function wlHas(id){ return wlGet().some(i=>i.id===id); }
-function wlAdd(item){ const arr=wlGet(); if(!arr.some(i=>i.id===item.id)){ arr.unshift(item); wlSet(arr); } updateWlCount(); renderWlPanel(); renderWlSection(); }
-function wlRemove(id){ wlSet(wlGet().filter(i=>i.id!==id)); updateWlCount(); renderWlPanel(); renderWlSection(); }
+function wlAdd(item){
+  const arr=wlGet();
+  if(!arr.some(i=>i.id===item.id)){ arr.unshift(item); wlSet(arr); }
+  updateWlCount(); renderWlPanel(); renderWlSection();
+}
+function wlRemove(id){
+  wlSet(wlGet().filter(i=>i.id!==id));
+  updateWlCount(); renderWlPanel(); renderWlSection();
+}
 function wlToggle(item){
   if(wlHas(item.id)){ wlRemove(item.id); toast('Removed from Watchlist'); }
   else { wlAdd(item); toast('Added to Watchlist','ok'); }
+  // Update all heart buttons for this id
   document.querySelectorAll(`.card-wl-btn[data-id="${item.id}"]`).forEach(b=>{
     b.classList.toggle('active', wlHas(item.id));
     b.title = wlHas(item.id) ? 'Remove from Watchlist' : 'Add to Watchlist';
   });
 }
-function updateWlCount(){ const n=wlGet().length, el=document.getElementById('wlCount'); el.textContent=n; el.classList.toggle('show',n>0); }
+function updateWlCount(){
+  const n=wlGet().length, el=document.getElementById('wlCount');
+  el.textContent=n; el.classList.toggle('show',n>0);
+}
 function renderWlPanel(){
   const arr=wlGet(), body=document.getElementById('wlBody');
   if(!arr.length){ body.innerHTML=`<div class="wl-empty"><div class="wl-empty-icon">🎬</div><p>Your watchlist is empty</p></div>`; return; }
@@ -1343,17 +967,25 @@ function renderWlSection(){
   const arr=wlGet(), sec=document.getElementById('wlSection'), grid=document.getElementById('wlGrid');
   if(!arr.length){ sec.style.display='none'; return; }
   sec.style.display='block';
-  renderGridInto(grid, arr.map(i=>({id:i.id,title:i.title,media_type:i.type,poster_path:i.poster,vote_average:i.rating||0,release_date:i.year?`${i.year}-01-01`:''})));
+  renderGridInto(grid, arr.map(i=>({
+    id:i.id, title:i.title, media_type:i.type,
+    poster_path:i.poster, vote_average:i.rating||0,
+    release_date:i.year?`${i.year}-01-01`:''
+  })));
 }
 function openWatchlist(){ document.getElementById('wlPanel').classList.add('open'); document.getElementById('wlOverlay').classList.add('show'); }
 function closeWatchlist(){ document.getElementById('wlPanel').classList.remove('open'); document.getElementById('wlOverlay').classList.remove('show'); }
 
 /* ══════════════════════════════════════════
-   CONTINUE WATCHING
+   CONTINUE WATCHING (sessionStorage)
 ══════════════════════════════════════════ */
 function cwGet(){ try{ return JSON.parse(sessionStorage.getItem('aflix_cw')||'[]'); }catch{ return []; } }
 function cwSet(arr){ try{ sessionStorage.setItem('aflix_cw',JSON.stringify(arr.slice(0,8))); }catch{} }
-function cwAdd(item){ let arr=cwGet().filter(i=>i.id!==item.id); arr.unshift(item); cwSet(arr); renderCW(); }
+function cwAdd(item){
+  let arr=cwGet().filter(i=>i.id!==item.id);
+  arr.unshift(item); cwSet(arr);
+  renderCW();
+}
 function clearHistory(){ sessionStorage.removeItem('aflix_cw'); renderCW(); }
 function renderCW(){
   const arr=cwGet(), sec=document.getElementById('cwSection'), grid=document.getElementById('cwGrid');
@@ -1399,9 +1031,17 @@ async function api(ep, params={}){
 /* ══════════════════════════════════════════
    SETTINGS
 ══════════════════════════════════════════ */
-function loadSettings(){ try{ const s=localStorage.getItem('aflix_s3'); if(s) Object.assign(S.settings,JSON.parse(s)); }catch{} syncSettings(); }
+function loadSettings(){
+  try{ const s=localStorage.getItem('aflix_s3'); if(s) Object.assign(S.settings,JSON.parse(s)); }catch{}
+  syncSettings();
+}
 function saveSettings(){ try{ localStorage.setItem('aflix_s3',JSON.stringify(S.settings)); }catch{} }
-function syncSettings(){ for(const[k,v] of Object.entries(S.settings)){ const el=document.getElementById(`tog-${k}`); if(el) el.classList.toggle('on',v); } }
+function syncSettings(){
+  for(const[k,v] of Object.entries(S.settings)){
+    const el=document.getElementById(`tog-${k}`);
+    if(el) el.classList.toggle('on',v);
+  }
+}
 function toggleSetting(k){ S.settings[k]=!S.settings[k]; syncSettings(); saveSettings(); }
 function openSettings(){ document.getElementById('settingsModal').classList.add('open'); }
 function closeSettings(){ document.getElementById('settingsModal').classList.remove('open'); }
@@ -1427,6 +1067,7 @@ function toast(msg,type=''){
   const hov='button,a,[onclick],.card,.nav-link,.gchip,.srv-pill,.stab,.ep-card,.sitem,.wl-item,.cw-card,.t10-card';
   document.addEventListener('mouseover',e=>{ if(e.target.closest(hov)) document.body.classList.add('ch'); });
   document.addEventListener('mouseout', e=>{ if(e.target.closest(hov)) document.body.classList.remove('ch'); });
+  // hide over iframe stage
   document.addEventListener('mouseover',e=>{ if(e.target.closest('.stage')) document.body.classList.add('ci'); });
   document.addEventListener('mouseout', e=>{ if(e.target.closest('.stage')) document.body.classList.remove('ci'); });
 })();
@@ -1454,14 +1095,13 @@ function setupHeader(){
 ══════════════════════════════════════════ */
 function setupEvents(){
   document.addEventListener('keydown',e=>{
-    if(e.key==='Escape'){ closePlayer(); closeDetail(); closeSettings(); closeWatchlist(); closeProfile(); if(S.searchOpen) closeSearch(); }
+    if(e.key==='Escape'){ closePlayer(); closeDetail(); closeSettings(); closeWatchlist(); if(S.searchOpen) closeSearch(); }
   });
   document.addEventListener('click',e=>{
     if(!e.target.closest('#searchWrap')) closeSearch();
     if(!e.target.closest('.settings-panel')&&!e.target.closest('[onclick="openSettings()"]')) document.getElementById('settingsModal').classList.remove('open');
     if(e.target===document.getElementById('playerModal')) closePlayer();
     if(e.target===document.getElementById('detailModal')) closeDetail();
-    if(e.target===document.getElementById('profileModal')) closeProfile();
   });
   document.querySelectorAll('.nav-link').forEach(l=>l.addEventListener('click',()=>{
     document.querySelectorAll('.nav-link').forEach(x=>x.classList.remove('active'));
@@ -1491,7 +1131,12 @@ function closeSearch(){
   document.getElementById('searchX').classList.remove('show');
   document.getElementById('searchBtn').innerHTML=`<svg width="15" height="15" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="M14 14L18 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
 }
-function clearSearch(){ document.getElementById('searchInput').value=''; document.getElementById('searchInput').focus(); document.getElementById('searchDrop').classList.remove('open'); document.getElementById('searchX').classList.remove('show'); }
+function clearSearch(){
+  document.getElementById('searchInput').value='';
+  document.getElementById('searchInput').focus();
+  document.getElementById('searchDrop').classList.remove('open');
+  document.getElementById('searchX').classList.remove('show');
+}
 document.getElementById('searchInput').addEventListener('input',e=>{
   const v=e.target.value;
   document.getElementById('searchX').classList.toggle('show',v.length>0);
@@ -1537,7 +1182,9 @@ async function loadHero(){
   renderHeroSlide(0);
   S.heroTimer=setInterval(()=>renderHeroSlide((S.heroIdx+1)%S.heroItems.length),7500);
 }
-function renderHeroInds(){ document.getElementById('heroInds').innerHTML=S.heroItems.map((_,i)=>`<div class="hind${i===0?' active':''}" onclick="goHero(${i})"></div>`).join(''); }
+function renderHeroInds(){
+  document.getElementById('heroInds').innerHTML=S.heroItems.map((_,i)=>`<div class="hind${i===0?' active':''}" onclick="goHero(${i})"></div>`).join('');
+}
 function renderHeroSlide(idx){
   const item=S.heroItems[idx], bg=document.getElementById('heroBg'), cont=document.getElementById('heroContent');
   bg.style.opacity='0';
@@ -1601,7 +1248,9 @@ async function loadGenres(){
 /* ══════════════════════════════════════════
    CONTENT LOADING
 ══════════════════════════════════════════ */
-function skelGrid(id,n=12){ document.getElementById(id).innerHTML=Array(n).fill(0).map(()=>`<div class="skel" style="aspect-ratio:2/3;border-radius:var(--r)"></div>`).join(''); }
+function skelGrid(id,n=12){
+  document.getElementById(id).innerHTML=Array(n).fill(0).map(()=>`<div class="skel" style="aspect-ratio:2/3;border-radius:var(--r)"></div>`).join('');
+}
 async function loadTop10(){
   const d=await api('/trending/all/week');
   if(!d) return;
@@ -1615,9 +1264,21 @@ async function loadTop10(){
     </div>`;
   }).join('');
 }
-async function loadTrend(){ skelGrid('trendGrid'); const d=await api('/trending/all/week'); if(d) renderGridInto(document.getElementById('trendGrid'),d.results); }
-async function loadMovies(){ skelGrid('movGrid'); const d=await api('/movie/popular'); if(d) renderGridInto(document.getElementById('movGrid'),d.results.map(m=>({...m,media_type:'movie'}))); }
-async function loadTV(){ skelGrid('tvGrid'); const d=await api('/tv/popular'); if(d) renderGridInto(document.getElementById('tvGrid'),d.results.map(m=>({...m,media_type:'tv'}))); }
+async function loadTrend(){
+  skelGrid('trendGrid');
+  const d=await api('/trending/all/week');
+  if(d) renderGridInto(document.getElementById('trendGrid'),d.results);
+}
+async function loadMovies(){
+  skelGrid('movGrid');
+  const d=await api('/movie/popular');
+  if(d) renderGridInto(document.getElementById('movGrid'),d.results.map(m=>({...m,media_type:'movie'})));
+}
+async function loadTV(){
+  skelGrid('tvGrid');
+  const d=await api('/tv/popular');
+  if(d) renderGridInto(document.getElementById('tvGrid'),d.results.map(m=>({...m,media_type:'tv'})));
+}
 async function filterContent(){
   const p=S.genre?{with_genres:S.genre}:{};
   if(S.filter==='movie'){
@@ -1649,6 +1310,7 @@ function renderGridInto(grid, items){
       </div>
     </div>`;
   }).join('');
+  // reveal each card
   grid.querySelectorAll('.card').forEach((c,i)=>{ c.style.transitionDelay=`${Math.min(i,8)*.04}s`; revealNew(c); });
 }
 
@@ -1660,12 +1322,14 @@ async function openDetail(id, mediaType){
   modal.classList.add('open'); document.body.classList.add('no-scroll');
   document.getElementById('detailBody').innerHTML=`<div style="padding:2rem;text-align:center"><div class="spin"></div></div>`;
   document.getElementById('detailHeroImg').src='';
+
   const [details, credits, videos]= await Promise.all([
     api(`/${mediaType}/${id}`,{append_to_response:'external_ids'}),
     api(`/${mediaType}/${id}/credits`),
     api(`/${mediaType}/${id}/videos`)
   ]);
   if(!details){ closeDetail(); toast('Failed to load details','err'); return; }
+
   const t=esc(details.title||details.name||'');
   const backdrop=details.backdrop_path?`${IMG}/w1280${details.backdrop_path}`:'';
   const r=details.vote_average?.toFixed(1)||'';
@@ -1678,7 +1342,9 @@ async function openDetail(id, mediaType){
   const inWl=wlHas(id);
   const poster=details.poster_path;
   const seasons=details.number_of_seasons;
+
   if(backdrop) document.getElementById('detailHeroImg').src=backdrop;
+
   document.getElementById('detailBody').innerHTML=`
     <div class="detail-title">${t}</div>
     <div class="detail-pills">
@@ -1742,16 +1408,23 @@ async function playContent(id, mediaType, title){
   document.getElementById('pInfo').innerHTML='';
   document.getElementById('pLoading').classList.add('show');
   document.querySelectorAll('.srv-pill').forEach(p=>p.classList.toggle('active',p.dataset.srv===S.srv));
+
   modal.classList.add('open');
   document.body.classList.add('no-scroll');
   modal.scrollTop=0;
+
   const details=await api(`/${mediaType}/${id}`,{append_to_response:'external_ids'});
   if(!details){ toast('Failed to load details','err'); document.getElementById('pLoading').classList.remove('show'); return; }
+
   const imdbId=details.external_ids?.imdb_id||null;
   S.content={id,imdbId,type:mediaType,season:1,episode:1,title};
+
+  // Track in continue watching
   cwAdd({id,type:mediaType,title,backdrop:details.backdrop_path||null,year:(details.release_date||details.first_air_date||'').split('-')[0],season:1,episode:1,progress:Math.floor(Math.random()*30+5)});
+
   const srv=SRVS[S.srv];
   const useId=srv.imdb?imdbId:id;
+
   if(srv.imdb&&!imdbId){ showUnavail(); }
   else if(mediaType==='tv'&&details.seasons){
     const seasons=details.seasons.filter(s=>s.season_number>0);
@@ -1762,6 +1435,8 @@ async function playContent(id, mediaType, title){
   } else {
     setFrame(srv.movie(useId));
   }
+
+  // Info bar
   const r=details.vote_average?.toFixed(1)||'—';
   const runtime=details.runtime||details.episode_run_time?.[0]||null;
   const genres=details.genres?.map(g=>g.name).join(', ')||'—';
@@ -1775,6 +1450,7 @@ async function playContent(id, mediaType, title){
       <div><div class="p-stat-lbl">Genre</div><div class="p-stat-val">${genres}</div></div>
     </div>`;
 }
+
 function setFrame(src){
   const iframe=document.getElementById('playerFrame'), ov=document.getElementById('pLoading');
   ov.classList.add('show');
@@ -1786,6 +1462,7 @@ function showUnavail(){
   document.getElementById('playerFrame').srcdoc=`<style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#000;color:#fff;font-family:'DM Sans',sans-serif;text-align:center}</style><div><h2 style="font-size:1rem;margin-bottom:.5rem">Unavailable on this server</h2><p style="color:#666;font-size:.82rem">Try VidSrc or VEmbed</p></div>`;
   document.getElementById('pLoading').classList.remove('show');
 }
+
 function renderSeasons(seasons,tvId,title,imdbId){
   document.getElementById('seasonsRow').innerHTML=seasons.map(s=>`
     <button class="stab${s.season_number===1?' active':''}" data-s="${s.season_number}"
@@ -1819,6 +1496,7 @@ function selectEpisode(ep){
   if(!S.content) return;
   S.content.episode=ep;
   document.querySelectorAll('.ep-card').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.ep)===ep));
+  // scroll active into view
   const active=document.querySelector('.ep-card.active');
   if(active) active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
   const srv=SRVS[S.srv], useId=srv.imdb?S.content.imdbId:S.content.id;
@@ -1851,6 +1529,7 @@ function setupAutoNext(){
     try{
       const d=typeof e.data==='string'?JSON.parse(e.data):e.data;
       if(!d) return;
+      // vidsrc.cc: {type:"PLAYER_EVENT",data:{event:"complete"}}
       const evt=d?.data?.event||d?.event||d?.type||d?.status||'';
       if(['complete','ended','finish','end'].includes(String(evt).toLowerCase())) startAutoNextCountdown();
     }catch(err){}
@@ -1902,456 +1581,6 @@ function goHome(){
   document.querySelectorAll('.gchip').forEach(c=>c.classList.toggle('active',c.dataset.genre==='all'));
   filterContent(); window.scrollTo({top:0,behavior:'smooth'});
 }
-function tabNav(type){
-  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
-  const tabEl=document.getElementById('tab-'+type);
-  if(tabEl) tabEl.classList.add('active');
-  document.querySelectorAll('.nav-link').forEach(l=>l.classList.toggle('active',l.dataset.type===type));
-  S.filter=type; S.genre=null;
-  document.querySelectorAll('.gchip').forEach(c=>c.classList.toggle('active',c.dataset.genre==='all'));
-  filterContent();
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-
-/* ══════════════════════════════════════════
-   IPTV / LIVE TV
-══════════════════════════════════════════ */
-const IPTV = {
-  hls: null,
-  channels: [],
-  filtered: [],
-  activeIdx: -1,
-  activeGroup: 'all'
-};
-
-function openIPTV(){
-  document.getElementById('iptvModal').classList.add('open');
-  document.body.classList.add('no-scroll');
-  if(IPTV_PLAYLISTS.length) renderIPTVPresets();
-}
-function closeIPTV(){
-  document.getElementById('iptvModal').classList.remove('open');
-  document.body.classList.remove('no-scroll');
-  iptvStop();
-}
-
-function renderIPTVPresets(){
-  const row=document.getElementById('iptvPresetRow');
-  if(!IPTV_PLAYLISTS.length){ row.style.display='none'; return; }
-  row.style.display='flex';
-  row.innerHTML=IPTV_PLAYLISTS.map((p,i)=>`<span class="iptv-preset" onclick="iptvLoadPreset(${i})">${p.name}</span>`).join('');
-}
-
-async function iptvLoadPreset(idx){
-  const p=IPTV_PLAYLISTS[idx];
-  document.getElementById('iptvUrlInput').value=p.url;
-  document.querySelectorAll('.iptv-preset').forEach((el,i)=>el.classList.toggle('active',i===idx));
-  await iptvLoad();
-}
-
-async function iptvLoad(){
-  const raw=document.getElementById('iptvUrlInput').value.trim();
-  if(!raw) return;
-  const isM3U=/\.m3u/i.test(raw)||raw.includes('?');
-  const isDirectHLS=/\.m3u8/i.test(raw);
-  const isDirectTS=/\.ts($|\?)/i.test(raw);
-  if(isDirectHLS||isDirectTS||(!isM3U&&!isDirectHLS)){
-    const fakeCh={name:'Direct Stream',url:raw,logo:'',group:''};
-    IPTV.channels=[fakeCh]; IPTV.filtered=[fakeCh];
-    renderIPTVChannels();
-    iptvPlay(0);
-    return;
-  }
-  const listEl=document.getElementById('iptvChList');
-  listEl.innerHTML=`<div class="iptv-loading-ch"><div class="spin"></div> Loading playlist…</div>`;
-  let text='';
-  try{
-    const r=await fetch(raw);
-    if(!r.ok) throw new Error(r.status);
-    text=await r.text();
-  } catch(e){
-    try{
-      const proxy=`https://corsproxy.io/?${encodeURIComponent(raw)}`;
-      const r2=await fetch(proxy);
-      if(!r2.ok) throw new Error(r2.status);
-      text=await r2.text();
-    } catch(e2){
-      listEl.innerHTML=`<div class="iptv-err">Failed to load playlist.<br>Check the URL or try a different source.<br><small>${e2}</small></div>`;
-      return;
-    }
-  }
-  IPTV.channels=parseM3U(text);
-  IPTV.filtered=[...IPTV.channels];
-  IPTV.activeGroup='all';
-  renderIPTVChannels();
-  document.getElementById('iptvSearchWrap').style.display=IPTV.channels.length>8?'':'none';
-  document.getElementById('iptvChCount').textContent=IPTV.channels.length+' ch';
-}
-
-function parseM3U(text){
-  const lines=text.split('\n');
-  const channels=[];
-  let meta=null;
-  for(let i=0;i<lines.length;i++){
-    const line=lines[i].trim();
-    if(line.startsWith('#EXTINF')){
-      const name=line.includes(',')?line.split(',').slice(1).join(',').trim():'Channel';
-      const logo=(line.match(/tvg-logo="([^"]*)"/))||[,''];
-      const group=(line.match(/group-title="([^"]*)"/))||[,''];
-      meta={name,logo:logo[1],group:group[1]};
-    } else if(line&&!line.startsWith('#')&&meta){
-      channels.push({...meta,url:line});
-      meta=null;
-    }
-  }
-  return channels;
-}
-
-function renderIPTVChannels(){
-  const list=document.getElementById('iptvChList');
-  if(!IPTV.filtered.length){
-    list.innerHTML='<div style="padding:1.5rem 1rem;text-align:center;color:var(--text3);font-size:.83rem">No channels found.</div>';
-    return;
-  }
-  list.innerHTML=IPTV.filtered.map((ch,i)=>{
-    const realIdx=IPTV.channels.indexOf(ch);
-    return `<div class="iptv-ch${realIdx===IPTV.activeIdx?' active':''}" onclick="iptvPlay(${realIdx})">
-      ${ch.logo
-        ?`<img class="iptv-ch-logo" src="${ch.logo}" alt="" onerror="this.style.display='none'">`
-        :`<div class="iptv-ch-logo-placeholder">${ch.name.slice(0,2).toUpperCase()}</div>`}
-      <div class="iptv-ch-info">
-        <div class="iptv-ch-name">${esc(ch.name)}</div>
-        ${ch.group?`<div class="iptv-ch-group">${esc(ch.group)}</div>`:''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function iptvFilterChannels(q){
-  q=q.toLowerCase();
-  IPTV.filtered=q?IPTV.channels.filter(c=>c.name.toLowerCase().includes(q)||c.group.toLowerCase().includes(q)):[...IPTV.channels];
-  renderIPTVChannels();
-}
-
-function iptvPlay(idx){
-  const ch=IPTV.channels[idx];
-  if(!ch) return;
-  IPTV.activeIdx=idx;
-  renderIPTVChannels();
-  document.getElementById('iptvNowBar').style.display='';
-  document.getElementById('iptvNowName').textContent=ch.name;
-  document.getElementById('iptvNowSub').textContent=ch.group||'Live';
-  document.getElementById('iptvOverlay').classList.add('hidden');
-  iptvStop();
-  const video=document.getElementById('iptvVideo');
-  const url=ch.url;
-  if(Hls.isSupported()&&(url.includes('.m3u8')||url.includes('hls')||url.includes('live')||url.includes('stream')||url.includes('.ts')||!url.includes('.'))){
-    const hls=new Hls({enableWorker:true,lowLatencyMode:true});
-    IPTV.hls=hls;
-    hls.loadSource(url);
-    hls.attachMedia(video);
-    hls.on(Hls.Events.MANIFEST_PARSED,()=>video.play().catch(()=>{}));
-    hls.on(Hls.Events.ERROR,(_,data)=>{ if(data.fatal){ video.src=url; video.play().catch(()=>{}); } });
-  } else if(video.canPlayType('application/vnd.apple.mpegurl')){
-    video.src=url;
-    video.play().catch(()=>{});
-  } else {
-    video.src=url;
-    video.play().catch(()=>{});
-  }
-  setTimeout(()=>{ document.querySelector('.iptv-ch.active')?.scrollIntoView({behavior:'smooth',block:'nearest'}); },50);
-}
-
-function iptvStop(){
-  if(IPTV.hls){ IPTV.hls.destroy(); IPTV.hls=null; }
-  const v=document.getElementById('iptvVideo');
-  if(v){ v.pause(); v.src=''; }
-}
-
-document.getElementById('iptvUrlInput').addEventListener('keydown',e=>{ if(e.key==='Enter') iptvLoad(); });
-
-/* ══════════════════════════════════════════
-   PROFILE / AUTH SYSTEM
-══════════════════════════════════════════ */
-const AUTH = {
-  gistId: null, token: null, username: null, createdAt: null, gistData: null, syncing: false,
-  load(){
-    try{ const s=localStorage.getItem('aflix_auth'); if(s){ const d=JSON.parse(s); Object.assign(this,d); } }catch(e){}
-  },
-  save(){
-    try{ localStorage.setItem('aflix_auth',JSON.stringify({gistId:this.gistId,token:this.token,username:this.username,createdAt:this.createdAt})); }catch(e){}
-  },
-  clear(){
-    this.gistId=this.token=this.username=this.createdAt=this.gistData=null;
-    try{ localStorage.removeItem('aflix_auth'); }catch(e){}
-  },
-  get loggedIn(){ return !!(this.gistId&&this.token&&this.username); }
-};
-
-const GIST_FILE='aflix-profile.json';
-const GH_API='https://api.github.com';
-
-async function gistFetch(method,path,body=null){
-  if(!AUTH.token) return null;
-  const opts={method,headers:{'Authorization':`Bearer ${AUTH.token}`,'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'}};
-  if(body) opts.body=JSON.stringify(body);
-  try{
-    const r=await fetch(`${GH_API}${path}`,opts);
-    if(!r.ok){ const err=await r.json().catch(()=>({})); throw new Error(err.message||r.status); }
-    return r.status===204?true:await r.json();
-  }catch(e){ console.error('[AFlix Auth] gistFetch error:',e); return null; }
-}
-
-async function gistWrite(data){
-  if(!AUTH.gistId||!AUTH.token) return false;
-  AUTH.syncing=true; authSetSyncStatus('syncing','Syncing…');
-  const payload={files:{[GIST_FILE]:{content:JSON.stringify(data,null,2)}}};
-  const result=await gistFetch('PATCH',`/gists/${AUTH.gistId}`,payload);
-  AUTH.syncing=false;
-  if(result){ AUTH.gistData=data; authSetSyncStatus('ok',`Synced ${new Date().toLocaleTimeString()}`); return true; }
-  else{ authSetSyncStatus('err','Sync failed — check token'); return false; }
-}
-
-async function gistRead(){
-  if(!AUTH.gistId||!AUTH.token) return null;
-  authSetSyncStatus('syncing','Loading…');
-  const data=await gistFetch('GET',`/gists/${AUTH.gistId}`);
-  if(!data){ authSetSyncStatus('err','Load failed'); return null; }
-  try{
-    const content=data.files[GIST_FILE]?.content;
-    if(!content) throw new Error('No profile file in Gist');
-    const parsed=JSON.parse(content);
-    AUTH.gistData=parsed;
-    authSetSyncStatus('ok',`Loaded ${new Date().toLocaleTimeString()}`);
-    return parsed;
-  }catch(e){ console.error('[AFlix Auth] gistRead parse error:',e); authSetSyncStatus('err','Corrupt profile data'); return null; }
-}
-
-function djb2Hash(str){
-  let h=5381;
-  for(let i=0;i<str.length;i++){ h=((h<<5)+h)^str.charCodeAt(i); h=h>>>0; }
-  return h;
-}
-
-function openProfile(){
-  document.getElementById('profileModal').classList.add('open');
-  document.body.classList.add('no-scroll');
-  if(AUTH.loggedIn){ authShowProfilePanel(); } else { authShowAuthPanel(); }
-}
-function closeProfile(){
-  document.getElementById('profileModal').classList.remove('open');
-  document.body.classList.remove('no-scroll');
-}
-
-function authSwitchTab(tab){
-  const isLogin=tab==='login';
-  document.getElementById('tabLogin').classList.toggle('active',isLogin);
-  document.getElementById('tabRegister').classList.toggle('active',!isLogin);
-  document.getElementById('loginForm').style.display=isLogin?'':'none';
-  document.getElementById('registerForm').style.display=isLogin?'none':'';
-}
-function authShowAuthPanel(){ document.getElementById('authPanel').style.display=''; document.getElementById('profilePanel').style.display='none'; }
-function authShowProfilePanel(){ document.getElementById('authPanel').style.display='none'; document.getElementById('profilePanel').style.display=''; profRenderDashboard(); }
-
-function authTogglePw(inputId,btn){
-  const inp=document.getElementById(inputId);
-  const isText=inp.type==='text';
-  inp.type=isText?'password':'text';
-  btn.innerHTML=isText
-    ?`<svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>`
-    :`<svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M2 2l16 16M8.5 8.7A3 3 0 0013 13M6.5 5.6C4.5 6.8 3 8.5 3 10s3.5 6 7 6c1.2 0 2.4-.4 3.4-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 4.1C9.3 4 9.7 4 10 4c3.5 0 7 2.5 7 6 0 .6-.2 1.3-.5 1.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
-}
-
-function authValidateUsername(inp){
-  const v=inp.value;
-  const ok=/^[a-zA-Z0-9_]{3,20}$/.test(v);
-  const hint=document.getElementById('regUserHint');
-  if(!v){ hint.className='inp-hint'; hint.textContent='3–20 chars, letters/numbers/underscores'; return false; }
-  if(!ok){ inp.classList.add('err'); hint.className='inp-hint err'; hint.textContent='Only letters, numbers, underscores (3–20 chars)'; return false; }
-  inp.classList.remove('err'); hint.className='inp-hint ok'; hint.textContent='Looks good ✓';
-  return true;
-}
-
-function authCheckPwStrength(inp){
-  const v=inp.value;
-  const hint=document.getElementById('regPwHint');
-  if(!v){ hint.className='inp-hint'; hint.textContent='At least 6 characters'; return; }
-  if(v.length<6){ hint.className='inp-hint err'; hint.textContent='Too short'; return; }
-  if(v.length<10){ hint.className='inp-hint'; hint.textContent='Medium strength'; return; }
-  hint.className='inp-hint ok'; hint.textContent='Strong password ✓';
-}
-
-function authOpenGithubToken(){ window.open('https://github.com/settings/tokens/new?scopes=gist&description=AFlix+App','_blank','noopener'); }
-
-function authSetSyncStatus(state,msg){
-  const dot=document.getElementById('syncDot'), lbl=document.getElementById('syncMsg');
-  if(!dot||!lbl) return;
-  dot.className='sync-dot'+(state==='ok'?' ok':state==='err'?' err':state==='syncing'?' spin-dot':'');
-  lbl.textContent=msg;
-}
-
-function authUpdateNavBtn(){
-  const btn=document.getElementById('profNavBtn'), ini=document.getElementById('profNavInitial');
-  if(!btn||!ini) return;
-  if(AUTH.loggedIn){
-    btn.classList.add('signed-in');
-    ini.textContent=(AUTH.username||'?').charAt(0).toUpperCase();
-  } else {
-    btn.classList.remove('signed-in');
-    ini.innerHTML=`<svg width="15" height="15" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7.5" r="3.5" stroke="currentColor" stroke-width="1.6"/><path d="M3 18c0-4 3.1-6.5 7-6.5s7 2.5 7 6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
-  }
-  // Update bottom tab profile icon active state
-  const tabProf=document.getElementById('tab-profile');
-  if(tabProf) tabProf.classList.toggle('active', AUTH.loggedIn);
-}
-
-async function authRegister(){
-  const username=document.getElementById('regUser').value.trim();
-  const token=document.getElementById('regToken').value.trim();
-  const password=document.getElementById('regPassword').value;
-  if(!authValidateUsername(document.getElementById('regUser'))) return;
-  if(!token){ toast('GitHub token is required','err'); return; }
-  if(password.length<6){ toast('Password must be at least 6 characters','err'); return; }
-  const btn=document.getElementById('registerBtn');
-  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Creating account…';
-  const profileData={schemaVersion:1,username,createdAt:new Date().toISOString(),passwordHash:djb2Hash(password),watchlist:wlGet(),history:cwGet(),iptvLinks:[]};
-  AUTH.token=token;
-  const gist=await gistFetch('POST','/gists',{description:'AFlix user profile — do not delete',public:false,files:{[GIST_FILE]:{content:JSON.stringify(profileData,null,2)}}});
-  if(!gist||!gist.id){
-    AUTH.token=null;
-    toast('Failed to create account — check your token and try again','err');
-    btn.disabled=false; btn.textContent='Create Account';
-    return;
-  }
-  AUTH.gistId=gist.id; AUTH.username=username; AUTH.createdAt=profileData.createdAt; AUTH.gistData=profileData;
-  AUTH.save(); authUpdateNavBtn(); authShowProfilePanel();
-  toast(`Welcome, ${username}! 🎬`,'ok');
-  btn.disabled=false; btn.textContent='Create Account';
-}
-
-async function authLogin(){
-  const ghUser=document.getElementById('loginUser').value.trim();
-  const token=document.getElementById('loginToken').value.trim();
-  if(!ghUser){ toast('Enter your GitHub username','err'); return; }
-  if(!token){ toast('Enter your Personal Access Token','err'); return; }
-  const btn=document.getElementById('loginBtn');
-  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Signing in…';
-  AUTH.token=token;
-  const gists=await gistFetch('GET','/gists?per_page=100');
-  if(!gists||!Array.isArray(gists)){
-    AUTH.token=null;
-    toast('Login failed — check username and token','err');
-    btn.disabled=false; btn.textContent='Sign In';
-    return;
-  }
-  const profileGist=gists.find(g=>g.files&&g.files[GIST_FILE]);
-  if(!profileGist){
-    AUTH.token=null;
-    toast('No AFlix profile found for this token — register first','err');
-    btn.disabled=false; btn.textContent='Sign In';
-    return;
-  }
-  AUTH.gistId=profileGist.id;
-  const profileData=await gistRead();
-  if(!profileData){
-    AUTH.token=null; AUTH.gistId=null;
-    toast('Failed to read profile data','err');
-    btn.disabled=false; btn.textContent='Sign In';
-    return;
-  }
-  AUTH.username=profileData.username; AUTH.createdAt=profileData.createdAt; AUTH.gistData=profileData;
-  AUTH.save();
-  if(profileData.watchlist?.length) wlSet(profileData.watchlist);
-  if(profileData.history?.length) cwSet(profileData.history);
-  authUpdateNavBtn(); authShowProfilePanel();
-  updateWlCount(); renderWlPanel(); renderWlSection(); renderCW();
-  toast(`Welcome back, ${AUTH.username}! 👋`,'ok');
-  btn.disabled=false; btn.textContent='Sign In';
-}
-
-function authSignOut(){ AUTH.clear(); authUpdateNavBtn(); authShowAuthPanel(); toast('Signed out'); }
-
-function authInit(){
-  AUTH.load();
-  authUpdateNavBtn();
-}
-
-/* ── Profile dashboard ── */
-function profRenderDashboard(){
-  if(!AUTH.loggedIn) return;
-  const initials=(AUTH.username||'?').charAt(0).toUpperCase();
-  document.getElementById('profBigAv').textContent=initials;
-  document.getElementById('profDisplayName').textContent=AUTH.username||'—';
-  document.getElementById('profSince').textContent=AUTH.createdAt?'Member since '+new Date(AUTH.createdAt).toLocaleDateString('en-US',{month:'long',year:'numeric'}):'';
-  const wl=wlGet(), hist=cwGet(), iptv=profGetIPTV();
-  document.getElementById('statWl').textContent=wl.length;
-  document.getElementById('statHist').textContent=hist.length;
-  document.getElementById('statIptv').textContent=iptv.length;
-  profRenderIPTV(); profRenderHistory();
-  authSetSyncStatus('',AUTH.gistId?'Ready to sync':'Not connected');
-}
-
-function profGetIPTV(){ try{ return JSON.parse(localStorage.getItem('aflix_user_iptv')||'[]'); }catch{ return []; } }
-function profSetIPTV(arr){ try{ localStorage.setItem('aflix_user_iptv',JSON.stringify(arr)); }catch{} }
-
-function profRenderIPTV(){
-  const links=profGetIPTV(), el=document.getElementById('iptvSavedList');
-  document.getElementById('statIptv').textContent=links.length;
-  if(!links.length){ el.innerHTML=`<div style="padding:.6rem 0;font-size:.81rem;color:var(--text3)">No saved playlists yet. Add one below.</div>`; return; }
-  el.innerHTML=links.map((l,i)=>`
-    <div class="iptv-saved-item">
-      <div style="flex:1;min-width:0">
-        <div class="iptv-saved-name">${esc(l.name)}</div>
-        <div class="iptv-saved-url">${esc(l.url)}</div>
-      </div>
-      <div class="iptv-saved-btns">
-        <button class="iptv-saved-btn play-btn" title="Open in Live TV" onclick="profPlayIPTV(${i})">▶</button>
-        <button class="iptv-saved-btn" title="Remove" onclick="profRemoveIPTV(${i})">×</button>
-      </div>
-    </div>`).join('');
-}
-
-function profAddIPTV(){
-  const name=document.getElementById('iptvAddName').value.trim();
-  const url=document.getElementById('iptvAddUrl').value.trim();
-  if(!name){ toast('Enter a name for the playlist','err'); return; }
-  if(!url){ toast('Enter a playlist URL','err'); return; }
-  const arr=profGetIPTV(); arr.push({name,url}); profSetIPTV(arr);
-  document.getElementById('iptvAddName').value=''; document.getElementById('iptvAddUrl').value='';
-  profRenderIPTV(); toast('Playlist saved ✓','ok');
-}
-
-function profRemoveIPTV(idx){ const arr=profGetIPTV(); arr.splice(idx,1); profSetIPTV(arr); profRenderIPTV(); toast('Playlist removed'); }
-
-function profPlayIPTV(idx){
-  const arr=profGetIPTV(), link=arr[idx];
-  if(!link) return;
-  closeProfile();
-  setTimeout(()=>{ openIPTV(); const inp=document.getElementById('iptvUrlInput'); if(inp){ inp.value=link.url; iptvLoad(); } },320);
-}
-
-function profRenderHistory(){
-  const hist=cwGet(), el=document.getElementById('profHistoryList');
-  document.getElementById('statHist').textContent=hist.length;
-  if(!hist.length){ el.innerHTML=`<div style="padding:.6rem 0 1rem;font-size:.81rem;color:var(--text3)">No watch history yet.</div>`; return; }
-  el.innerHTML=hist.slice(0,6).map(i=>`
-    <div class="prof-hist-item" onclick="closeProfile();setTimeout(()=>playContent(${i.id},'${i.type}',\`${(i.title||'').replace(/`/g,'\\`')}\`),320)">
-      ${i.backdrop?`<img src="${IMG}/w92${i.backdrop}" class="prof-hist-img" alt="" loading="lazy">`:`<div class="prof-hist-img skel"></div>`}
-      <div class="prof-hist-info">
-        <div class="prof-hist-title">${esc(i.title||'')}</div>
-        <div class="prof-hist-meta">${i.type==='tv'&&i.season?`S${i.season} E${i.episode||1} · `:''}${i.year||''}</div>
-        <div class="prof-hist-bar"><div class="prof-hist-fill" style="width:${i.progress||8}%"></div></div>
-      </div>
-    </div>`).join('');
-}
-
-async function profSyncToCloud(){
-  if(!AUTH.loggedIn){ toast('Sign in first to sync','err'); return; }
-  const data={schemaVersion:1,username:AUTH.username,createdAt:AUTH.createdAt,passwordHash:AUTH.gistData?.passwordHash||0,watchlist:wlGet(),history:cwGet(),iptvLinks:profGetIPTV()};
-  const ok=await gistWrite(data);
-  if(ok){ toast('Synced to cloud ✓','ok'); profRenderDashboard(); }
-  else toast('Sync failed — check your token','err');
-}
 
 /* ══════════════════════════════════════════
    INIT
@@ -2359,13 +1588,299 @@ async function profSyncToCloud(){
 async function init(){
   loadSettings(); updateWlCount(); renderWlPanel(); renderWlSection(); renderCW();
   setupHeader(); setupReveal(); setupEvents(); setupAutoNext();
-  authInit();
-  const ok=await loadRemoteConfig();
-  if(!ok) return;
+  // Load remote config first — everything else depends on AK
+  const ok = await loadRemoteConfig();
+  if (!ok) return;
   await Promise.all([loadHero(),loadGenres(),loadTop10(),loadTrend(),loadMovies(),loadTV()]);
 }
 
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
+
+/* ══════════════════════════════════════════
+   IPTV / LIVE TV
+══════════════════════════════════════════ */
+const IPTV = {
+  hls: null,
+  channels: [],        // [{name, url, logo, group}]
+  filtered: [],
+  activeIdx: -1,
+  activeGroup: 'all'
+};
+
+function openIPTV() {
+  document.getElementById('iptvModal').classList.add('open');
+  document.body.classList.add('no-scroll');
+  // If config has preset playlists, render them
+  if (IPTV_PLAYLISTS.length) renderIPTVPresets();
+}
+function closeIPTV() {
+  document.getElementById('iptvModal').classList.remove('open');
+  document.body.classList.remove('no-scroll');
+  iptvStop();
+}
+
+function renderIPTVPresets() {
+  const row = document.getElementById('iptvPresetRow');
+  if (!IPTV_PLAYLISTS.length) { row.style.display='none'; return; }
+  row.style.display = 'flex';
+  row.innerHTML = IPTV_PLAYLISTS.map((p,i) =>
+    `<span class="iptv-preset" onclick="iptvLoadPreset(${i})">${p.name}</span>`
+  ).join('');
+}
+
+async function iptvLoadPreset(idx) {
+  const p = IPTV_PLAYLISTS[idx];
+  document.getElementById('iptvUrlInput').value = p.url;
+  document.querySelectorAll('.iptv-preset').forEach((el,i)=>el.classList.toggle('active',i===idx));
+  await iptvLoad();
+}
+
+async function iptvLoad() {
+  const raw = document.getElementById('iptvUrlInput').value.trim();
+  if (!raw) return;
+
+  // Direct stream URL? (no .m3u/.m3u8 but looks like a media URL)
+  const isM3U = /\.m3u/i.test(raw) || raw.includes('?') /* assume query-string URLs might be playlists */;
+  const isDirectHLS = /\.m3u8/i.test(raw);
+  const isDirectTS  = /\.ts($|\?)/i.test(raw);
+
+  if (isDirectHLS || isDirectTS || (!isM3U && !isDirectHLS)) {
+    // Try playing directly
+    const fakeCh = {name: 'Direct Stream', url: raw, logo: '', group: ''};
+    IPTV.channels = [fakeCh]; IPTV.filtered = [fakeCh];
+    renderIPTVChannels();
+    iptvPlay(0);
+    return;
+  }
+
+  // Fetch M3U playlist
+  const listEl = document.getElementById('iptvChList');
+  listEl.innerHTML = `<div class="iptv-loading-ch"><div class="spin"></div> Loading playlist…</div>`;
+
+  let text = '';
+  try {
+    // Try direct fetch first; CORS may block some sources
+    const r = await fetch(raw);
+    if (!r.ok) throw new Error(r.status);
+    text = await r.text();
+  } catch(e) {
+    // CORS proxy fallback
+    try {
+      const proxy = `https://corsproxy.io/?${encodeURIComponent(raw)}`;
+      const r2 = await fetch(proxy);
+      if (!r2.ok) throw new Error(r2.status);
+      text = await r2.text();
+    } catch(e2) {
+      listEl.innerHTML = `<div class="iptv-err">Failed to load playlist.<br>Check the URL or try a different source.<br><small>${e2}</small></div>`;
+      return;
+    }
+  }
+
+  IPTV.channels = parseM3U(text);
+  IPTV.filtered  = [...IPTV.channels];
+  IPTV.activeGroup = 'all';
+  renderIPTVChannels();
+  document.getElementById('iptvSearchWrap').style.display = IPTV.channels.length > 8 ? '' : 'none';
+  document.getElementById('iptvChCount').textContent = IPTV.channels.length + ' ch';
+}
+
+function parseM3U(text) {
+  const lines = text.split('\n');
+  const channels = [];
+  let meta = null;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line.startsWith('#EXTINF')) {
+      const name  = line.includes(',') ? line.split(',').slice(1).join(',').trim() : 'Channel';
+      const logo  = (line.match(/tvg-logo="([^"]*)"/) || [])[1] || '';
+      const group = (line.match(/group-title="([^"]*)"/) || [])[1] || '';
+      meta = {name, logo, group};
+    } else if (line && !line.startsWith('#') && meta) {
+      channels.push({...meta, url: line});
+      meta = null;
+    }
+  }
+  return channels;
+}
+
+function renderIPTVChannels() {
+  const list = document.getElementById('iptvChList');
+  if (!IPTV.filtered.length) {
+    list.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--text3);font-size:.83rem">No channels found.</div>';
+    return;
+  }
+  list.innerHTML = IPTV.filtered.map((ch, i) => {
+    const realIdx = IPTV.channels.indexOf(ch);
+    return `<div class="iptv-ch${realIdx===IPTV.activeIdx?' active':''}" onclick="iptvPlay(${realIdx})">
+      ${ch.logo
+        ? `<img class="iptv-ch-logo" src="${ch.logo}" alt="" onerror="this.style.display='none'">`
+        : `<div class="iptv-ch-logo-placeholder">${ch.name.slice(0,2).toUpperCase()}</div>`}
+      <div class="iptv-ch-info">
+        <div class="iptv-ch-name">${esc(ch.name)}</div>
+        ${ch.group ? `<div class="iptv-ch-group">${esc(ch.group)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function iptvFilterChannels(q) {
+  q = q.toLowerCase();
+  IPTV.filtered = q ? IPTV.channels.filter(c => c.name.toLowerCase().includes(q) || c.group.toLowerCase().includes(q)) : [...IPTV.channels];
+  renderIPTVChannels();
+}
+
+function iptvPlay(idx) {
+  const ch = IPTV.channels[idx];
+  if (!ch) return;
+  IPTV.activeIdx = idx;
+  renderIPTVChannels();
+
+  // Update now bar
+  document.getElementById('iptvNowBar').style.display = '';
+  document.getElementById('iptvNowName').textContent = ch.name;
+  document.getElementById('iptvNowSub').textContent = ch.group || 'Live';
+  document.getElementById('iptvOverlay').classList.add('hidden');
+
+  // Destroy old HLS instance
+  iptvStop();
+
+  const video = document.getElementById('iptvVideo');
+  const url = ch.url;
+
+  if (Hls.isSupported() && (url.includes('.m3u8') || url.includes('hls') || url.includes('live') || url.includes('stream') || url.includes('.ts') || !url.includes('.'))) {
+    const hls = new Hls({enableWorker: true, lowLatencyMode: true});
+    IPTV.hls = hls;
+    hls.loadSource(url);
+    hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(()=>{}));
+    hls.on(Hls.Events.ERROR, (_, data) => {
+      if (data.fatal) {
+        // fallback: try native
+        video.src = url;
+        video.play().catch(()=>{});
+      }
+    });
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    // Safari native HLS
+    video.src = url;
+    video.play().catch(()=>{});
+  } else {
+    // Try setting src directly (works for MP4/TS in some cases)
+    video.src = url;
+    video.play().catch(()=>{});
+  }
+
+  // Scroll channel into view
+  setTimeout(() => {
+    document.querySelector('.iptv-ch.active')?.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }, 50);
+}
+
+function iptvStop() {
+  if (IPTV.hls) { IPTV.hls.destroy(); IPTV.hls = null; }
+  const v = document.getElementById('iptvVideo');
+  if (v) { v.pause(); v.src = ''; }
+}
+
+// Input enter key
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('iptvUrlInput')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') iptvLoad();
+  });
+});
+
 </script>
+
+<!-- ── IPTV / LIVE TV MODAL ── -->
+<div class="iptv-modal" id="iptvModal">
+  <!-- Header -->
+  <div class="iptv-hd">
+    <div class="iptv-live-dot"></div>
+    <div class="iptv-hd-title">Live TV</div>
+    <div class="iptv-url-wrap">
+      <input class="iptv-url-input" id="iptvUrlInput" type="text" placeholder="Paste M3U playlist URL or direct stream URL (HLS/TS)…" autocomplete="off" spellcheck="false">
+      <button class="iptv-load-btn" onclick="iptvLoad()">▶ Load</button>
+    </div>
+    <button class="iptv-close-btn" onclick="closeIPTV()" title="Close">×</button>
+  </div>
+  <!-- Body -->
+  <div class="iptv-body">
+    <!-- Sidebar: channel list -->
+    <div class="iptv-sidebar" id="iptvSidebar">
+      <div class="iptv-sidebar-hd">
+        <span class="iptv-sidebar-title">Channels</span>
+        <span class="iptv-ch-count" id="iptvChCount"></span>
+      </div>
+      <div id="iptvPresetRow" class="iptv-preset-row" style="display:none"></div>
+      <div class="iptv-search" id="iptvSearchWrap" style="display:none">
+        <input class="iptv-ch-search" id="iptvChSearch" type="text" placeholder="Filter channels…" oninput="iptvFilterChannels(this.value)">
+      </div>
+      <div class="iptv-ch-list" id="iptvChList">
+        <div style="padding:2rem 1rem;text-align:center;color:var(--text3);font-size:.83rem;line-height:1.6">
+          Paste an M3U playlist URL above and click <strong style="color:var(--text2)">Load</strong>,<br>or type a direct HLS/stream URL and load it.
+        </div>
+      </div>
+    </div>
+    <!-- Video stage -->
+    <div class="iptv-stage">
+      <div class="iptv-player-wrap">
+        <video class="iptv-video" id="iptvVideo" controls playsinline></video>
+        <div class="iptv-overlay" id="iptvOverlay">
+          <div class="iptv-overlay-icon">📡</div>
+          <div class="iptv-overlay-msg">Select a channel to start watching,<br>or load a playlist / stream URL.</div>
+        </div>
+      </div>
+      <div class="iptv-now-bar" id="iptvNowBar" style="display:none">
+        <span class="iptv-now-name" id="iptvNowName">—</span>
+        <span class="iptv-now-sub" id="iptvNowSub"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HLS.js for native IPTV playback -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
+
 </body>
 </html>
+<!-- ── BOTTOM TAB BAR (mobile only) ── -->
+<style>
+  .bottom-tab-bar{ display:none; }
+</style>
+<nav class="bottom-tab-bar" id="bottomTabBar" aria-label="Main navigation">
+  <div class="tab-item active" id="tab-home" onclick="tabNav('all')" role="button" aria-label="Home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+    <span>Home</span>
+  </div>
+  <div class="tab-item" id="tab-movie" onclick="tabNav('movie')" role="button" aria-label="Movies">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 4v16M17 4v16M2 12h20M2 8h5M17 8h5M2 16h5M17 16h5"/></svg>
+    <span>Movies</span>
+  </div>
+  <div class="tab-item" id="tab-tv" onclick="tabNav('tv')" role="button" aria-label="Series">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M16 3l-4 4-4-4"/></svg>
+    <span>Series</span>
+  </div>
+  <div class="tab-item" id="tab-live" onclick="openIPTV()" role="button" aria-label="Live TV">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 000 11.4M17.7 17.7a8 8 0 000-11.4"/><path d="M3.5 3.5a13 13 0 000 17M20.5 20.5a13 13 0 000-17"/></svg>
+    <span>Live</span>
+  </div>
+  <div class="tab-item" id="tab-wl" onclick="openWatchlist()" role="button" aria-label="Watchlist">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14a1 1 0 011 1v17l-7-4.5L5 21V4a1 1 0 011-1z"/></svg>
+    <span>Saved</span>
+  </div>
+</nav>
+<script>
+function tabNav(type) {
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  const tabEl = document.getElementById('tab-' + type);
+  if (tabEl) tabEl.classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(l => {
+    l.classList.toggle('active', l.dataset.type === type);
+  });
+  S.filter = type;
+  S.genre = null;
+  document.querySelectorAll('.gchip').forEach(c => c.classList.toggle('active', c.dataset.genre === 'all'));
+  filterContent();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
