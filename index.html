@@ -3283,8 +3283,8 @@ function tabNav(type) {
 .music-track:hover .music-track-play-icon { opacity:1; }
 .music-track.playing .music-track-play-icon { opacity:1; }
 
-/* SC iframe embed (hidden audio only) */
-#scIframe { display:none;width:0;height:0; }
+/* Hidden audio element for playback */
+#musicAudio { display:none; }
 
 /* Featured playlist cards */
 .music-playlist-row {
@@ -3411,8 +3411,8 @@ body.music-playing footer { padding-bottom:calc(2.5rem + 62px + var(--sab)); }
     </div>
   </div>
 
-  <!-- Hidden SC widget iframe for audio -->
-  <iframe id="scIframe" allow="autoplay" src=""></iframe>
+  <!-- Hidden HTML5 audio element for playback -->
+  <audio id="musicAudio" preload="none" style="display:none"></audio>
 </div>
 
 <!-- ── MINI PLAYER BAR ── -->
@@ -3443,24 +3443,38 @@ body.music-playing footer { padding-bottom:calc(2.5rem + 62px + var(--sab)); }
 <!-- ── MUSIC JS ── -->
 <script>
 /* ══════════════════════════════════════════
-   MUSIC SYSTEM — SoundCloud Widget API
-   Searches SC via oEmbed, renders track cards,
-   plays via hidden SC Widget iframe.
+   MUSIC SYSTEM — iTunes Search API
+   Free, no-key, CORS-friendly API from Apple.
+   Returns real tracks with 30-sec previews,
+   artwork, artist, album. Plays via native
+   HTML5 <audio> — works on iOS Safari PWA.
 ══════════════════════════════════════════ */
 
 const MUSIC = {
-  tracks: [],        // current track list [{title,artist,artwork,scUrl,duration}]
-  idx: -1,           // playing index
+  tracks: [],
+  idx: -1,
   playing: false,
   liked: new Set(),
-  widget: null,      // SC Widget instance
-  widgetReady: false,
-  queue: [],
   searchTimer: null,
-  currentQuery: 'top hits 2024',
-  progressTimer: null,
-  progressMs: 0,
-  durationMs: 0
+  currentQuery: 'top hits',
+  progressTimer: null
+};
+
+// Map genre chip labels to best iTunes search terms
+const ITUNES_GENRE_MAP = {
+  'top hits 2024':           { term: 'top hits',         entity: 'song', limit: 50 },
+  'hip hop rap 2024':        { term: 'hip hop rap',      entity: 'song', limit: 50 },
+  'r&b soul 2024':           { term: 'r&b soul',         entity: 'song', limit: 50 },
+  'pop hits 2024':           { term: 'pop hits',         entity: 'song', limit: 50 },
+  'rock hits':               { term: 'rock hits',        entity: 'song', limit: 50 },
+  'afrobeats 2024':          { term: 'afrobeats',        entity: 'song', limit: 50 },
+  'latin reggaeton 2024':    { term: 'reggaeton latino', entity: 'song', limit: 50 },
+  'country hits 2024':       { term: 'country hits',     entity: 'song', limit: 50 },
+  'electronic dance music 2024': { term: 'electronic dance', entity: 'song', limit: 50 },
+  'drill trap 2024':         { term: 'trap drill',       entity: 'song', limit: 50 },
+  'lofi chill beats':        { term: 'lofi chill',       entity: 'song', limit: 50 },
+  'gospel worship 2024':     { term: 'gospel worship',   entity: 'song', limit: 50 },
+  'jazz blues':              { term: 'jazz blues',       entity: 'song', limit: 50 }
 };
 
 /* ── Open / Close ── */
@@ -3474,7 +3488,6 @@ function openMusic() {
 function closeMusic() {
   document.getElementById('musicModal').classList.remove('open');
   document.body.classList.remove('no-scroll');
-  // restore Home tab active
   document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-home')?.classList.add('active');
 }
@@ -3494,52 +3507,56 @@ function musicSearch(val) {
     if (!val) musicLoadGenre(MUSIC.currentQuery);
     return;
   }
-  MUSIC.searchTimer = setTimeout(() => musicLoadGenre(val), 350);
+  MUSIC.searchTimer = setTimeout(() => musicLoadGenre(val), 380);
 }
 
-/* ── SC oEmbed search — gets real track data ── */
+/* ── iTunes Search API — free, no key, CORS OK ── */
 async function musicLoadGenre(q) {
   const body = document.getElementById('musicBody');
   body.innerHTML = `<div class="music-loading"><div class="spin"></div> Loading…</div>`;
 
-  // SoundCloud search via their public search endpoint (no key needed for track search)
-  // We use the widget search approach: fetch oEmbed for known popular SC playlists per genre
-  const scSearchUrl = `https://api-widget.soundcloud.com/search/tracks?q=${encodeURIComponent(q)}&limit=20&offset=0&linked_partitioning=1&client_id=iZIs9mchVcX5lhVRyQGGAYlNPVldzAoX`;
+  // Resolve to best iTunes search term
+  const mapped = ITUNES_GENRE_MAP[q] || { term: q, entity: 'song', limit: 50 };
 
-  let tracks = [];
+  // iTunes Search API — no API key needed, open CORS
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(mapped.term)}&entity=${mapped.entity}&limit=${mapped.limit}&media=music`;
+
+  let results = [];
   try {
-    const r = await fetch(scSearchUrl);
+    const r = await fetch(url);
     if (r.ok) {
       const data = await r.json();
-      tracks = (data.collection || []).filter(t => t.streamable || t.policy === 'ALLOW' || t.duration).slice(0, 30);
+      // Only keep tracks that have a 30-sec preview URL
+      results = (data.results || []).filter(t => t.previewUrl);
     }
-  } catch(e) {}
-
-  if (!tracks.length) {
-    // Fallback: use SC oEmbed with a curated search URL
-    tracks = await musicFallbackSearch(q);
+  } catch(e) {
+    console.warn('iTunes fetch error:', e);
   }
 
-  MUSIC.tracks = tracks.map(t => ({
-    title: t.title || 'Unknown',
-    artist: t.user?.username || t.user?.full_name || 'Unknown Artist',
-    artwork: (t.artwork_url || t.user?.avatar_url || '').replace('-large','-t300x300'),
-    scUrl: t.permalink_url || '',
-    duration: t.duration || 0,
-    id: t.id
+  if (!results.length) {
+    // Broaden the search if no previews found
+    try {
+      const fallbackUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=50&media=music`;
+      const r2 = await fetch(fallbackUrl);
+      if (r2.ok) {
+        const d2 = await r2.json();
+        results = (d2.results || []).filter(t => t.previewUrl);
+      }
+    } catch(e) {}
+  }
+
+  MUSIC.tracks = results.map(t => ({
+    title:    t.trackName    || t.collectionName || 'Unknown',
+    artist:   t.artistName  || 'Unknown Artist',
+    album:    t.collectionName || '',
+    artwork:  (t.artworkUrl100 || '').replace('100x100bb', '300x300bb'),
+    previewUrl: t.previewUrl || '',   // 30-sec MP3 preview
+    trackUrl:   t.trackViewUrl || '', // iTunes Store link
+    duration: t.trackTimeMillis || 0,
+    id:       t.trackId
   }));
 
   renderMusicBody(q);
-}
-
-async function musicFallbackSearch(q) {
-  // Curated SC playlist URLs per genre for fallback
-  const playlists = {
-    'top hits 2024': 'https://soundcloud.com/charts/top',
-    'hip hop': 'https://soundcloud.com/soundcloud-hustle/sets/hip-hop',
-    default: 'https://soundcloud.com/charts/top'
-  };
-  return [];
 }
 
 /* ── Render ── */
@@ -3549,64 +3566,92 @@ function renderMusicBody(q) {
     body.innerHTML = `<div class="music-empty"><div class="music-empty-icon">🎵</div>No results for "${esc(q)}".<br>Try a different search.</div>`;
     return;
   }
-
   const label = document.querySelector('.music-gchip.active')?.textContent || q;
   body.innerHTML = `
     <div class="music-section-lbl"><span class="sec-dot"></span>${esc(label)}</div>
     <div class="music-track-list" id="musicTrackList">
       ${MUSIC.tracks.map((t, i) => musicTrackHTML(t, i)).join('')}
+    </div>
+    <div style="padding:.8rem 1.2rem 1rem;font-size:.72rem;color:var(--text3);text-align:center">
+      🎧 30-second previews via iTunes · Tap to play
     </div>`;
 }
 
 function musicTrackHTML(t, i) {
-  const mins = Math.floor(t.duration / 60000);
-  const secs = Math.floor((t.duration % 60000) / 1000).toString().padStart(2,'0');
-  const dur = t.duration ? `${mins}:${secs}` : '';
+  const ms = t.duration || 30000;
+  const mins = Math.floor(ms / 60000);
+  const secs = Math.floor((ms % 60000) / 1000).toString().padStart(2,'0');
+  const dur = `${mins}:${secs}`;
   const isPlaying = i === MUSIC.idx && MUSIC.playing;
   return `<div class="music-track${isPlaying?' playing':''}" data-idx="${i}" onclick="musicPlay(${i})">
     <div class="music-track-num">${isPlaying ? '♪' : i+1}</div>
-    ${t.artwork ? `<img class="music-track-art" src="${t.artwork}" loading="lazy" onerror="this.style.background='var(--bg5)'">` : `<div class="music-track-art"></div>`}
+    ${t.artwork
+      ? `<img class="music-track-art" src="${t.artwork}" loading="lazy" onerror="this.style.background='var(--bg5)'">`
+      : `<div class="music-track-art"></div>`}
     <div class="music-track-info">
       <div class="music-track-title">${esc(t.title)}</div>
       <div class="music-track-artist">${esc(t.artist)}</div>
     </div>
-    ${dur ? `<div class="music-track-dur">${dur}</div>` : ''}
+    <div class="music-track-dur">${dur}</div>
     <div class="music-track-play-icon">
       <svg width="11" height="11" viewBox="0 0 11 11" fill="white"><path d="M2 1l7 4.5L2 10V1z"/></svg>
     </div>
   </div>`;
 }
 
-/* ── Playback via SC Widget ── */
+/* ── Playback via native HTML5 <audio> ── */
+function musicGetAudio() {
+  return document.getElementById('musicAudio');
+}
+
 function musicPlay(idx) {
   if (idx < 0 || idx >= MUSIC.tracks.length) return;
   const track = MUSIC.tracks[idx];
-  if (!track.scUrl) { toast('Track not streamable','err'); return; }
 
+  if (!track.previewUrl) {
+    toast('No preview available for this track', 'err');
+    return;
+  }
+
+  const audio = musicGetAudio();
+
+  // If same track — toggle play/pause
+  if (idx === MUSIC.idx && audio.src) {
+    if (MUSIC.playing) {
+      audio.pause();
+      MUSIC.playing = false;
+    } else {
+      audio.play().catch(()=>{});
+      MUSIC.playing = true;
+    }
+    updatePlayBtn();
+    document.getElementById('mpEq').style.display = MUSIC.playing ? 'flex' : 'none';
+    updateTrackHighlight(idx);
+    return;
+  }
+
+  // New track
   MUSIC.idx = idx;
   MUSIC.playing = true;
 
-  // Load SC widget with the track URL
-  const iframe = document.getElementById('scIframe');
-  const widgetUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(track.scUrl)}&color=%23e8192c&auto_play=true&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false`;
+  audio.pause();
+  audio.src = track.previewUrl;
+  audio.load();
+  audio.play().catch(e => {
+    console.warn('Audio play failed:', e);
+    toast('Playback blocked — tap again', 'err');
+    MUSIC.playing = false;
+    updatePlayBtn();
+  });
 
-  iframe.src = widgetUrl;
-
-  // Wait for widget API to load then bind events
-  if (window.SC && window.SC.Widget) {
-    bindSCWidget();
-  } else {
-    // Load SC widget API script once
-    if (!document.getElementById('scWidgetScript')) {
-      const s = document.createElement('script');
-      s.id = 'scWidgetScript';
-      s.src = 'https://w.soundcloud.com/player/api.js';
-      s.onload = bindSCWidget;
-      document.head.appendChild(s);
-    } else {
-      setTimeout(bindSCWidget, 600);
-    }
-  }
+  // Wire events once
+  audio.onended = () => { musicNext(); };
+  audio.ontimeupdate = () => {
+    if (!audio.duration) return;
+    const pct = (audio.currentTime / audio.duration) * 100;
+    const bar = document.getElementById('mpProgress');
+    if (bar) bar.style.width = pct + '%';
+  };
 
   updateMiniPlayer(track);
   updateTrackHighlight(idx);
@@ -3614,53 +3659,43 @@ function musicPlay(idx) {
   toast(`♪ ${track.title}`);
 }
 
-function bindSCWidget() {
-  const iframe = document.getElementById('scIframe');
-  if (!iframe || !window.SC) return;
-  try {
-    MUSIC.widget = SC.Widget(iframe);
-    MUSIC.widget.bind(SC.Widget.Events.READY, () => {
-      MUSIC.widgetReady = true;
-      MUSIC.widget.play();
-    });
-    MUSIC.widget.bind(SC.Widget.Events.FINISH, () => {
-      musicNext();
-    });
-    MUSIC.widget.bind(SC.Widget.Events.PLAY_PROGRESS, (data) => {
-      MUSIC.progressMs = data.currentPosition;
-      MUSIC.durationMs = data.relativePosition > 0 ? data.currentPosition / data.relativePosition : 0;
-      const pct = data.relativePosition * 100;
-      const bar = document.getElementById('mpProgress');
-      if (bar) bar.style.width = pct + '%';
-    });
-  } catch(e) {}
-}
-
 function musicTogglePlay() {
-  if (MUSIC.idx === -1) { if (MUSIC.tracks.length) musicPlay(0); return; }
+  if (MUSIC.idx === -1) {
+    if (MUSIC.tracks.length) musicPlay(0);
+    return;
+  }
+  const audio = musicGetAudio();
   MUSIC.playing = !MUSIC.playing;
-  try {
-    if (MUSIC.playing) { MUSIC.widget?.play(); }
-    else { MUSIC.widget?.pause(); }
-  } catch(e) {}
+  if (MUSIC.playing) {
+    audio.play().catch(()=>{});
+  } else {
+    audio.pause();
+  }
   updatePlayBtn();
   document.getElementById('mpEq').style.display = MUSIC.playing ? 'flex' : 'none';
+  updateTrackHighlight(MUSIC.idx);
 }
 
 function musicNext() {
+  if (!MUSIC.tracks.length) return;
   const next = (MUSIC.idx + 1) % MUSIC.tracks.length;
   musicPlay(next);
 }
 function musicPrev() {
+  if (!MUSIC.tracks.length) return;
   const prev = (MUSIC.idx - 1 + MUSIC.tracks.length) % MUSIC.tracks.length;
   musicPlay(prev);
 }
 
 function updateMiniPlayer(track) {
-  document.getElementById('mpArt').src = track.artwork || '';
-  document.getElementById('mpTitle').textContent = track.title;
-  document.getElementById('mpArtist').textContent = track.artist;
-  document.getElementById('mpEq').style.display = 'flex';
+  const art = document.getElementById('mpArt');
+  if (art) art.src = track.artwork || '';
+  const title = document.getElementById('mpTitle');
+  if (title) title.textContent = track.title;
+  const artist = document.getElementById('mpArtist');
+  if (artist) artist.textContent = track.artist;
+  const eq = document.getElementById('mpEq');
+  if (eq) eq.style.display = 'flex';
   updatePlayBtn();
   updateLikeBtn();
 }
@@ -3669,8 +3704,8 @@ function updatePlayBtn() {
   const icon = document.getElementById('mpPlayIcon');
   if (!icon) return;
   icon.innerHTML = MUSIC.playing
-    ? `<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>` // pause
-    : `<path d="M8 5v14l11-7z"/>`; // play
+    ? `<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>`
+    : `<path d="M8 5v14l11-7z"/>`;
 }
 
 function updateLikeBtn() {
@@ -3683,8 +3718,13 @@ function updateLikeBtn() {
 
 function musicToggleLike() {
   if (MUSIC.idx === -1) return;
-  if (MUSIC.liked.has(MUSIC.idx)) { MUSIC.liked.delete(MUSIC.idx); toast('Removed from liked'); }
-  else { MUSIC.liked.add(MUSIC.idx); toast('♥ Added to Liked Songs','ok'); }
+  if (MUSIC.liked.has(MUSIC.idx)) {
+    MUSIC.liked.delete(MUSIC.idx);
+    toast('Removed from liked');
+  } else {
+    MUSIC.liked.add(MUSIC.idx);
+    toast('♥ Added to Liked Songs', 'ok');
+  }
   updateLikeBtn();
 }
 
@@ -3698,7 +3738,7 @@ function updateTrackHighlight(idx) {
   document.querySelectorAll('.music-track').forEach((el, i) => {
     el.classList.toggle('playing', i === idx);
     const num = el.querySelector('.music-track-num');
-    if (num) num.textContent = i === idx && MUSIC.playing ? '♪' : i + 1;
+    if (num) num.textContent = (i === idx && MUSIC.playing) ? '♪' : i + 1;
   });
 }
 </script>
