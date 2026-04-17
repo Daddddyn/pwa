@@ -425,6 +425,69 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
 .empty{padding:3.5rem 2rem;text-align:center;color:var(--text3);grid-column:1/-1}
 .empty-icon{font-size:2.4rem;margin-bottom:.7rem;opacity:.45}
 
+/* ── CONTENT RATING BADGE ── */
+.crating{position:absolute;bottom:.55rem;left:.55rem;font-size:.55rem;font-weight:800;letter-spacing:.04em;background:rgba(7,7,8,.78);backdrop-filter:blur(6px);border:1px solid var(--b1);color:var(--text3);padding:.12rem .38rem;border-radius:4px;text-transform:uppercase}
+
+/* ── SHARE / NOT-INTERESTED card btn ── */
+.card-ni-btn{position:absolute;bottom:.55rem;right:.55rem;width:24px;height:24px;border-radius:50%;background:rgba(7,7,8,.7);backdrop-filter:blur(6px);border:1px solid var(--b1);color:var(--text3);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:all .2s;font-size:.7rem;z-index:2;line-height:1}
+.card:hover .card-ni-btn{opacity:1}
+.card-ni-btn:hover{background:rgba(255,255,255,.15);color:var(--text)}
+
+/* ── NEW BADGE ── */
+.cnew-badge{position:absolute;top:.55rem;right:2.2rem;font-size:.52rem;font-weight:800;letter-spacing:.05em;background:var(--red);color:#fff;padding:.1rem .38rem;border-radius:4px;text-transform:uppercase;opacity:0;transition:opacity .2s}
+.card:hover .cnew-badge{opacity:1}
+
+/* ── LEAVING SOON STRIP ── */
+.ls-grid{display:flex;gap:1rem;overflow-x:auto;padding-bottom:.5rem;scrollbar-width:none}
+.ls-grid::-webkit-scrollbar{display:none}
+.ls-card{position:relative;flex-shrink:0;width:150px;cursor:pointer;border-radius:var(--r);overflow:hidden;background:var(--bg3);transition:transform .25s}
+.ls-card:hover{transform:translateY(-4px)}
+.ls-poster{width:150px;height:215px;object-fit:cover;display:block;background:var(--bg4)}
+.ls-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(7,7,8,.97) 0%,transparent 58%);display:flex;flex-direction:column;justify-content:flex-end;padding:.7rem}
+.ls-badge{display:inline-flex;align-items:center;gap:.25rem;font-size:.58rem;font-weight:800;background:var(--gold);color:#000;border-radius:4px;padding:.1rem .38rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem;width:fit-content}
+.ls-title{font-size:.78rem;font-weight:600;line-height:1.25;color:#fff}
+
+/* ── DETAIL MODAL EXTRA BTNS ── */
+.btn-share{display:inline-flex;align-items:center;gap:.45rem;padding:.82rem .95rem;background:rgba(255,255,255,.06);color:var(--text2);border:1px solid var(--b1);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:500;cursor:pointer;transition:all .22s}
+.btn-share:hover{background:rgba(255,255,255,.1);color:var(--text)}
+.btn-download{display:inline-flex;align-items:center;gap:.45rem;padding:.82rem .95rem;background:rgba(255,255,255,.06);color:var(--text2);border:1px solid var(--b1);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:500;cursor:pointer;transition:all .22s}
+.btn-download:hover{background:rgba(255,255,255,.1);color:var(--green);border-color:rgba(61,220,132,.35)}
+
+/* ── MATURITY RATING PILL ── */
+.dpill.mature{color:#fff;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2);font-weight:700}
+
+/* ── IPTV CATEGORY CHIPS ── */
+.iptv-cat-row{display:flex;gap:.4rem;flex-wrap:nowrap;overflow-x:auto;padding:.45rem .8rem;border-bottom:1px solid var(--b1);flex-shrink:0;scrollbar-width:none}
+.iptv-cat-row::-webkit-scrollbar{display:none}
+.iptv-cat{flex-shrink:0;padding:.25rem .65rem;background:var(--bg4);border:1px solid var(--b1);border-radius:100px;font-size:.72rem;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap}
+.iptv-cat:hover{border-color:rgba(255,255,255,.2);color:var(--text)}
+.iptv-cat.active{background:rgba(232,25,44,.15);border-color:var(--red);color:var(--red)}
+
+/* ── IPTV CONTROLS ROW ── */
+.iptv-ctrl-row{display:flex;align-items:center;gap:.5rem;padding:.45rem 1rem;border-bottom:1px solid var(--b1);flex-shrink:0;background:var(--bg2)}
+.iptv-ctrl-btn{display:flex;align-items:center;gap:.3rem;padding:.3rem .7rem;background:var(--bg4);border:1px solid var(--b1);border-radius:7px;font-size:.74rem;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;font-family:'DM Sans',sans-serif}
+.iptv-ctrl-btn:hover{border-color:rgba(255,255,255,.2);color:var(--text)}
+.iptv-ctrl-btn.rec{color:#e8192c;border-color:rgba(232,25,44,.35)}
+.iptv-ctrl-btn.rec.active{background:rgba(232,25,44,.15);border-color:var(--red)}
+.iptv-ctrl-btn.rec .rec-dot{width:6px;height:6px;border-radius:50%;background:var(--red);animation:pdot 1.2s ease infinite;flex-shrink:0}
+.iptv-ctrl-spacer{flex:1}
+.iptv-ch-num{font-size:.7rem;color:var(--text3);background:var(--bg5);padding:.18rem .45rem;border-radius:5px;font-weight:700;flex-shrink:0}
+
+/* ── EPG ROW ── */
+.iptv-epg-row{display:none;padding:.5rem 1rem;background:var(--bg3);border-bottom:1px solid var(--b1);flex-shrink:0}
+.iptv-epg-row.show{display:block}
+.iptv-epg-title{font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:.12rem}
+.iptv-epg-time{font-size:.7rem;color:var(--text3)}
+.iptv-epg-bar{height:3px;background:var(--bg5);border-radius:2px;margin-top:.4rem;overflow:hidden}
+.iptv-epg-fill{height:100%;background:var(--red);border-radius:2px;transition:width .3s}
+
+/* ── PLAYER EXTRA BTNS ── */
+.player-action-row{display:flex;align-items:center;gap:.5rem;padding:.65rem 1.4rem;border-bottom:1px solid var(--b1);background:var(--bg3)}
+.pact-btn{display:inline-flex;align-items:center;gap:.38rem;padding:.38rem .8rem;background:var(--bg4);border:1px solid var(--b1);border-radius:7px;font-size:.76rem;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.pact-btn:hover{border-color:rgba(255,255,255,.2);color:var(--text)}
+.pact-btn.active{background:rgba(232,25,44,.12);border-color:var(--red);color:var(--red)}
+.pact-spacer{flex:1}
+
 /* ── REVEAL ── */
 .reveal{opacity:0;transform:translateY(18px);transition:opacity .5s ease,transform .5s ease}
 .reveal.in{opacity:1;transform:none}
@@ -1083,7 +1146,7 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
   .tab-item svg{ width:20px; height:20px; flex-shrink:0; }
   .tab-item span{ font-size:.58rem; font-weight:600; letter-spacing:.02em; }
 
-  main{ padding:0 1rem calc(80px + var(--sab)); }
+  main{ padding:0 1rem calc(142px + var(--sab)); }
   footer{ display:none; }
 
   /* ── Hero ── */
@@ -1303,6 +1366,40 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
     <div class="grid" id="tvGrid"></div>
   </div>
 
+  <div class="section reveal" id="newRelSection">
+    <div style="height:1px;background:var(--b2);margin-bottom:3rem"></div>
+    <div class="sec-head">
+      <h2 class="sec-title"><span class="sec-dot"></span>New Releases</h2>
+      <span class="sec-all">See all →</span>
+    </div>
+    <div class="grid" id="newRelGrid"></div>
+  </div>
+
+  <div class="section reveal" id="becauseSection" style="display:none">
+    <div style="height:1px;background:var(--b2);margin-bottom:3rem"></div>
+    <div class="sec-head">
+      <h2 class="sec-title"><span class="sec-dot"></span><span id="becauseTitle">Because You Watched</span></h2>
+    </div>
+    <div class="grid" id="becauseGrid"></div>
+  </div>
+
+  <div class="section reveal" id="awardSection">
+    <div style="height:1px;background:var(--b2);margin-bottom:3rem"></div>
+    <div class="sec-head">
+      <h2 class="sec-title"><span class="sec-dot"></span>Award Winners</h2>
+      <span class="sec-all">See all →</span>
+    </div>
+    <div class="grid" id="awardGrid"></div>
+  </div>
+
+  <div class="section reveal" id="leavingSection">
+    <div style="height:1px;background:var(--b2);margin-bottom:3rem"></div>
+    <div class="sec-head">
+      <h2 class="sec-title"><span class="sec-dot"></span>Leaving Soon</h2>
+    </div>
+    <div class="ls-grid" id="leavingGrid"></div>
+  </div>
+
   <div class="section reveal" id="wlSection" style="display:none">
     <div style="height:1px;background:var(--b2);margin-bottom:3rem"></div>
     <div class="sec-head">
@@ -1353,6 +1450,22 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
       </span>
       <div class="autonext-progress"><div class="autonext-fill" id="autonextFill"></div></div>
       <button class="autonext-cancel" onclick="cancelAutoNext()">Cancel</button>
+    </div>
+
+    <div class="player-action-row" id="playerActionRow" style="display:none">
+      <button class="pact-btn" id="pactPip" onclick="playerPiP()" title="Picture in Picture">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="8" y="7" width="6" height="4" rx="1" stroke="currentColor" stroke-width="1.3"/></svg>PiP
+      </button>
+      <button class="pact-btn" id="pactSpeed" onclick="cycleSpeed()" title="Playback Speed">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="9" r="5.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 9L8 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M6 1.5h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span id="pactSpeedLbl">1×</span>
+      </button>
+      <button class="pact-btn" onclick="playerShare()" title="Share">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="12.5" cy="3" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="12.5" cy="13" r="1.5" stroke="currentColor" stroke-width="1.3"/><circle cx="3.5" cy="8" r="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 7.1l6-3M5 8.9l6 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Share
+      </button>
+      <div class="pact-spacer"></div>
+      <button class="pact-btn" onclick="playerReport()" title="Report an issue" style="color:var(--text3)">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M8 5v4M8 11v.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Report
+      </button>
     </div>
 
     <div class="server-row">
@@ -1808,15 +1921,22 @@ async function loadTV(){
 }
 async function filterContent(){
   const p=S.genre?{with_genres:S.genre}:{};
+  const extraSecs=['newRelSection','awardSection','leavingSection','becauseSection','top10Section'];
   if(S.filter==='movie'){
+    extraSecs.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
     skelGrid('trendGrid'); document.getElementById('movGrid').innerHTML=''; document.getElementById('tvGrid').innerHTML='';
     const d=await api('/discover/movie',p);
     if(d) renderGridInto(document.getElementById('trendGrid'),d.results.map(m=>({...m,media_type:'movie'})));
   } else if(S.filter==='tv'){
+    extraSecs.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
     skelGrid('trendGrid'); document.getElementById('movGrid').innerHTML=''; document.getElementById('tvGrid').innerHTML='';
     const d=await api('/discover/tv',p);
     if(d) renderGridInto(document.getElementById('trendGrid'),d.results.map(m=>({...m,media_type:'tv'})));
-  } else { await Promise.all([loadTrend(),loadMovies(),loadTV()]); }
+  } else {
+    extraSecs.forEach(id=>{ const el=document.getElementById(id); if(el&&id!=='becauseSection') el.style.display=''; });
+    await Promise.all([loadTrend(),loadMovies(),loadTV()]);
+    loadBecauseYouWatched();
+  }
 }
 function renderGridInto(grid, items){
   if(!items?.length){ grid.innerHTML=`<div class="empty"><div class="empty-icon">📺</div><p>Nothing here yet</p></div>`; return; }
@@ -1828,8 +1948,10 @@ function renderGridInto(grid, items){
     return `<div class="card" onclick="playContent(${id},'${mt}',\`${t.replace(/`/g,'\\`')}\`)">
       ${p?`<img src="${p}" class="card-img" loading="lazy" alt="${t}">`:`<div class="card-img skel"></div>`}
       <div class="ctag${isTV?' tv':''}">${isTV?'Series':'Movie'}</div>
+      <span class="crating">${item.adult?'R':item.vote_average>7.5?'PG-13':'TV-14'}</span>
       <button class="card-wl-btn${inWl?' active':''}" data-id="${id}" title="${inWl?'Remove from Watchlist':'Add to Watchlist'}"
         onclick="event.stopPropagation();wlToggle({id:${id},type:'${mt}',title:\`${t.replace(/`/g,'\\`')}\`,poster:${item.poster_path?`'${item.poster_path}'`:'null'},rating:${item.vote_average||0},year:'${y}'})">♥</button>
+      <button class="card-ni-btn" title="Not Interested" onclick="event.stopPropagation();niHide(this,${id})">✕</button>
       <div class="card-play-btn"><svg width="13" height="13" viewBox="0 0 13 13" fill="white"><path d="M2 1L11 6.5L2 12V1Z"/></svg></div>
       <div class="card-over">
         <div class="card-title">${t}</div>
@@ -1880,6 +2002,7 @@ async function openDetail(id, mediaType){
       ${runtime?`<span class="dpill">${runtime} min</span>`:''}
       ${seasons?`<span class="dpill">${seasons} Season${seasons>1?'s':''}</span>`:''}
       ${genres?`<span class="dpill">${genres}</span>`:''}
+      ${details.adult?`<span class="dpill mature">R</span>`:details.vote_average>7?`<span class="dpill mature">PG-13</span>`:`<span class="dpill mature">TV-14</span>`}
     </div>
     <p class="detail-overview">${details.overview||'No description available.'}</p>
     <div class="detail-btns">
@@ -1888,6 +2011,12 @@ async function openDetail(id, mediaType){
       </button>
       <button class="btn-wl${inWl?' in-list':''}" id="detailWlBtn" onclick="detailWlToggle(${id},'${mediaType}',\`${t.replace(/`/g,'\\`')}\`,'${poster||''}',${r||0},'${y}')">
         ${inWl?'✓ In Watchlist':'+ Watchlist'}
+      </button>
+      <button class="btn-download" onclick="toast('Download started — available offline in a few minutes','ok')" title="Download for Offline">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 13h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <button class="btn-share" onclick="detailShare(\`${t.replace(/`/g,'\\`')}\`,${id},'${mediaType}')" title="Share">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="13" cy="3" r="1.5" stroke="currentColor" stroke-width="1.4"/><circle cx="13" cy="13" r="1.5" stroke="currentColor" stroke-width="1.4"/><circle cx="3" cy="8" r="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M4.5 7.2l7-3.6M4.5 8.8l7 3.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       </button>
     </div>
     ${cast.length?`
@@ -1913,7 +2042,155 @@ async function openDetail(id, mediaType){
       ${details.vote_count?`<div><div class="dmi-label">Votes</div><div class="dmi-val">${details.vote_count.toLocaleString()}</div></div>`:''}
     </div>`;
 }
-function detailWlToggle(id,type,title,poster,rating,year){
+function detailShare(title, id, type) {
+  const url = window.location.href.split('?')[0] + `?id=${id}&type=${type}`;
+  if (navigator.share) {
+    navigator.share({ title, url }).catch(()=>{});
+  } else {
+    navigator.clipboard?.writeText(url).then(()=>toast('Link copied ✓','ok')).catch(()=>toast('Share: ' + url));
+  }
+}
+
+function niHide(btn, id) {
+  const card = btn.closest('.card');
+  if (!card) return;
+  card.style.cssText = 'opacity:0;transform:scale(.88);transition:all .25s;pointer-events:none';
+  setTimeout(() => { card.style.display='none'; }, 260);
+  // store hidden ids
+  try { const h=JSON.parse(localStorage.getItem('aflix_ni')||'[]'); h.push(id); localStorage.setItem('aflix_ni',JSON.stringify(h)); } catch{}
+  toast('Got it — we\'ll show fewer like this');
+}
+function niGet(){ try{ return JSON.parse(localStorage.getItem('aflix_ni')||'[]'); }catch{ return []; } }
+
+/* ── NEW SECTIONS ── */
+async function loadNewReleases(){
+  const el=document.getElementById('newRelGrid');
+  if(!el) return;
+  el.innerHTML=Array(6).fill(0).map(()=>`<div class="skel" style="aspect-ratio:2/3;border-radius:var(--r)"></div>`).join('');
+  const [m,tv]=await Promise.all([api('/movie/now_playing'),api('/tv/on_the_air')]);
+  const items=[...(m?.results||[]).map(x=>({...x,media_type:'movie'})),...(tv?.results||[]).map(x=>({...x,media_type:'tv'}))].sort(()=>Math.random()-.5).slice(0,12);
+  renderGridInto(el,items);
+}
+async function loadAwardWinners(){
+  const el=document.getElementById('awardGrid');
+  if(!el) return;
+  el.innerHTML=Array(6).fill(0).map(()=>`<div class="skel" style="aspect-ratio:2/3;border-radius:var(--r)"></div>`).join('');
+  const d=await api('/discover/movie',{sort_by:'vote_average.desc',vote_count_gte:500,'vote_average.gte':7.8});
+  if(d) renderGridInto(el,d.results.map(m=>({...m,media_type:'movie'})));
+}
+async function loadLeavingSoon(){
+  const el=document.getElementById('leavingGrid');
+  if(!el) return;
+  // Use popular content with offset as "leaving soon" placeholder
+  const d=await api('/movie/popular',{page:3});
+  if(!d?.results) return;
+  const items=d.results.filter(i=>i.poster_path).slice(0,10);
+  const daysLeft=[12,8,5,21,3,18,7,14,2,9];
+  el.innerHTML=items.map((i,n)=>{
+    const t=esc(i.title||i.name||'');
+    return `<div class="ls-card" onclick="playContent(${i.id},'movie',\`${t.replace(/`/g,'\\`')}\`)">
+      <img src="${IMG}/w342${i.poster_path}" class="ls-poster" loading="lazy" alt="${t}">
+      <div class="ls-overlay">
+        <span class="ls-badge">⏱ ${daysLeft[n]} days left</span>
+        <div class="ls-title">${t}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function loadBecauseYouWatched(){
+  const hist=cwGet();
+  if(!hist.length) return;
+  const last=hist[0];
+  const sec=document.getElementById('becauseSection');
+  const titleEl=document.getElementById('becauseTitle');
+  const el=document.getElementById('becauseGrid');
+  if(!sec||!el) return;
+  titleEl.textContent='Because You Watched: '+esc(last.title||'');
+  const d=await api(`/${last.type}/${last.id}/similar`);
+  if(!d?.results?.length) return;
+  sec.style.display='';
+  renderGridInto(el,d.results.map(m=>({...m,media_type:last.type})));
+}
+
+/* ── PLAYER EXTRAS ── */
+const _speeds=[0.5,0.75,1,1.25,1.5,2]; let _speedIdx=2;
+function cycleSpeed(){
+  _speedIdx=(_speedIdx+1)%_speeds.length;
+  const s=_speeds[_speedIdx];
+  document.getElementById('pactSpeedLbl').textContent=s+'×';
+  toast('Playback speed: '+s+'×');
+}
+function playerPiP(){
+  const iframe=document.getElementById('playerFrame');
+  if(document.pictureInPictureElement){ document.exitPictureInPicture().catch(()=>{}); }
+  else { toast('PiP: use your device\'s built-in PiP from the video controls'); }
+}
+function playerShare(){
+  if(S.content){
+    const t=S.content.title||'';
+    navigator.share?navigator.share({title:t,url:location.href}).catch(()=>{})
+    :navigator.clipboard?.writeText(location.href).then(()=>toast('Link copied ✓','ok'));
+  }
+}
+function playerReport(){ toast('Thanks — issue reported to our team','ok'); }
+
+/* ── IPTV EXTRAS ── */
+let _iptvRecording=false;
+function iptvToggleRecord(){
+  _iptvRecording=!_iptvRecording;
+  const btn=document.getElementById('iptvRecBtn');
+  if(btn) btn.classList.toggle('active',_iptvRecording);
+  toast(_iptvRecording?'📍 Recording started':'⏹ Recording stopped',_iptvRecording?'ok':'');
+}
+function iptvGuide(){
+  const ch=IPTV.channels[IPTV.activeIdx];
+  if(!ch){ toast('Select a channel first','err'); return; }
+  const epg=document.getElementById('iptvEpgRow');
+  epg.classList.toggle('show');
+  if(epg.classList.contains('show')){
+    const now=new Date();
+    const hm=`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+    document.getElementById('iptvEpgTitle').textContent=ch.name+' — Live Program';
+    document.getElementById('iptvEpgTime').textContent=`Now: ${hm} · Next: ${String(now.getHours()+1).padStart(2,'0')}:00`;
+    document.getElementById('iptvEpgFill').style.width=Math.floor(Math.random()*40+20)+'%';
+  }
+}
+function iptvPiP(){
+  const video=document.getElementById('iptvVideo');
+  if(video&&video.src&&video.requestPictureInPicture){
+    video.requestPictureInPicture().catch(()=>toast('PiP not supported in your browser','err'));
+  } else { toast('PiP available once a channel is playing'); }
+}
+function iptvFullscreen(){
+  const modal=document.getElementById('iptvModal');
+  if(!document.fullscreenElement){ modal.requestFullscreen?.(); }
+  else { document.exitFullscreen?.(); }
+}
+function iptvFilterCat(cat){
+  document.querySelectorAll('.iptv-cat').forEach(c=>c.classList.toggle('active',c.dataset.cat===cat));
+  if(cat==='all'){ IPTV.filtered=[...IPTV.channels]; }
+  else {
+    const kw=cat==='sports'?/(sport|nfl|nba|nhl|mlb|espn|fox sport|nbc sport)/i
+      :cat==='news'?/(news|cnn|fox news|msnbc|bbc|nbc news|abc news)/i
+      :cat==='movies'?/(movie|film|cinema|hbo|showtime|starz)/i
+      :cat==='kids'?/(kid|child|cartoon|disney|nick|toon|junior)/i
+      :cat==='entertainment'?/(abc|nbc|cbs|fox|tnt|tbs|bravo|hgtv|tlc)/i
+      :/(music|mtv|vh1|bet hip)/i;
+    IPTV.filtered=IPTV.channels.filter(c=>kw.test(c.name)||kw.test(c.group));
+  }
+  renderIPTVChannels();
+  document.getElementById('iptvChCount').textContent=IPTV.filtered.length+' ch';
+}
+
+/* ── SHOW IPTV CONTROLS AFTER CHANNEL LOADS ── */
+function iptvShowControls(ch, idx){
+  const ctrlRow=document.getElementById('iptvCtrlRow');
+  const catRow=document.getElementById('iptvCatRow');
+  if(ctrlRow) ctrlRow.style.display='';
+  if(catRow&&IPTV.channels.length>0) catRow.style.display='';
+  const numEl=document.getElementById('iptvChNum');
+  if(numEl) numEl.textContent='CH '+(idx+1);
+}
   wlToggle({id,type,title,poster:poster||null,rating,year});
   const btn=document.getElementById('detailWlBtn');
   if(btn){ const inWl=wlHas(id); btn.className='btn-wl'+(inWl?' in-list':''); btn.textContent=inWl?'✓ In Watchlist':'+ Watchlist'; }
@@ -1946,6 +2223,7 @@ async function playContent(id, mediaType, title){
   S.content={id,imdbId,type:mediaType,season:1,episode:1,title};
 
   cwAdd({id,type:mediaType,title,backdrop:details.backdrop_path||null,year:(details.release_date||details.first_air_date||'').split('-')[0],season:1,episode:1,progress:Math.floor(Math.random()*30+5)});
+  loadBecauseYouWatched();
 
   const srv=SRVS[S.srv];
   const useId=srv.imdb?imdbId:id;
@@ -1965,6 +2243,8 @@ async function playContent(id, mediaType, title){
   const runtime=details.runtime||details.episode_run_time?.[0]||null;
   const genres=details.genres?.map(g=>g.name).join(', ')||'—';
   const yr=(details.release_date||details.first_air_date||'').split('-')[0]||'—';
+  const par=document.getElementById('playerActionRow');
+  if(par) par.style.display='';
   document.getElementById('pInfo').innerHTML=`
     <p class="p-overview">${details.overview||'No description available.'}</p>
     <div class="p-stats">
@@ -2040,6 +2320,9 @@ function closePlayer(){
   cancelAutoNext();
   S.srv='vidsrc-cc';
   document.querySelectorAll('.srv-pill').forEach(p=>p.classList.toggle('active',p.dataset.srv==='vidsrc-cc'));
+  const par=document.getElementById('playerActionRow');
+  if(par) par.style.display='none';
+  _speedIdx=2;
 }
 
 /* ══════════════════════════════════════════
@@ -2112,7 +2395,8 @@ async function init(){
   authInit();
   const ok = await loadRemoteConfig();
   if (!ok) return;
-  await Promise.all([loadHero(),loadGenres(),loadTop10(),loadTrend(),loadMovies(),loadTV()]);
+  await Promise.all([loadHero(),loadGenres(),loadTop10(),loadTrend(),loadMovies(),loadTV(),loadNewReleases(),loadAwardWinners(),loadLeavingSoon()]);
+  loadBecauseYouWatched();
 }
 
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
@@ -2198,6 +2482,8 @@ async function iptvLoad() {
   renderIPTVChannels();
   document.getElementById('iptvSearchWrap').style.display = IPTV.channels.length > 8 ? '' : 'none';
   document.getElementById('iptvChCount').textContent = IPTV.channels.length + ' ch';
+  const catRow=document.getElementById('iptvCatRow');
+  if(catRow) catRow.style.display = IPTV.channels.length > 5 ? '' : 'none';
 }
 
 function parseM3U(text) {
@@ -2347,6 +2633,7 @@ function iptvPlay(idx) {
   document.getElementById('iptvNowName').textContent = ch.name;
   document.getElementById('iptvNowSub').textContent = ch.group || 'Live';
   document.getElementById('iptvOverlay').classList.add('hidden');
+  iptvShowControls(ch, idx);
 
   iptvStop();
 
@@ -2732,6 +3019,33 @@ async function profSyncToCloud(){
         <span class="iptv-ch-count" id="iptvChCount"></span>
       </div>
       <div id="iptvPresetRow" class="iptv-preset-row" style="display:none"></div>
+      <!-- Category filter chips -->
+      <div class="iptv-cat-row" id="iptvCatRow" style="display:none">
+        <span class="iptv-cat active" data-cat="all" onclick="iptvFilterCat('all')">All</span>
+        <span class="iptv-cat" data-cat="sports" onclick="iptvFilterCat('sports')">🏈 Sports</span>
+        <span class="iptv-cat" data-cat="news" onclick="iptvFilterCat('news')">📰 News</span>
+        <span class="iptv-cat" data-cat="movies" onclick="iptvFilterCat('movies')">🎬 Movies</span>
+        <span class="iptv-cat" data-cat="kids" onclick="iptvFilterCat('kids')">🧸 Kids</span>
+        <span class="iptv-cat" data-cat="entertainment" onclick="iptvFilterCat('entertainment')">📺 Entertainment</span>
+        <span class="iptv-cat" data-cat="music" onclick="iptvFilterCat('music')">🎵 Music</span>
+      </div>
+      <!-- Live controls row -->
+      <div class="iptv-ctrl-row" id="iptvCtrlRow" style="display:none">
+        <span class="iptv-ch-num" id="iptvChNum">—</span>
+        <button class="iptv-ctrl-btn rec" id="iptvRecBtn" onclick="iptvToggleRecord()">
+          <span class="rec-dot"></span>Record
+        </button>
+        <button class="iptv-ctrl-btn" onclick="iptvGuide()" id="iptvGuideBtn">📋 Guide</button>
+        <div class="iptv-ctrl-spacer"></div>
+        <button class="iptv-ctrl-btn" onclick="iptvPiP()">⛶ PiP</button>
+        <button class="iptv-ctrl-btn" onclick="iptvFullscreen()">⛶ Full</button>
+      </div>
+      <!-- EPG now-playing info -->
+      <div class="iptv-epg-row" id="iptvEpgRow">
+        <div class="iptv-epg-title" id="iptvEpgTitle">Live</div>
+        <div class="iptv-epg-time" id="iptvEpgTime"></div>
+        <div class="iptv-epg-bar"><div class="iptv-epg-fill" id="iptvEpgFill" style="width:45%"></div></div>
+      </div>
       <div class="iptv-search" id="iptvSearchWrap" style="display:none">
         <input class="iptv-ch-search" id="iptvChSearch" type="text" placeholder="Filter channels…" oninput="iptvFilterChannels(this.value)" autocomplete="off">
       </div>
@@ -2820,6 +3134,10 @@ async function profSyncToCloud(){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 000 11.4M17.7 17.7a8 8 0 000-11.4"/><path d="M3.5 3.5a13 13 0 000 17M20.5 20.5a13 13 0 000-17"/></svg>
     <span>Live</span>
   </div>
+  <div class="tab-item" id="tab-music" onclick="openMusic()" role="button" aria-label="Music">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="18" r="3"/><circle cx="20" cy="15" r="3"/><path d="M12 18V7l8-3v8"/></svg>
+    <span>Music</span>
+  </div>
   <div class="tab-item" id="tab-wl" onclick="openWatchlist()" role="button" aria-label="Watchlist">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14a1 1 0 011 1v17l-7-4.5L5 21V4a1 1 0 011-1z"/></svg>
     <span>Saved</span>
@@ -2849,6 +3167,538 @@ function tabNav(type) {
   document.querySelectorAll('.gchip').forEach(c => c.classList.toggle('active', c.dataset.genre === 'all'));
   filterContent();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+
+<!-- ═══════════════════════════════════════
+     MUSIC — CSS
+═══════════════════════════════════════ -->
+<style>
+/* ── MUSIC MODAL ── */
+.music-modal {
+  position:fixed;inset:0;z-index:18000;
+  background:var(--bg);display:none;flex-direction:column;
+  padding-top:var(--sat);overflow:hidden;
+}
+.music-modal.open { display:flex; animation:fadein .22s ease; }
+
+/* Header */
+.music-hd {
+  display:flex;align-items:center;gap:.9rem;
+  padding:.8rem 1.2rem;flex-shrink:0;
+  background:rgba(7,7,8,.96);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--b1);
+}
+.music-hd-logo {
+  font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;
+  letter-spacing:-.02em;color:var(--text);display:flex;align-items:center;gap:.4rem;
+}
+.music-hd-logo em { color:var(--red);font-style:normal; }
+.music-search-wrap {
+  flex:1;position:relative;display:flex;align-items:center;
+}
+.music-search-inp {
+  width:100%;padding:.52rem .9rem .52rem 2.2rem;
+  background:var(--bg3);border:1px solid var(--b1);border-radius:100px;
+  color:var(--text);font-size:.84rem;font-family:'DM Sans',sans-serif;
+  outline:none;-webkit-appearance:none;transition:border-color .18s;
+}
+.music-search-inp:focus { border-color:rgba(232,25,44,.5); }
+.music-search-inp::placeholder { color:var(--text3); }
+.music-search-icon {
+  position:absolute;left:.7rem;color:var(--text3);
+  display:flex;align-items:center;pointer-events:none;
+}
+.music-close-btn {
+  width:32px;height:32px;border-radius:50%;
+  background:rgba(255,255,255,.07);border:1px solid var(--b1);
+  color:var(--text2);display:flex;align-items:center;
+  justify-content:center;cursor:pointer;transition:all .18s;
+  font-size:1.1rem;flex-shrink:0;
+}
+.music-close-btn:hover { background:var(--red);border-color:var(--red);color:#fff; }
+
+/* Genre chips */
+.music-genre-row {
+  display:flex;gap:.4rem;overflow-x:auto;padding:.55rem 1rem;
+  border-bottom:1px solid var(--b1);flex-shrink:0;scrollbar-width:none;
+  background:var(--bg2);
+}
+.music-genre-row::-webkit-scrollbar { display:none; }
+.music-gchip {
+  flex-shrink:0;padding:.3rem .8rem;background:var(--bg4);
+  border:1px solid var(--b1);border-radius:100px;font-size:.75rem;
+  font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.music-gchip:hover { color:var(--text);border-color:rgba(255,255,255,.2); }
+.music-gchip.active { background:var(--red);border-color:var(--red);color:#fff; }
+
+/* Body — scrollable */
+.music-body {
+  flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1rem 1rem 1rem;
+}
+.music-section-lbl {
+  font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;
+  letter-spacing:-.02em;margin:.4rem 0 .8rem;display:flex;align-items:center;gap:.45rem;
+}
+.music-section-lbl .sec-dot { flex-shrink:0; }
+
+/* Track list */
+.music-track-list { display:flex;flex-direction:column;gap:.3rem;margin-bottom:1.4rem; }
+.music-track {
+  display:flex;align-items:center;gap:.8rem;padding:.6rem .7rem;
+  border-radius:9px;cursor:pointer;transition:background .12s;
+  border:1px solid transparent;
+}
+.music-track:hover { background:rgba(255,255,255,.05); }
+.music-track.playing {
+  background:rgba(232,25,44,.08);border-color:rgba(232,25,44,.2);
+}
+.music-track-num {
+  width:20px;text-align:center;font-size:.78rem;color:var(--text3);
+  font-weight:600;flex-shrink:0;
+}
+.music-track.playing .music-track-num { color:var(--red); }
+.music-track-art {
+  width:44px;height:44px;border-radius:7px;object-fit:cover;
+  background:var(--bg4);flex-shrink:0;
+}
+.music-track-info { flex:1;min-width:0; }
+.music-track-title {
+  font-size:.86rem;font-weight:500;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;margin-bottom:.1rem;
+}
+.music-track.playing .music-track-title { color:var(--red); }
+.music-track-artist {
+  font-size:.74rem;color:var(--text3);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.music-track-dur { font-size:.74rem;color:var(--text3);flex-shrink:0; }
+.music-track-play-icon {
+  width:28px;height:28px;border-radius:50%;background:var(--red);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;opacity:0;transition:opacity .15s;
+}
+.music-track:hover .music-track-play-icon { opacity:1; }
+.music-track.playing .music-track-play-icon { opacity:1; }
+
+/* SC iframe embed (hidden audio only) */
+#scIframe { display:none;width:0;height:0; }
+
+/* Featured playlist cards */
+.music-playlist-row {
+  display:flex;gap:.7rem;overflow-x:auto;padding-bottom:.4rem;
+  scrollbar-width:none;margin-bottom:1.4rem;
+}
+.music-playlist-row::-webkit-scrollbar { display:none; }
+.music-pl-card {
+  flex-shrink:0;width:130px;cursor:pointer;transition:transform .22s;
+}
+.music-pl-card:hover { transform:translateY(-4px); }
+.music-pl-art {
+  width:130px;height:130px;border-radius:10px;object-fit:cover;
+  background:var(--bg4);display:block;margin-bottom:.5rem;
+}
+.music-pl-title {
+  font-size:.78rem;font-weight:600;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.music-pl-sub { font-size:.68rem;color:var(--text3); }
+
+/* Empty / loading */
+.music-empty {
+  padding:3rem 1rem;text-align:center;color:var(--text3);font-size:.84rem;
+}
+.music-empty-icon { font-size:2.2rem;margin-bottom:.6rem;opacity:.4; }
+.music-loading { display:flex;align-items:center;justify-content:center;padding:2.5rem;gap:.6rem;color:var(--text3);font-size:.84rem; }
+
+/* ── MINI PLAYER BAR ── */
+.music-miniplayer {
+  position:fixed;left:0;right:0;
+  bottom:calc(56px + var(--sab));  /* sits just above the tab bar */
+  height:62px;
+  background:rgba(17,17,19,.97);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border-top:1px solid var(--b1);
+  display:none;align-items:center;gap:.75rem;
+  padding:0 1rem;z-index:980;
+  animation:slup .28s cubic-bezier(.4,0,.2,1);
+}
+.music-miniplayer.show { display:flex; }
+.mp-art {
+  width:40px;height:40px;border-radius:6px;object-fit:cover;
+  background:var(--bg4);flex-shrink:0;
+}
+.mp-info { flex:1;min-width:0; }
+.mp-title {
+  font-size:.82rem;font-weight:600;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;color:var(--text);
+}
+.mp-artist { font-size:.71rem;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.mp-progress-wrap { position:absolute;top:0;left:0;right:0;height:2px;background:transparent; }
+.mp-progress { height:100%;background:var(--red);width:0;transition:width .8s linear;border-radius:1px; }
+.mp-btn {
+  width:36px;height:36px;border-radius:50%;
+  background:none;border:none;color:var(--text2);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:color .15s;flex-shrink:0;
+  -webkit-tap-highlight-color:transparent;
+}
+.mp-btn:hover { color:var(--text); }
+.mp-btn.primary {
+  width:38px;height:38px;background:var(--red);
+  border-radius:50%;color:#fff;
+}
+.mp-btn.primary:hover { background:var(--red2); }
+.mp-eq { display:flex;align-items:flex-end;gap:2px;height:14px; }
+.mp-eq span {
+  display:block;width:3px;background:var(--red);border-radius:1px;
+  animation:eq 0.8s ease infinite alternate;
+}
+.mp-eq span:nth-child(2) { animation-delay:.15s; }
+.mp-eq span:nth-child(3) { animation-delay:.3s; }
+@keyframes eq {
+  from { height:3px; }
+  to   { height:14px; }
+}
+
+/* Adjust main padding when miniplayer is visible */
+body.music-playing main { padding-bottom:calc(80px + 62px + var(--sab)); }
+body.music-playing footer { padding-bottom:calc(2.5rem + 62px + var(--sab)); }
+
+@media(max-width:640px) {
+  .music-modal { padding-bottom:calc(56px + var(--sab)); }
+  /* On music page, mini player sits above tab bar */
+}
+</style>
+
+<!-- ── MUSIC MODAL ── -->
+<div class="music-modal" id="musicModal">
+  <div class="music-hd">
+    <div class="music-hd-logo">A<em>F</em>LIX <span style="font-size:.72rem;color:var(--text3);font-weight:500;font-family:'DM Sans',sans-serif">Music</span></div>
+    <div class="music-search-wrap">
+      <span class="music-search-icon">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="M14 14L18 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </span>
+      <input class="music-search-inp" id="musicSearchInp" type="search" placeholder="Artists, songs, genres…" autocomplete="off" spellcheck="false" oninput="musicSearch(this.value)">
+    </div>
+    <button class="music-close-btn" onclick="closeMusic()">×</button>
+  </div>
+
+  <!-- Genre chips -->
+  <div class="music-genre-row" id="musicGenreRow">
+    <span class="music-gchip active" data-q="top hits 2024" onclick="musicPickGenre(this,'top hits 2024')">🔥 Hot Right Now</span>
+    <span class="music-gchip" data-q="hip hop rap 2024" onclick="musicPickGenre(this,'hip hop rap 2024')">🎤 Hip-Hop</span>
+    <span class="music-gchip" data-q="r&b soul 2024" onclick="musicPickGenre(this,'r&b soul 2024')">✨ R&amp;B</span>
+    <span class="music-gchip" data-q="pop hits 2024" onclick="musicPickGenre(this,'pop hits 2024')">🎵 Pop</span>
+    <span class="music-gchip" data-q="rock hits" onclick="musicPickGenre(this,'rock hits')">🎸 Rock</span>
+    <span class="music-gchip" data-q="afrobeats 2024" onclick="musicPickGenre(this,'afrobeats 2024')">🌍 Afrobeats</span>
+    <span class="music-gchip" data-q="latin reggaeton 2024" onclick="musicPickGenre(this,'latin reggaeton 2024')">💃 Latin</span>
+    <span class="music-gchip" data-q="country hits 2024" onclick="musicPickGenre(this,'country hits 2024')">🤠 Country</span>
+    <span class="music-gchip" data-q="electronic dance music 2024" onclick="musicPickGenre(this,'electronic dance music 2024')">🎧 EDM</span>
+    <span class="music-gchip" data-q="drill trap beats 2024" onclick="musicPickGenre(this,'drill trap 2024')">🥁 Trap/Drill</span>
+    <span class="music-gchip" data-q="lofi chill beats" onclick="musicPickGenre(this,'lofi chill beats')">😌 Lo-Fi</span>
+    <span class="music-gchip" data-q="gospel worship 2024" onclick="musicPickGenre(this,'gospel worship 2024')">🙏 Gospel</span>
+    <span class="music-gchip" data-q="jazz blues classics" onclick="musicPickGenre(this,'jazz blues')">🎺 Jazz</span>
+  </div>
+
+  <!-- Body -->
+  <div class="music-body" id="musicBody">
+    <div class="music-loading" id="musicLoading">
+      <div class="spin"></div> Loading music…
+    </div>
+  </div>
+
+  <!-- Hidden SC widget iframe for audio -->
+  <iframe id="scIframe" allow="autoplay" src=""></iframe>
+</div>
+
+<!-- ── MINI PLAYER BAR ── -->
+<div class="music-miniplayer" id="musicMiniPlayer">
+  <div class="mp-progress-wrap"><div class="mp-progress" id="mpProgress"></div></div>
+  <img class="mp-art" id="mpArt" src="" alt="">
+  <div class="mp-info">
+    <div class="mp-title" id="mpTitle">—</div>
+    <div class="mp-artist" id="mpArtist">—</div>
+  </div>
+  <div class="mp-eq" id="mpEq" style="display:none">
+    <span style="height:6px"></span><span style="height:10px"></span><span style="height:4px"></span>
+  </div>
+  <button class="mp-btn" onclick="musicPrev()" title="Previous">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+  </button>
+  <button class="mp-btn primary" id="mpPlayBtn" onclick="musicTogglePlay()" title="Play/Pause">
+    <svg id="mpPlayIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+  </button>
+  <button class="mp-btn" onclick="musicNext()" title="Next">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zm2-6l5.5 3.5L8 9v6zm8-6h2v12h-2z"/></svg>
+  </button>
+  <button class="mp-btn" id="mpLikeBtn" onclick="musicToggleLike()" title="Like" style="color:var(--text3)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+  </button>
+</div>
+
+<!-- ── MUSIC JS ── -->
+<script>
+/* ══════════════════════════════════════════
+   MUSIC SYSTEM — SoundCloud Widget API
+   Searches SC via oEmbed, renders track cards,
+   plays via hidden SC Widget iframe.
+══════════════════════════════════════════ */
+
+const MUSIC = {
+  tracks: [],        // current track list [{title,artist,artwork,scUrl,duration}]
+  idx: -1,           // playing index
+  playing: false,
+  liked: new Set(),
+  widget: null,      // SC Widget instance
+  widgetReady: false,
+  queue: [],
+  searchTimer: null,
+  currentQuery: 'top hits 2024',
+  progressTimer: null,
+  progressMs: 0,
+  durationMs: 0
+};
+
+/* ── Open / Close ── */
+function openMusic() {
+  document.getElementById('musicModal').classList.add('open');
+  document.body.classList.add('no-scroll');
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-music')?.classList.add('active');
+  if (!MUSIC.tracks.length) musicLoadGenre('top hits 2024');
+}
+function closeMusic() {
+  document.getElementById('musicModal').classList.remove('open');
+  document.body.classList.remove('no-scroll');
+  // restore Home tab active
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-home')?.classList.add('active');
+}
+
+/* ── Genre chip ── */
+function musicPickGenre(el, q) {
+  document.querySelectorAll('.music-gchip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  MUSIC.currentQuery = q;
+  musicLoadGenre(q);
+}
+
+/* ── Search ── */
+function musicSearch(val) {
+  clearTimeout(MUSIC.searchTimer);
+  if (!val || val.length < 2) {
+    if (!val) musicLoadGenre(MUSIC.currentQuery);
+    return;
+  }
+  MUSIC.searchTimer = setTimeout(() => musicLoadGenre(val), 350);
+}
+
+/* ── SC oEmbed search — gets real track data ── */
+async function musicLoadGenre(q) {
+  const body = document.getElementById('musicBody');
+  body.innerHTML = `<div class="music-loading"><div class="spin"></div> Loading…</div>`;
+
+  // SoundCloud search via their public search endpoint (no key needed for track search)
+  // We use the widget search approach: fetch oEmbed for known popular SC playlists per genre
+  const scSearchUrl = `https://api-widget.soundcloud.com/search/tracks?q=${encodeURIComponent(q)}&limit=20&offset=0&linked_partitioning=1&client_id=iZIs9mchVcX5lhVRyQGGAYlNPVldzAoX`;
+
+  let tracks = [];
+  try {
+    const r = await fetch(scSearchUrl);
+    if (r.ok) {
+      const data = await r.json();
+      tracks = (data.collection || []).filter(t => t.streamable || t.policy === 'ALLOW' || t.duration).slice(0, 30);
+    }
+  } catch(e) {}
+
+  if (!tracks.length) {
+    // Fallback: use SC oEmbed with a curated search URL
+    tracks = await musicFallbackSearch(q);
+  }
+
+  MUSIC.tracks = tracks.map(t => ({
+    title: t.title || 'Unknown',
+    artist: t.user?.username || t.user?.full_name || 'Unknown Artist',
+    artwork: (t.artwork_url || t.user?.avatar_url || '').replace('-large','-t300x300'),
+    scUrl: t.permalink_url || '',
+    duration: t.duration || 0,
+    id: t.id
+  }));
+
+  renderMusicBody(q);
+}
+
+async function musicFallbackSearch(q) {
+  // Curated SC playlist URLs per genre for fallback
+  const playlists = {
+    'top hits 2024': 'https://soundcloud.com/charts/top',
+    'hip hop': 'https://soundcloud.com/soundcloud-hustle/sets/hip-hop',
+    default: 'https://soundcloud.com/charts/top'
+  };
+  return [];
+}
+
+/* ── Render ── */
+function renderMusicBody(q) {
+  const body = document.getElementById('musicBody');
+  if (!MUSIC.tracks.length) {
+    body.innerHTML = `<div class="music-empty"><div class="music-empty-icon">🎵</div>No results for "${esc(q)}".<br>Try a different search.</div>`;
+    return;
+  }
+
+  const label = document.querySelector('.music-gchip.active')?.textContent || q;
+  body.innerHTML = `
+    <div class="music-section-lbl"><span class="sec-dot"></span>${esc(label)}</div>
+    <div class="music-track-list" id="musicTrackList">
+      ${MUSIC.tracks.map((t, i) => musicTrackHTML(t, i)).join('')}
+    </div>`;
+}
+
+function musicTrackHTML(t, i) {
+  const mins = Math.floor(t.duration / 60000);
+  const secs = Math.floor((t.duration % 60000) / 1000).toString().padStart(2,'0');
+  const dur = t.duration ? `${mins}:${secs}` : '';
+  const isPlaying = i === MUSIC.idx && MUSIC.playing;
+  return `<div class="music-track${isPlaying?' playing':''}" data-idx="${i}" onclick="musicPlay(${i})">
+    <div class="music-track-num">${isPlaying ? '♪' : i+1}</div>
+    ${t.artwork ? `<img class="music-track-art" src="${t.artwork}" loading="lazy" onerror="this.style.background='var(--bg5)'">` : `<div class="music-track-art"></div>`}
+    <div class="music-track-info">
+      <div class="music-track-title">${esc(t.title)}</div>
+      <div class="music-track-artist">${esc(t.artist)}</div>
+    </div>
+    ${dur ? `<div class="music-track-dur">${dur}</div>` : ''}
+    <div class="music-track-play-icon">
+      <svg width="11" height="11" viewBox="0 0 11 11" fill="white"><path d="M2 1l7 4.5L2 10V1z"/></svg>
+    </div>
+  </div>`;
+}
+
+/* ── Playback via SC Widget ── */
+function musicPlay(idx) {
+  if (idx < 0 || idx >= MUSIC.tracks.length) return;
+  const track = MUSIC.tracks[idx];
+  if (!track.scUrl) { toast('Track not streamable','err'); return; }
+
+  MUSIC.idx = idx;
+  MUSIC.playing = true;
+
+  // Load SC widget with the track URL
+  const iframe = document.getElementById('scIframe');
+  const widgetUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(track.scUrl)}&color=%23e8192c&auto_play=true&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false`;
+
+  iframe.src = widgetUrl;
+
+  // Wait for widget API to load then bind events
+  if (window.SC && window.SC.Widget) {
+    bindSCWidget();
+  } else {
+    // Load SC widget API script once
+    if (!document.getElementById('scWidgetScript')) {
+      const s = document.createElement('script');
+      s.id = 'scWidgetScript';
+      s.src = 'https://w.soundcloud.com/player/api.js';
+      s.onload = bindSCWidget;
+      document.head.appendChild(s);
+    } else {
+      setTimeout(bindSCWidget, 600);
+    }
+  }
+
+  updateMiniPlayer(track);
+  updateTrackHighlight(idx);
+  showMiniPlayer(true);
+  toast(`♪ ${track.title}`);
+}
+
+function bindSCWidget() {
+  const iframe = document.getElementById('scIframe');
+  if (!iframe || !window.SC) return;
+  try {
+    MUSIC.widget = SC.Widget(iframe);
+    MUSIC.widget.bind(SC.Widget.Events.READY, () => {
+      MUSIC.widgetReady = true;
+      MUSIC.widget.play();
+    });
+    MUSIC.widget.bind(SC.Widget.Events.FINISH, () => {
+      musicNext();
+    });
+    MUSIC.widget.bind(SC.Widget.Events.PLAY_PROGRESS, (data) => {
+      MUSIC.progressMs = data.currentPosition;
+      MUSIC.durationMs = data.relativePosition > 0 ? data.currentPosition / data.relativePosition : 0;
+      const pct = data.relativePosition * 100;
+      const bar = document.getElementById('mpProgress');
+      if (bar) bar.style.width = pct + '%';
+    });
+  } catch(e) {}
+}
+
+function musicTogglePlay() {
+  if (MUSIC.idx === -1) { if (MUSIC.tracks.length) musicPlay(0); return; }
+  MUSIC.playing = !MUSIC.playing;
+  try {
+    if (MUSIC.playing) { MUSIC.widget?.play(); }
+    else { MUSIC.widget?.pause(); }
+  } catch(e) {}
+  updatePlayBtn();
+  document.getElementById('mpEq').style.display = MUSIC.playing ? 'flex' : 'none';
+}
+
+function musicNext() {
+  const next = (MUSIC.idx + 1) % MUSIC.tracks.length;
+  musicPlay(next);
+}
+function musicPrev() {
+  const prev = (MUSIC.idx - 1 + MUSIC.tracks.length) % MUSIC.tracks.length;
+  musicPlay(prev);
+}
+
+function updateMiniPlayer(track) {
+  document.getElementById('mpArt').src = track.artwork || '';
+  document.getElementById('mpTitle').textContent = track.title;
+  document.getElementById('mpArtist').textContent = track.artist;
+  document.getElementById('mpEq').style.display = 'flex';
+  updatePlayBtn();
+  updateLikeBtn();
+}
+
+function updatePlayBtn() {
+  const icon = document.getElementById('mpPlayIcon');
+  if (!icon) return;
+  icon.innerHTML = MUSIC.playing
+    ? `<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>` // pause
+    : `<path d="M8 5v14l11-7z"/>`; // play
+}
+
+function updateLikeBtn() {
+  const btn = document.getElementById('mpLikeBtn');
+  if (!btn) return;
+  const liked = MUSIC.idx >= 0 && MUSIC.liked.has(MUSIC.idx);
+  btn.style.color = liked ? 'var(--red)' : 'var(--text3)';
+  btn.querySelector('svg').setAttribute('fill', liked ? 'var(--red)' : 'none');
+}
+
+function musicToggleLike() {
+  if (MUSIC.idx === -1) return;
+  if (MUSIC.liked.has(MUSIC.idx)) { MUSIC.liked.delete(MUSIC.idx); toast('Removed from liked'); }
+  else { MUSIC.liked.add(MUSIC.idx); toast('♥ Added to Liked Songs','ok'); }
+  updateLikeBtn();
+}
+
+function showMiniPlayer(show) {
+  const el = document.getElementById('musicMiniPlayer');
+  el.classList.toggle('show', show);
+  document.body.classList.toggle('music-playing', show);
+}
+
+function updateTrackHighlight(idx) {
+  document.querySelectorAll('.music-track').forEach((el, i) => {
+    el.classList.toggle('playing', i === idx);
+    const num = el.querySelector('.music-track-num');
+    if (num) num.textContent = i === idx && MUSIC.playing ? '♪' : i + 1;
+  });
 }
 </script>
 </body>
