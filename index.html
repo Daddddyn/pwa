@@ -870,6 +870,8 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
   flex:1;
   overflow-y:auto;overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
+  contain:strict;
+  will-change:scroll-position;
 }
 .iptv-ch-list::-webkit-scrollbar{width:3px}
 .iptv-ch-list::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:2px}
@@ -880,6 +882,7 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
   gap:.7rem;padding:.6rem 1rem;
   cursor:pointer;transition:background .12s;
   border-bottom:1px solid var(--b2);
+  contain:layout style;
 }
 .iptv-ch:hover{background:rgba(255,255,255,.04)}
 .iptv-ch.active{
@@ -2189,6 +2192,7 @@ async function iptvLoad() {
   }
 
   IPTV.channels = parseM3U(text);
+  IPTV._ridxMap = null; // reset lookup map for new playlist
   IPTV.filtered  = [...IPTV.channels];
   IPTV.activeGroup = 'all';
   renderIPTVChannels();
@@ -2215,37 +2219,129 @@ function parseM3U(text) {
   return channels;
 }
 
-function renderIPTVChannels() {
-  const list = document.getElementById('iptvChList');
-  if (!IPTV.filtered.length) {
-    list.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--text3);font-size:.83rem;flex-shrink:0">No channels found.</div>';
-    return;
-  }
-  list.innerHTML = IPTV.filtered.map((ch, i) => {
-    const realIdx = IPTV.channels.indexOf(ch);
-    return `<div class="iptv-ch${realIdx===IPTV.activeIdx?' active':''}" onclick="iptvPlay(${realIdx})">
-      ${ch.logo
-        ? `<img class="iptv-ch-logo" src="${ch.logo}" alt="" onerror="this.style.display='none'">`
-        : `<div class="iptv-ch-logo-placeholder">${ch.name.slice(0,2).toUpperCase()}</div>`}
-      <div class="iptv-ch-info">
-        <div class="iptv-ch-name">${esc(ch.name)}</div>
-        ${ch.group ? `<div class="iptv-ch-group">${esc(ch.group)}</div>` : ''}
-      </div>
-    </div>`;
-  }).join('');
+/* ── VIRTUAL SCROLL for IPTV channel list ──────────────────────────────
+   Renders only the rows that are actually visible in the viewport.
+   With 11,000+ channels this keeps the DOM at ~30 nodes instead of 11,000.
+   ─────────────────────────────────────────────────────────────────────── */
+const IPTV_VS = {
+  ROW_H: 57,          // px — must match .iptv-ch height (padding + border)
+  BUFFER: 8,          // extra rows above/below the visible window
+  startIdx: 0,
+  endIdx: 0,
+  _raf: null,
+  _scrollBound: null
+};
+
+function vsRowHTML(ch, realIdx) {
+  const isActive = realIdx === IPTV.activeIdx;
+  return `<div class="iptv-ch${isActive?' active':''}" data-ridx="${realIdx}" onclick="iptvPlay(${realIdx})">
+    ${ch.logo
+      ? `<img class="iptv-ch-logo" src="${ch.logo}" alt="" loading="lazy" onerror="this.style.display='none'">`
+      : `<div class="iptv-ch-logo-placeholder">${ch.name.slice(0,2).toUpperCase()}</div>`}
+    <div class="iptv-ch-info">
+      <div class="iptv-ch-name">${esc(ch.name)}</div>
+      ${ch.group ? `<div class="iptv-ch-group">${esc(ch.group)}</div>` : ''}
+    </div>
+  </div>`;
 }
 
+function renderIPTVChannels() {
+  const list = document.getElementById('iptvChList');
+
+  // Unbind old scroll listener
+  if (IPTV_VS._scrollBound) {
+    list.removeEventListener('scroll', IPTV_VS._scrollBound);
+    IPTV_VS._scrollBound = null;
+  }
+
+  if (!IPTV.filtered.length) {
+    list.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--text3);font-size:.83rem">No channels found.</div>';
+    return;
+  }
+
+  // Build a channel→realIndex map once (O(1) lookup instead of O(n) indexOf)
+  if (!IPTV._ridxMap || IPTV._ridxMap.size !== IPTV.channels.length) {
+    IPTV._ridxMap = new Map(IPTV.channels.map((ch, i) => [ch, i]));
+  }
+  IPTV.filtered.forEach(ch => { ch._ridx = IPTV._ridxMap.get(ch) ?? -1; });
+
+  // Initial paint
+  list.scrollTop = 0;
+  vsRender(list, true);
+
+  // Bind scroll
+  IPTV_VS._scrollBound = () => {
+    if (IPTV_VS._raf) return;
+    IPTV_VS._raf = requestAnimationFrame(() => {
+      IPTV_VS._raf = null;
+      vsRender(list, false);
+    });
+  };
+  list.addEventListener('scroll', IPTV_VS._scrollBound, { passive: true });
+}
+
+function vsRender(list, reset) {
+  const ROW_H  = IPTV_VS.ROW_H;
+  const total  = IPTV.filtered.length;
+  const totalH = total * ROW_H;
+  const scrollTop = list.scrollTop;
+  const viewH  = list.clientHeight || 400;
+
+  const rawStart = Math.floor(scrollTop / ROW_H) - IPTV_VS.BUFFER;
+  const rawEnd   = Math.ceil((scrollTop + viewH) / ROW_H) + IPTV_VS.BUFFER;
+  const newStart = Math.max(0, rawStart);
+  const newEnd   = Math.min(total - 1, rawEnd);
+
+  // Skip repaint if window hasn't moved
+  if (!reset && newStart === IPTV_VS.startIdx && newEnd === IPTV_VS.endIdx) return;
+  IPTV_VS.startIdx = newStart;
+  IPTV_VS.endIdx   = newEnd;
+
+  const topPad    = newStart * ROW_H;
+  const bottomPad = Math.max(0, (total - newEnd - 1) * ROW_H);
+
+  let html = `<div style="height:${topPad}px;flex-shrink:0"></div>`;
+  for (let i = newStart; i <= newEnd; i++) {
+    const ch = IPTV.filtered[i];
+    html += vsRowHTML(ch, ch._ridx);
+  }
+  html += `<div style="height:${bottomPad}px;flex-shrink:0"></div>`;
+
+  list.innerHTML = html;
+}
+
+// Update only the active-class on an existing row — no full re-render needed
+function vsUpdateActive(prevIdx, nextIdx) {
+  const list = document.getElementById('iptvChList');
+  // Remove old active
+  const oldEl = list.querySelector(`[data-ridx="${prevIdx}"]`);
+  if (oldEl) oldEl.classList.remove('active');
+  // Add new active
+  const newEl = list.querySelector(`[data-ridx="${nextIdx}"]`);
+  if (newEl) newEl.classList.add('active');
+}
+
+// Debounced filter — waits 120 ms after the user stops typing
+let _iptvFilterTimer = null;
 function iptvFilterChannels(q) {
-  q = q.toLowerCase();
-  IPTV.filtered = q ? IPTV.channels.filter(c => c.name.toLowerCase().includes(q) || c.group.toLowerCase().includes(q)) : [...IPTV.channels];
-  renderIPTVChannels();
+  clearTimeout(_iptvFilterTimer);
+  _iptvFilterTimer = setTimeout(() => {
+    const lq = q.toLowerCase();
+    IPTV.filtered = lq
+      ? IPTV.channels.filter(c => c.name.toLowerCase().includes(lq) || c.group.toLowerCase().includes(lq))
+      : [...IPTV.channels];
+    renderIPTVChannels();
+  }, 120);
 }
 
 function iptvPlay(idx) {
   const ch = IPTV.channels[idx];
   if (!ch) return;
+  const prevIdx = IPTV.activeIdx;
   IPTV.activeIdx = idx;
-  renderIPTVChannels();
+
+  // Just swap the active CSS class — no full re-render needed
+  vsUpdateActive(prevIdx, idx);
 
   document.getElementById('iptvNowBar').style.display = '';
   document.getElementById('iptvNowName').textContent = ch.name;
@@ -2274,8 +2370,20 @@ function iptvPlay(idx) {
     video.play().catch(()=>{});
   }
 
+  // Scroll the virtual list so the active row is visible
   setTimeout(() => {
-    document.querySelector('.iptv-ch.active')?.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+    const list = document.getElementById('iptvChList');
+    if (!list) return;
+    // Find filtered position of this channel
+    const fIdx = IPTV.filtered.findIndex(c => c._ridx === idx);
+    if (fIdx < 0) return;
+    const rowTop = fIdx * IPTV_VS.ROW_H;
+    const rowBot = rowTop + IPTV_VS.ROW_H;
+    const viewTop = list.scrollTop;
+    const viewBot = list.scrollTop + list.clientHeight;
+    if (rowTop < viewTop || rowBot > viewBot) {
+      list.scrollTo({ top: rowTop - list.clientHeight / 2, behavior: 'smooth' });
+    }
   }, 50);
 }
 
