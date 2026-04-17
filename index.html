@@ -3516,40 +3516,37 @@ function musicSearch(val) {
 }
 
 /* ── Fetch by genre tag (featured charts) ── */
-async function musicLoadGenre(q) {
+function musicLoadGenre(q) {
   showMusicLoading();
   const cfg = GENRE_TAGS[q] || { tags: q, featured: 0, boost: 'popularity_total' };
 
-  const params = new URLSearchParams({
-    client_id:    JAMENDO_ID,
-    format:       'json',
-    limit:        '50',
-    include:      'musicinfo',
-    groupby:      'artist_id',
-    tags:         cfg.tags,
-    boost:        cfg.boost,
-    audioformat:  'mp31',
-    imagesize:    '300'
-  });
-  if (cfg.featured) params.set('featured', '1');
-
-  const url = `${JAMENDO}/tracks/?${params}`;
-  await musicFetch(url, q);
-}
-
-/* ── Fetch by free-text search ── */
-async function musicSearchJamendo(q) {
-  showMusicLoading();
-  const params = new URLSearchParams({
+  const params = {
     client_id:   JAMENDO_ID,
     format:      'json',
     limit:       '50',
-    namesearch:  q,
+    groupby:     'artist_id',
+    tags:        cfg.tags,
+    boost:       cfg.boost,
     audioformat: 'mp31',
     imagesize:   '300'
-  });
-  const url = `${JAMENDO}/tracks/?${params}`;
-  await musicFetch(url, q);
+  };
+  if (cfg.featured) params.featured = '1';
+
+  musicFetchJSONP(`${JAMENDO}/tracks/`, params, q);
+}
+
+/* ── Fetch by free-text search ── */
+function musicSearchJamendo(q) {
+  showMusicLoading();
+  const params = {
+    client_id:   JAMENDO_ID,
+    format:      'json',
+    limit:       '50',
+    search:      q,
+    audioformat: 'mp31',
+    imagesize:   '300'
+  };
+  musicFetchJSONP(`${JAMENDO}/tracks/`, params, q);
 }
 
 function showMusicLoading() {
@@ -3557,34 +3554,63 @@ function showMusicLoading() {
     `<div class="music-loading"><div class="spin"></div> Loading…</div>`;
 }
 
-async function musicFetch(url, q) {
-  let results = [];
-  try {
-    const r = await fetch(url);
-    if (r.ok) {
-      const data = await r.json();
-      // Only keep tracks that have a direct audio stream URL
-      results = (data.results || []).filter(t => t.audio && t.audio.startsWith('http'));
-    }
-  } catch(e) {
-    console.warn('Jamendo fetch error:', e);
-  }
+/* ── JSONP fetch — bypasses CORS entirely, works in any browser/PWA ── */
+function musicFetchJSONP(baseUrl, params, q) {
+  // Clean up any previous JSONP script/callback
+  const cbName = 'jamendoCb_' + Date.now();
+  const prev = document.getElementById('jamendoScript');
+  if (prev) prev.remove();
 
-  MUSIC.tracks = results.map(t => ({
-    title:    t.name        || 'Unknown Track',
-    artist:   t.artist_name || 'Unknown Artist',
-    album:    t.album_name  || '',
-    artwork:  t.album_image || t.image || '',
-    audioUrl: t.audio,          // direct MP3 stream
-    duration: (t.duration || 0) * 1000, // Jamendo gives seconds, convert to ms
-    id:       t.id,
-    shareUrl: t.shareurl || ''
-  }));
+  // Build query string with JSONP callback
+  const qs = Object.entries(params)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&');
+  const url = `${baseUrl}?${qs}&callback=${cbName}`;
 
-  renderMusicBody(q);
+  // Set up global callback
+  const timer = setTimeout(() => {
+    delete window[cbName];
+    renderMusicError(q);
+  }, 10000);
+
+  window[cbName] = function(data) {
+    clearTimeout(timer);
+    delete window[cbName];
+    const script = document.getElementById('jamendoScript');
+    if (script) script.remove();
+
+    const results = (data.results || []).filter(t => t.audio && t.audio.length > 4);
+    MUSIC.tracks = results.map(t => ({
+      title:    t.name        || 'Unknown Track',
+      artist:   t.artist_name || 'Unknown Artist',
+      album:    t.album_name  || '',
+      artwork:  t.album_image || t.image || '',
+      audioUrl: t.audio,
+      duration: (t.duration || 0) * 1000, // seconds → ms
+      id:       t.id,
+      shareUrl: t.shareurl || ''
+    }));
+    renderMusicBody(q);
+  };
+
+  const script = document.createElement('script');
+  script.id  = 'jamendoScript';
+  script.src = url;
+  script.onerror = () => {
+    clearTimeout(timer);
+    delete window[cbName];
+    renderMusicError(q);
+  };
+  document.head.appendChild(script);
 }
 
 /* ── Render track list ── */
+function renderMusicError(q) {
+  document.getElementById('musicBody').innerHTML =
+    `<div class="music-empty"><div class="music-empty-icon">⚠️</div>Couldn't load music.<br><span style="font-size:.8rem;color:var(--text3)">Check your connection and try again.</span><br><br>
+    <div onclick="musicLoadGenre(MUSIC.currentQuery)" style="cursor:pointer;color:var(--red);font-size:.85rem">↺ Retry</div></div>`;
+}
+
 function renderMusicBody(q) {
   const body = document.getElementById('musicBody');
   if (!MUSIC.tracks.length) {
