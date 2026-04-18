@@ -339,16 +339,28 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
 .autonext-cancel{font-size:.78rem;color:var(--text3);cursor:pointer;padding:.2rem .5rem;border-radius:5px;transition:all .18s;white-space:nowrap;background:none;border:1px solid var(--b1);font-family:inherit}
 .autonext-cancel:hover{color:var(--text);border-color:var(--b1)}
 
-/* servers */
-.server-row{padding:.9rem 1.4rem;border-bottom:1px solid var(--b1);background:var(--bg3);display:flex;align-items:center;gap:.9rem;flex-wrap:wrap}
-.server-lbl{font-size:.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;flex-shrink:0}
-.srv-pills{display:flex;gap:.45rem;flex-wrap:wrap}
-.srv-pill{display:inline-flex;align-items:center;gap:.45rem;padding:.38rem .85rem;background:var(--bg4);border:1px solid var(--b1);border-radius:7px;font-size:.78rem;font-weight:700;color:var(--text2);cursor:pointer;transition:all .17s}
-.srv-pill:hover{border-color:rgba(255,255,255,.2);color:var(--text)}
-.srv-pill.active{background:var(--rglow);border-color:var(--red);color:var(--text)}
-.srv-dot{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0}
-.srv-q{font-size:.62rem;font-weight:700;color:var(--gold);letter-spacing:.05em}
-.srv-pill.active .srv-q{color:var(--red2)}
+/* ── SERVER PANEL ── */
+.server-panel{border-bottom:1px solid var(--b1);background:var(--bg3)}
+.server-panel-hd{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.4rem .4rem}
+.server-lbl{font-size:.65rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;display:flex;align-items:center;gap:.45rem}
+.server-lbl::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pdot 2s ease infinite}
+.srv-note{font-size:.67rem;color:var(--text3);font-weight:400;letter-spacing:0}
+.srv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:.4rem;padding:.4rem 1.4rem .85rem}
+.srv-card{position:relative;display:flex;flex-direction:column;gap:.22rem;padding:.52rem .7rem;background:var(--bg4);border:1px solid var(--b1);border-radius:9px;cursor:pointer;transition:all .18s cubic-bezier(.4,0,.2,1);overflow:hidden;text-align:left}
+.srv-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(232,25,44,.08) 0%,transparent 60%);opacity:0;transition:opacity .18s}
+.srv-card:hover{border-color:rgba(255,255,255,.18);transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.srv-card:hover::before{opacity:1}
+.srv-card.active{border-color:var(--red);background:rgba(232,25,44,.07);box-shadow:0 0 0 1px rgba(232,25,44,.25),0 6px 18px rgba(232,25,44,.12)}
+.srv-card.active::before{opacity:1}
+.srv-card-name{font-size:.82rem;font-weight:700;color:var(--text2);letter-spacing:-.01em;transition:color .18s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srv-card:hover .srv-card-name,.srv-card.active .srv-card-name{color:var(--text)}
+.srv-card-meta{display:flex;align-items:center;gap:.3rem}
+.srv-badge{font-size:.6rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:.1rem .32rem;border-radius:4px;line-height:1.4}
+.srv-badge.q4k{background:rgba(245,197,24,.13);color:var(--gold);border:1px solid rgba(245,197,24,.25)}
+.srv-badge.q1080{background:rgba(61,220,132,.1);color:var(--green);border:1px solid rgba(61,220,132,.2)}
+.srv-badge.noads{background:rgba(100,180,255,.1);color:#6ab4ff;border:1px solid rgba(100,180,255,.2)}
+.srv-active-bar{position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--red);border-radius:0;opacity:0;transform:scaleX(0);transition:opacity .18s,transform .22s cubic-bezier(.4,0,.2,1)}
+.srv-card.active .srv-active-bar{opacity:1;transform:scaleX(1)}
 
 /* tv controls */
 .tv-ctrl{border-bottom:1px solid var(--b1);background:var(--bg3)}
@@ -1357,13 +1369,13 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
       <button class="autonext-cancel" onclick="cancelAutoNext()">Cancel</button>
     </div>
 
-    <div class="server-row">
-      <span class="server-lbl">Server</span>
-      <div class="srv-pills" id="srvPills">
-        <button class="srv-pill active" data-srv="vidsrc-cc" onclick="switchServer('vidsrc-cc')"><span class="srv-dot"></span>VidSrc<span class="srv-q">4K</span></button>
-        <button class="srv-pill" data-srv="vembed" onclick="switchServer('vembed')"><span class="srv-dot"></span>VEmbed<span class="srv-q">HD</span></button>
-        <button class="srv-pill" data-srv="vidsrc-to" onclick="switchServer('vidsrc-to')"><span class="srv-dot"></span>VidSrc 2<span class="srv-q">HD</span></button>
-        <button class="srv-pill" data-srv="vidsrc-xyz" onclick="switchServer('vidsrc-xyz')"><span class="srv-dot"></span>VidSrc 3<span class="srv-q">HD</span></button>
+    <div class="server-panel">
+      <div class="server-panel-hd">
+        <span class="server-lbl">Sources</span>
+        <span class="srv-note">Switch if one isn't loading</span>
+      </div>
+      <div class="srv-grid" id="srvPills">
+        <!-- rendered by renderSrvPills() -->
       </div>
     </div>
 
@@ -1410,17 +1422,46 @@ async function loadRemoteConfig() {
       cfg.servers.forEach(s => {
         SRVS[s.id] = {
           n: s.name,
-          imdb: !!s.imdb,
+          badge:  s.badge  || '',
+          badge2: s.badge2 || '',
           movie: id => s.movie_url.replace('{id}', id),
           tv:   (id,se,ep) => s.tv_url.replace('{id}',id).replace('{s}',se).replace('{e}',ep)
         };
       });
     } else {
+      // ── DEFAULT SERVERS (best quality, lowest ads, most stable as of 2025) ──
+      // All use TMDB IDs. URL formats verified from official docs + dev communities.
       SRVS = {
-        'vidsrc-cc':  { n:'VidSrc',  imdb:false, movie:id=>`https://vidsrc.cc/v2/embed/movie/${id}`,   tv:(id,s,e)=>`https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}` },
-        'vembed':     { n:'VEmbed',  imdb:false, movie:id=>`https://vembed.stream/play/${id}`,          tv:(id,s,e)=>`https://vembed.stream/play/${id}_s${s}` },
-        'vidsrc-to':  { n:'VidSrc2', imdb:true,  movie:id=>`https://vidsrc.to/embed/movie/${id}`,      tv:(id,s,e)=>`https://vidsrc.to/embed/tv/${id}/${s}/${e}` },
-        'vidsrc-xyz': { n:'VidSrc3', imdb:true,  movie:id=>`https://vidsrc.xyz/embed/movie/${id}`,     tv:(id,s,e)=>`https://vidsrc.xyz/embed/tv/${id}/${s}/${e}` }
+        'videasy': {
+          n:'Videasy', badge:'4K', badge2:'No Ads',
+          movie: id => `https://player.videasy.net/movie/${id}?autoplay=true&color=e8192c`,
+          tv:   (id,s,e) => `https://player.videasy.net/tv/${id}/${s}/${e}?autoplay=true&color=e8192c&nextEpisode=true`
+        },
+        'autoembed': {
+          n:'AutoEmbed', badge:'1080p', badge2:'No Ads',
+          movie: id => `https://player.autoembed.cc/embed/movie/${id}?autoplay=true`,
+          tv:   (id,s,e) => `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}?autoplay=true`
+        },
+        'vidfast': {
+          n:'VidFast', badge:'4K', badge2:'',
+          movie: id => `https://vidfast.pro/movie/${id}?autoPlay=true&theme=e8192c`,
+          tv:   (id,s,e) => `https://vidfast.pro/tv/${id}/${s}/${e}?autoPlay=true&theme=e8192c`
+        },
+        'vidlink': {
+          n:'VidLink', badge:'1080p', badge2:'No Ads',
+          movie: id => `https://vidlink.pro/movie/${id}?autoplay=true&primaryColor=e8192c&iconColor=e8192c`,
+          tv:   (id,s,e) => `https://vidlink.pro/tv/${id}/${s}/${e}?autoplay=true&primaryColor=e8192c&iconColor=e8192c`
+        },
+        'embedsu': {
+          n:'Embed.su', badge:'1080p', badge2:'',
+          movie: id => `https://embed.su/embed/movie/${id}`,
+          tv:   (id,s,e) => `https://embed.su/embed/tv/${id}/${s}/${e}`
+        },
+        'vidbinge': {
+          n:'MoviesAPI', badge:'1080p', badge2:'',
+          movie: id => `https://moviesapi.club/movie/${id}`,
+          tv:   (id,s,e) => `https://moviesapi.club/tv/${id}-${s}-${e}`
+        }
       };
     }
     IPTV_PLAYLISTS = cfg.iptv_playlists || [];
@@ -1437,17 +1478,24 @@ function renderSrvPills() {
   const pills = document.getElementById('srvPills');
   if (!pills || !Object.keys(SRVS).length) return;
   const first = Object.keys(SRVS)[0];
-  if (S.srv === 'vidsrc-cc' && !SRVS['vidsrc-cc']) S.srv = first;
-  pills.innerHTML = Object.entries(SRVS).map(([id,srv],i) =>
-    `<button class="srv-pill${i===0?' active':''}" data-srv="${id}" onclick="switchServer('${id}')"><span class="srv-dot"></span>${srv.n}</button>`
-  ).join('');
+  if (!SRVS[S.srv]) S.srv = first;
+  pills.innerHTML = Object.entries(SRVS).map(([id, srv], i) => {
+    const isActive = (i === 0 && S.srv === first) || S.srv === id;
+    const b1 = srv.badge  ? `<span class="srv-badge ${srv.badge==='4K'?'q4k':'q1080'}">${srv.badge}</span>` : '';
+    const b2 = srv.badge2 ? `<span class="srv-badge noads">${srv.badge2}</span>` : '';
+    return `<button class="srv-card${isActive?' active':''}" data-srv="${id}" onclick="switchServer('${id}')">
+      <span class="srv-card-name">${srv.n}</span>
+      <span class="srv-card-meta">${b1}${b2}</span>
+      <span class="srv-active-bar"></span>
+    </button>`;
+  }).join('');
 }
 
 /* ══════════════════════════════════════════
    STATE
 ══════════════════════════════════════════ */
 const S = {
-  filter:'all', genre:null, srv:'vidsrc-cc',
+  filter:'all', genre:null, srv:'videasy',
   content:null,
   epList:[],
   heroItems:[], heroIdx:0, heroTimer:null,
@@ -1599,7 +1647,7 @@ function toast(msg,type=''){
   let mx=0,my=0,rx=0,ry=0;
   document.addEventListener('mousemove',e=>{ mx=e.clientX; my=e.clientY; dot.style.left=mx+'px'; dot.style.top=my+'px'; });
   (function anim(){ rx+=(mx-rx)*.11; ry+=(my-ry)*.11; ring.style.left=rx+'px'; ring.style.top=ry+'px'; requestAnimationFrame(anim); })();
-  const hov='button,a,[onclick],.card,.nav-link,.gchip,.srv-pill,.stab,.ep-card,.sitem,.wl-item,.cw-card,.t10-card';
+  const hov='button,a,[onclick],.card,.nav-link,.gchip,.srv-card,.stab,.ep-card,.sitem,.wl-item,.cw-card,.t10-card';
   document.addEventListener('mouseover',e=>{ if(e.target.closest(hov)) document.body.classList.add('ch'); });
   document.addEventListener('mouseout', e=>{ if(e.target.closest(hov)) document.body.classList.remove('ch'); });
   document.addEventListener('mouseover',e=>{ if(e.target.closest('.stage')) document.body.classList.add('ci'); });
@@ -1940,7 +1988,7 @@ async function playContent(id, mediaType, title){
   document.getElementById('tvCtrl').style.display='none';
   document.getElementById('pInfo').innerHTML='';
   document.getElementById('pLoading').classList.add('show');
-  document.querySelectorAll('.srv-pill').forEach(p=>p.classList.toggle('active',p.dataset.srv===S.srv));
+  document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv===S.srv));
 
   modal.classList.add('open');
   document.body.classList.add('no-scroll');
@@ -1949,23 +1997,19 @@ async function playContent(id, mediaType, title){
   const details=await api(`/${mediaType}/${id}`,{append_to_response:'external_ids'});
   if(!details){ toast('Failed to load details','err'); document.getElementById('pLoading').classList.remove('show'); return; }
 
-  const imdbId=details.external_ids?.imdb_id||null;
-  S.content={id,imdbId,type:mediaType,season:1,episode:1,title};
+  const srv=SRVS[S.srv];
+  S.content={id,type:mediaType,season:1,episode:1,title};
 
   cwAdd({id,type:mediaType,title,backdrop:details.backdrop_path||null,year:(details.release_date||details.first_air_date||'').split('-')[0],season:1,episode:1,progress:Math.floor(Math.random()*30+5)});
 
-  const srv=SRVS[S.srv];
-  const useId=srv.imdb?imdbId:id;
-
-  if(srv.imdb&&!imdbId){ showUnavail(); }
-  else if(mediaType==='tv'&&details.seasons){
+  if(mediaType==='tv'&&details.seasons){
     const seasons=details.seasons.filter(s=>s.season_number>0);
     document.getElementById('tvCtrl').style.display='block';
-    renderSeasons(seasons,id,title,imdbId);
+    renderSeasons(seasons,id,title);
     await loadEpisodes(id,1);
-    setFrame(srv.tv(useId,1,1));
+    setFrame(srv.tv(id,1,1));
   } else {
-    setFrame(srv.movie(useId));
+    setFrame(srv.movie(id));
   }
 
   const r=details.vote_average?.toFixed(1)||'—';
@@ -1985,20 +2029,19 @@ async function playContent(id, mediaType, title){
 function setFrame(src){
   const iframe=document.getElementById('playerFrame'), ov=document.getElementById('pLoading');
   ov.classList.add('show');
-  // Re-assert sandbox on every load to survive any iframe self-removal tricks
-  if (typeof aflixHardenIframe === 'function') aflixHardenIframe(iframe);
+  if(typeof aflixHardenIframe==='function') aflixHardenIframe(iframe);
   iframe.src=src;
   iframe.onload=()=>ov.classList.remove('show');
   setTimeout(()=>ov.classList.remove('show'),10000);
 }
 function showUnavail(){
-  document.getElementById('playerFrame').srcdoc=`<style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#000;color:#fff;font-family:'DM Sans',sans-serif;text-align:center}</style><div><h2 style="font-size:1rem;margin-bottom:.5rem">Unavailable on this server</h2><p style="color:#666;font-size:.82rem">Try VidSrc or VEmbed</p></div>`;
+  document.getElementById('playerFrame').srcdoc=`<style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#000;color:#fff;font-family:'DM Sans',sans-serif;text-align:center}</style><div><h2 style="font-size:1rem;margin-bottom:.5rem">Unavailable on this server</h2><p style="color:#666;font-size:.82rem">Try switching to a different source above</p></div>`;
   document.getElementById('pLoading').classList.remove('show');
 }
-function renderSeasons(seasons,tvId,title,imdbId){
+function renderSeasons(seasons,tvId,title){
   document.getElementById('seasonsRow').innerHTML=seasons.map(s=>`
     <button class="stab${s.season_number===1?' active':''}" data-s="${s.season_number}"
-      onclick="selectSeason(${tvId},${s.season_number},'${imdbId||''}')">S${s.season_number}</button>`).join('');
+      onclick="selectSeason(${tvId},${s.season_number})">S${s.season_number}</button>`).join('');
 }
 async function loadEpisodes(tvId,season){
   const grid=document.getElementById('epsGrid');
@@ -2016,13 +2059,12 @@ async function loadEpisodes(tvId,season){
       </div>
     </div>`).join('');
 }
-function selectSeason(tvId,season,imdbId){
+function selectSeason(tvId,season){
   S.content.season=season; S.content.episode=1;
   document.querySelectorAll('.stab').forEach(t=>t.classList.toggle('active',parseInt(t.dataset.s)===season));
   loadEpisodes(tvId,season);
-  const srv=SRVS[S.srv], useId=srv.imdb?imdbId:S.content.id;
-  if(srv.imdb&&!imdbId){ showUnavail(); return; }
-  setFrame(srv.tv(useId,season,1));
+  const srv=SRVS[S.srv];
+  setFrame(srv.tv(S.content.id,season,1));
 }
 function selectEpisode(ep){
   if(!S.content) return;
@@ -2030,25 +2072,23 @@ function selectEpisode(ep){
   document.querySelectorAll('.ep-card').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.ep)===ep));
   const active=document.querySelector('.ep-card.active');
   if(active) active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
-  const srv=SRVS[S.srv], useId=srv.imdb?S.content.imdbId:S.content.id;
-  if(srv.imdb&&!S.content.imdbId){ showUnavail(); return; }
-  setFrame(srv.tv(useId,S.content.season,ep));
+  const srv=SRVS[S.srv];
+  setFrame(srv.tv(S.content.id,S.content.season,ep));
 }
 function switchServer(key){
   S.srv=key;
-  document.querySelectorAll('.srv-pill').forEach(p=>p.classList.toggle('active',p.dataset.srv===key));
+  document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv===key));
   if(!S.content) return;
-  const srv=SRVS[key], useId=srv.imdb?S.content.imdbId:S.content.id;
-  if(srv.imdb&&!S.content.imdbId){ showUnavail(); return; }
-  setFrame(S.content.type==='tv'?srv.tv(useId,S.content.season,S.content.episode):srv.movie(useId));
+  const srv=SRVS[key];
+  setFrame(S.content.type==='tv'?srv.tv(S.content.id,S.content.season,S.content.episode):srv.movie(S.content.id));
 }
 function closePlayer(){
   document.getElementById('playerModal').classList.remove('open');
   document.getElementById('playerFrame').src='about:blank';
   document.body.classList.remove('no-scroll','ci');
   cancelAutoNext();
-  S.srv='vidsrc-cc';
-  document.querySelectorAll('.srv-pill').forEach(p=>p.classList.toggle('active',p.dataset.srv==='vidsrc-cc'));
+  S.srv='videasy';
+  document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv==='videasy'));
 }
 
 /* ══════════════════════════════════════════
