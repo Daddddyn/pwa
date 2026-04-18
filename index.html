@@ -1385,17 +1385,14 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
     </div>
 
     <div class="stage" id="playerStage">
-      <!-- SANDBOX DESIGN: Use the minimal set of permissions players actually need.
-           Servers detect overly restrictive sandboxes; they do NOT detect a sandbox
-           that includes allow-popups + allow-popups-to-escape-sandbox because those
-           flags satisfy their window.open() feature-detection check.
-           Real popup ads are killed by adblock.js JS layers (window.open override,
-           MutationObserver, click capture, postMessage firewall, Service Worker).
-           allow-top-navigation-by-user-activation blocks script-triggered top-frame
-           redirects while still letting players pass their nav-capability test.
-           This sandbox set must stay in sync with aflixHardenIframe() in adblock.js. -->
+      <!-- NO sandbox attribute. Every working streaming embed site (vidlink.pro,
+           vidsrc, videasy, autoembed, rivestream, etc.) uses exactly this pattern:
+           just allow + allowfullscreen, no sandbox. Any sandbox token — even a
+           permissive one — is detected by the player's JS and causes the
+           "Please disable sandbox" block screen. Ad blocking is done entirely by
+           the JS layers in adblock.js (window.open override, MutationObserver,
+           click capture, postMessage firewall) and the Service Worker. -->
       <iframe id="playerFrame" class="p-iframe"
-        sandbox="allow-scripts allow-same-origin allow-fullscreen allow-presentation allow-orientation-lock allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
         allow="autoplay; fullscreen *; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write"
         referrerpolicy="strict-origin-when-cross-origin"
         allowfullscreen></iframe>
