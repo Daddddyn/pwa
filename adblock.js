@@ -215,27 +215,27 @@
   }
 
   /* ── 6. IFRAME HARDENING helper ────────────────────────────── */
-  // These embed servers (VidLink, AutoEmbed, Videasy, VidFast, etc.) actively
-  // detect ANY sandbox attribute on the parent iframe and refuse to play if
-  // one is present — regardless of which tokens are included.
+  // HOW EMBED SERVERS DETECT SANDBOX:
+  //   When any sandbox attribute is present, the browser sets window.origin = "null"
+  //   inside the iframe. Embed servers (VidLink, AutoEmbed, VidFast, etc.) check
+  //   this at runtime — if origin is "null" they show "Please Disable Sandbox" /
+  //   "Iframe Sandbox Detected". No combination of sandbox tokens bypasses this.
+  //   Source: https://blog.huli.tw/2022/04/07/en/iframe-and-window-open/
   //
-  // Working sites (nunflix.org, 456movie.com, etc.) use zero sandbox attribute.
-  // Ad blocking is handled entirely by JS layers 1-5 and 7 above:
-  //   • window.open() is no-op'd → all popup ads silently fail
-  //   • click capture blocks outbound _blank/_top links
-  //   • MutationObserver removes injected ad overlays/scripts
-  //   • postMessage firewall blocks redirect messages
-  //   • beforeunload guard prevents page hijack
+  // ALSO: referrerpolicy="no-referrer" suppresses document.referrer inside the
+  //   iframe, which some embeds check to verify they're embedded from a real page.
   //
-  // Source: VidLink official API docs (no sandbox in their embed example),
-  //         uBlock Origin issue #26880, Techies Tech Guide vidcloud analysis.
+  // SOLUTION: No sandbox, no referrerpolicy. Ad protection is handled entirely
+  //   by JS layers 1-5 and 7 in this file (window.open noop, click intercept,
+  //   MutationObserver, postMessage firewall, beforeunload guard).
+  //   Note: window.open override only affects the TOP frame — embed iframes run
+  //   in their own cross-origin browsing context and are unaffected by it.
   window.aflixHardenIframe = function(iframe) {
     if (!iframe) return;
-    // DO NOT set sandbox attribute — embed servers detect and block it
+    // Remove sandbox and referrerpolicy — both trigger embed detection
     iframe.removeAttribute('sandbox');
-    // Keep referrer policy to limit info leakage to embed servers
-    iframe.setAttribute('referrerpolicy', 'no-referrer');
-    // Feature/permissions policy — allow playback features, block harmful ones
+    iframe.removeAttribute('referrerpolicy');
+    // Keep the allow/permissions policy for autoplay and fullscreen
     iframe.setAttribute('allow',
       'autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer'
     );
