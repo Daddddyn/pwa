@@ -1310,14 +1310,14 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
     </div>
 
     <div class="stage" id="playerStage">
-      <!-- NO sandbox attribute. Every working streaming embed site (vidlink.pro,
-           vidsrc, videasy, autoembed, rivestream, etc.) uses exactly this pattern:
-           just allow + allowfullscreen, no sandbox. Any sandbox token — even a
-           permissive one — is detected by the player's JS and causes the
-           "Please disable sandbox" block screen. Ad blocking is done entirely by
-           the JS layers in adblock.js (window.open override, MutationObserver,
-           click capture, postMessage firewall) and the Service Worker. -->
+      <!-- SANDBOX: allow-scripts WITHOUT allow-same-origin → iframe gets null/opaque
+           origin → server JS tries window.frameElement.sandbox, gets a cross-origin
+           SecurityError, detection code crashes → no block screen, player loads.
+           No allow-popups → window.open() is dead at browser level inside the frame
+           → popup ads cannot fire regardless of what the embed JS does.
+           Must stay in sync with aflixHardenIframe() in adblock.js. -->
       <iframe id="playerFrame" class="p-iframe"
+        sandbox="allow-scripts allow-forms allow-fullscreen allow-orientation-lock allow-presentation allow-top-navigation-by-user-activation"
         allow="autoplay; fullscreen *; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write"
         referrerpolicy="strict-origin-when-cross-origin"
         allowfullscreen></iframe>
