@@ -20,98 +20,190 @@ const SHELL_FILES = [
 ];
 
 /* ── AD NETWORK BLOCKLIST ──────────────────────────────────────
-   Requests from any of these hostname fragments are intercepted
-   by the service worker and returned as a 204 No Content,
-   meaning the ad resource simply never loads.
-   Add more entries as needed.
+   Dynamically sourced from AdGuard's published filter lists.
+   On install the SW fetches these lists, parses out all blocked
+   hostnames, stores them in Cache Storage, and refreshes them
+   every 48 hours. Falls back to the built-in seed list if the
+   network is unavailable.
 ───────────────────────────────────────────────────────────────*/
-const AD_NETWORK_HOSTS = [
-  // Google ad infrastructure
-  'doubleclick.net', 'googlesyndication.com', 'adservice.google.com',
-  'googletagmanager.com', 'googletagservices.com', 'googleadservices.com',
-  // Major ad networks
-  'popads.net', 'popcash.net', 'popunder.net',
-  'exoclick.com', 'exosrv.com',
-  'trafficjunky.net', 'trafficjunky.com',
-  'juicyads.com', 'hilltopads.net', 'hilltopads.com',
-  'adnxs.com', 'adnxs-simple.com',
-  'rubiconproject.com', 'openx.net', 'openx.com',
-  'pubmatic.com', 'criteo.com', 'criteo.net',
-  'smartadserver.com', 'smartadserver.net',
-  'clickadu.com', 'adcash.com', 'adcash.net',
-  'propellerads.com', 'propellerclick.com',
-  'adsterra.com', 'adsterra.net',
-  'yllix.com', 'clkrev.com',
-  'go2jump.org', 'tsyndicate.com', 'adspyglass.com',
-  'trafmag.com', 'bidvertiser.com',
-  'revcontent.com', 'mgid.com',
-  'richpush.co', 'pushcrew.com',
-  'onesignal.com',
-  // Popup / redirect ad networks
-  'popcash.net', 'popads.net', 'popunder.net', 'pop.network',
-  'clickaine.com', 'clickadilla.com',
-  'trafficfactory.biz', 'trafficfactory.com',
-  'ero-advertising.com', 'ero-advertising.net',
-  'exdynsrv.com', 'exosrv.com',
-  'dtscdn.com', 'dtsrv.com',
-  'adskeeper.co.uk', 'adskeeper.com',
-  'ad-center.com', 'adcenter.net',
-  'adcolony.com', 'inmobi.com',
-  'moatads.com', 'spotxchange.com',
-  'spotx.tv', 'teads.tv', 'teads.com',
-  'connatix.com', 'media.net',
-  'taboola.com', 'outbrain.com',
-  'zergnet.com', 'plista.com',
-  'ligatus.com', 'contentad.net',
-  'adition.com', 'adform.net', 'adform.com',
-  'appnexus.com', 'appnexus.net',
-  'yieldmo.com', 'yieldlab.net', 'yieldlab.de',
-  'casalemedia.com', 'improve-digital.com',
-  'improvedigital.com', 'lijit.com',
-  'sovrn.com', 'contextweb.com',
-  'servedby-buysellads.com', 'buysellads.com',
-  'carbonads.com', 'carbonads.net',
-  'triplelift.com', 'sharethrough.com',
-  'indexexchange.com', '33across.com',
-  'yavli.com', 'districtm.io',
-  'districtm.ca', 'emxdgt.com',
-  'kargo.com', 'bidswitch.net',
-  '1rx.io', 'adsymptotic.com',
-  'synacor.com', 'undertone.com',
-  'aol.com', 'advertising.com',
-  // Tracker / fingerprinting
-  'scorecardresearch.com', 'quantserve.com',
-  'comscore.com', 'chartbeat.com',
-  'hotjar.com', 'fullstory.com',
-  'mouseflow.com', 'luckyorange.com',
-  // Push notification spam
-  'onesignal.com', 'pushcrew.com', 'richpush.co',
-  'sendpulse.com', 'pushengage.com',
-  'izooto.com', 'webpushr.com',
-  'pushwoosh.com', 'gravitec.net',
-  // Adult ad networks (common in embed servers)
-  'juicyads.com', 'trafficjunky.net',
-  'trafficjunky.com', 'ero-advertising.com',
-  'adultadworld.com', 'adsexposed.com',
-  'adultforce.com', 'plugrush.com',
-  'exoclick.com', 'adxpansion.com',
-  'trafmag.com', 'tubecorporate.com',
-  // Crypto / malware ad redirectors
-  'clkrev.com', 'go2jump.org', 'go2cloud.org',
-  'onclickads.net', 'onclicka.com',
-  'onclick.io', 'adsterra.com',
-  'retroavenue.com', 'gamingadventures.net',
-  'yads.com', 'adnetwork.net'
+
+// Remote filter lists to fetch (Adblock / hosts syntax)
+// These are official AdGuard-maintained lists, updated daily.
+const FILTER_LISTS = [
+  // AdGuard DNS filter — combines Base, Social, Tracking, EasyList, EasyPrivacy
+  'https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt',
+  // AdGuard Popup Ads filter — specifically targets popups & redirects
+  'https://filters.adtidy.org/extension/ublock/filters/19.txt',
+  // EasyPrivacy — trackers & fingerprinting
+  'https://easylist.to/easylist/easyprivacy.txt',
 ];
+
+const BLOCKLIST_CACHE_KEY  = 'aflix-adblock-hosts-v1';
+const BLOCKLIST_TS_KEY     = 'aflix-adblock-ts-v1';
+const BLOCKLIST_REFRESH_MS = 48 * 60 * 60 * 1000; // 48 hours
+
+// Seed list — used immediately on first load before filter lists download,
+// and as a permanent fallback if all fetches fail.
+const SEED_HOSTS = new Set([
+  'doubleclick.net','googlesyndication.com','adservice.google.com',
+  'googletagservices.com','googleadservices.com',
+  'popads.net','popcash.net','popunder.net','pop.network',
+  'exoclick.com','exosrv.com','exdynsrv.com',
+  'trafficjunky.net','trafficjunky.com',
+  'juicyads.com','hilltopads.net','hilltopads.com',
+  'adnxs.com','adnxs-simple.com',
+  'rubiconproject.com','openx.net','openx.com',
+  'pubmatic.com','criteo.com','criteo.net',
+  'smartadserver.com','clickadu.com','adcash.com',
+  'propellerads.com','adsterra.com',
+  'yllix.com','clkrev.com','go2jump.org','go2cloud.org',
+  'tsyndicate.com','adspyglass.com','trafmag.com',
+  'bidvertiser.com','revcontent.com','mgid.com',
+  'taboola.com','outbrain.com',
+  'adform.net','appnexus.com','appnexus.net',
+  'casalemedia.com','improvedigital.com',
+  'triplelift.com','sharethrough.com','indexexchange.com',
+  'districtm.io','districtm.ca','bidswitch.net',
+  'scorecardresearch.com','quantserve.com','comscore.com',
+  'hotjar.com','fullstory.com',
+  'onesignal.com','pushcrew.com','richpush.co',
+  'sendpulse.com','pushengage.com','pushwoosh.com','gravitec.net',
+  'ero-advertising.com','adultadworld.com','plugrush.com',
+  'adxpansion.com','tubecorporate.com',
+  'onclickads.net','onclick.io',
+  'clickaine.com','clickadilla.com',
+  'trafficfactory.biz','dtscdn.com','dtsrv.com',
+  'adskeeper.co.uk','adskeeper.com',
+  'connatix.com','media.net',
+  'spotxchange.com','spotx.tv','teads.tv',
+  'advertising.com','adnetwork.net','yads.com'
+]);
+
+// Live set — starts as seed, gets replaced when filter lists load
+let adHostSet = new Set(SEED_HOSTS);
+
+/* Parse an Adblock/hosts/domains filter file into a Set of hostnames.
+   Handles:
+     ||example.com^                  (Adblock network rule)
+     ||example.com^$popup            (with options)
+     0.0.0.0 example.com            (hosts file)
+     example.com                    (domains-only)
+*/
+function parseFilterList(text) {
+  const hosts = new Set();
+  const lines = text.split(/\r?\n/);
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line || line.startsWith('!') || line.startsWith('#')) continue;
+
+    // Adblock-style: ||hostname^  or  ||hostname^$options
+    if (line.startsWith('||')) {
+      const end   = line.search(/[\^\/\$]/);
+      const host  = line.slice(2, end > 2 ? end : undefined).toLowerCase();
+      if (host && !host.includes('/') && host.includes('.')) hosts.add(host);
+      continue;
+    }
+
+    // hosts-file style: 0.0.0.0 hostname  or  127.0.0.1 hostname
+    if (line.startsWith('0.0.0.0') || line.startsWith('127.0.0.1')) {
+      const parts = line.split(/\s+/);
+      if (parts[1] && parts[1].includes('.') && !parts[1].includes('/')) {
+        hosts.add(parts[1].toLowerCase());
+      }
+      continue;
+    }
+
+    // domains-only: bare hostname with no spaces or slashes
+    if (!line.includes(' ') && !line.includes('/') &&
+        !line.startsWith('@') && !line.startsWith('[') &&
+        line.includes('.')) {
+      hosts.add(line.toLowerCase());
+    }
+  }
+  return hosts;
+}
+
+/* Fetch all filter lists, merge into one Set, persist in Cache Storage */
+async function refreshBlocklist() {
+  let merged = new Set(SEED_HOSTS);
+  let anySucceeded = false;
+
+  for (const url of FILTER_LISTS) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) continue;
+      const text = await res.text();
+      const parsed = parseFilterList(text);
+      for (const h of parsed) merged.add(h);
+      anySucceeded = true;
+      console.log(`[AFlix SW] Loaded ${parsed.size} rules from ${url}`);
+    } catch(e) {
+      console.warn(`[AFlix SW] Filter list fetch failed: ${url}`, e);
+    }
+  }
+
+  if (anySucceeded) {
+    adHostSet = merged;
+    // Persist the merged set so it survives SW restarts
+    try {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put(
+        BLOCKLIST_CACHE_KEY,
+        new Response(JSON.stringify([...merged]), {
+          headers: { 'Content-Type': 'application/json' }
+        })
+      );
+      await cache.put(
+        BLOCKLIST_TS_KEY,
+        new Response(String(Date.now()), {
+          headers: { 'Content-Type': 'text/plain' }
+        })
+      );
+    } catch(e) {}
+    console.log(`[AFlix SW] Blocklist updated — ${merged.size} total rules`);
+  }
+  return merged;
+}
+
+/* Load persisted blocklist from cache (fast, no network) */
+async function loadPersistedBlocklist() {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+
+    // Check if refresh is needed
+    const tsRes = await cache.match(BLOCKLIST_TS_KEY);
+    if (tsRes) {
+      const ts = Number(await tsRes.text());
+      if (Date.now() - ts < BLOCKLIST_REFRESH_MS) {
+        const blRes = await cache.match(BLOCKLIST_CACHE_KEY);
+        if (blRes) {
+          const arr = await blRes.json();
+          adHostSet = new Set(arr);
+          console.log(`[AFlix SW] Blocklist restored from cache — ${adHostSet.size} rules`);
+          return; // still fresh, no fetch needed
+        }
+      }
+    }
+  } catch(e) {}
+  // Cache missing or stale — refresh in background (don't block fetch events)
+  refreshBlocklist();
+}
 
 function isAdRequest(url) {
   try {
     const hostname = new URL(url).hostname.toLowerCase();
-    return AD_NETWORK_HOSTS.some(h => hostname.includes(h));
+    // Exact match first (fast path)
+    if (adHostSet.has(hostname)) return true;
+    // Walk up subdomains: sub.example.com → example.com
+    const parts = hostname.split('.');
+    for (let i = 1; i < parts.length - 1; i++) {
+      if (adHostSet.has(parts.slice(i).join('.'))) return true;
+    }
+    return false;
   } catch(e) { return false; }
 }
 
-// Install: cache app shell
+// Install: cache app shell + kick off first blocklist fetch
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
@@ -125,18 +217,19 @@ self.addEventListener('install', event => {
       })).catch(err => {
         console.warn('[AFlix SW] Shell cache failed (non-fatal):', err);
       });
-    })
+    }).then(() => refreshBlocklist()) // fetch AdGuard lists on first install
   );
 });
 
-// Activate: clear old caches
+// Activate: clear old caches + restore saved blocklist
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
         keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
       )
-    ).then(() => self.clients.claim())
+    ).then(() => loadPersistedBlocklist())
+     .then(() => self.clients.claim())
   );
 });
 
