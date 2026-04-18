@@ -2,7 +2,7 @@
   "name": "AFlix — Stream Movies & TV",
   "short_name": "AFlix",
   "description": "Stream movies and TV shows with AFlix",
-  "start_url": "./index.html",
+  "start_url": "./aflix.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
