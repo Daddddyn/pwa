@@ -26,37 +26,82 @@ const SHELL_FILES = [
    Add more entries as needed.
 ───────────────────────────────────────────────────────────────*/
 const AD_NETWORK_HOSTS = [
-  'doubleclick.net',
-  'googlesyndication.com',
-  'adservice.google.com',
-  'popads.net',
-  'popcash.net',
-  'exoclick.com',
-  'trafficjunky.net',
-  'juicyads.com',
-  'hilltopads.net',
-  'adnxs.com',
-  'rubiconproject.com',
-  'openx.net',
-  'pubmatic.com',
-  'criteo.com',
-  'smartadserver.com',
-  'clickadu.com',
-  'adcash.com',
-  'propellerads.com',
-  'adsterra.com',
-  'yllix.com',
-  'clkrev.com',
-  'go2jump.org',
-  'tsyndicate.com',
-  'adspyglass.com',
-  'trafmag.com',
-  'bidvertiser.com',
-  'revcontent.com',
-  'mgid.com',
-  'richpush.co',
-  'pushcrew.com',
-  'onesignal.com'
+  // Google ad infrastructure
+  'doubleclick.net', 'googlesyndication.com', 'adservice.google.com',
+  'googletagmanager.com', 'googletagservices.com', 'googleadservices.com',
+  // Major ad networks
+  'popads.net', 'popcash.net', 'popunder.net',
+  'exoclick.com', 'exosrv.com',
+  'trafficjunky.net', 'trafficjunky.com',
+  'juicyads.com', 'hilltopads.net', 'hilltopads.com',
+  'adnxs.com', 'adnxs-simple.com',
+  'rubiconproject.com', 'openx.net', 'openx.com',
+  'pubmatic.com', 'criteo.com', 'criteo.net',
+  'smartadserver.com', 'smartadserver.net',
+  'clickadu.com', 'adcash.com', 'adcash.net',
+  'propellerads.com', 'propellerclick.com',
+  'adsterra.com', 'adsterra.net',
+  'yllix.com', 'clkrev.com',
+  'go2jump.org', 'tsyndicate.com', 'adspyglass.com',
+  'trafmag.com', 'bidvertiser.com',
+  'revcontent.com', 'mgid.com',
+  'richpush.co', 'pushcrew.com',
+  'onesignal.com',
+  // Popup / redirect ad networks
+  'popcash.net', 'popads.net', 'popunder.net', 'pop.network',
+  'clickaine.com', 'clickadilla.com',
+  'trafficfactory.biz', 'trafficfactory.com',
+  'ero-advertising.com', 'ero-advertising.net',
+  'exdynsrv.com', 'exosrv.com',
+  'dtscdn.com', 'dtsrv.com',
+  'adskeeper.co.uk', 'adskeeper.com',
+  'ad-center.com', 'adcenter.net',
+  'adcolony.com', 'inmobi.com',
+  'moatads.com', 'spotxchange.com',
+  'spotx.tv', 'teads.tv', 'teads.com',
+  'connatix.com', 'media.net',
+  'taboola.com', 'outbrain.com',
+  'zergnet.com', 'plista.com',
+  'ligatus.com', 'contentad.net',
+  'adition.com', 'adform.net', 'adform.com',
+  'appnexus.com', 'appnexus.net',
+  'yieldmo.com', 'yieldlab.net', 'yieldlab.de',
+  'casalemedia.com', 'improve-digital.com',
+  'improvedigital.com', 'lijit.com',
+  'sovrn.com', 'contextweb.com',
+  'servedby-buysellads.com', 'buysellads.com',
+  'carbonads.com', 'carbonads.net',
+  'triplelift.com', 'sharethrough.com',
+  'indexexchange.com', '33across.com',
+  'yavli.com', 'districtm.io',
+  'districtm.ca', 'emxdgt.com',
+  'kargo.com', 'bidswitch.net',
+  '1rx.io', 'adsymptotic.com',
+  'synacor.com', 'undertone.com',
+  'aol.com', 'advertising.com',
+  // Tracker / fingerprinting
+  'scorecardresearch.com', 'quantserve.com',
+  'comscore.com', 'chartbeat.com',
+  'hotjar.com', 'fullstory.com',
+  'mouseflow.com', 'luckyorange.com',
+  // Push notification spam
+  'onesignal.com', 'pushcrew.com', 'richpush.co',
+  'sendpulse.com', 'pushengage.com',
+  'izooto.com', 'webpushr.com',
+  'pushwoosh.com', 'gravitec.net',
+  // Adult ad networks (common in embed servers)
+  'juicyads.com', 'trafficjunky.net',
+  'trafficjunky.com', 'ero-advertising.com',
+  'adultadworld.com', 'adsexposed.com',
+  'adultforce.com', 'plugrush.com',
+  'exoclick.com', 'adxpansion.com',
+  'trafmag.com', 'tubecorporate.com',
+  // Crypto / malware ad redirectors
+  'clkrev.com', 'go2jump.org', 'go2cloud.org',
+  'onclickads.net', 'onclicka.com',
+  'onclick.io', 'adsterra.com',
+  'retroavenue.com', 'gamingadventures.net',
+  'yads.com', 'adnetwork.net'
 ];
 
 function isAdRequest(url) {
@@ -117,21 +162,14 @@ self.addEventListener('fetch', event => {
 
   // Never cache: API calls, embed streams, CORS fetch for playlists
   const networkOnly = [
-    'api.themoviedb.org',
-    'image.tmdb.org',
-    // top-tier servers
+    'api.themoviedb.org', 'image.tmdb.org',
     'player.videasy.net', 'videasy.net',
     'vidlink.pro',
     'player.autoembed.cc', 'autoembed.cc',
     'vidfast.pro',
-    // fallback servers
-    'vidsrc.cc',
-    'vembed.stream',
-    // misc
-    'raw.githubusercontent.com',
-    'corsproxy.io',
-    'youtube.com',
-    'youtu.be'
+    'vidsrc.cc', 'vembed.stream',
+    'raw.githubusercontent.com', 'corsproxy.io',
+    'youtube.com', 'youtu.be'
   ];
   if (networkOnly.some(h => url.hostname.includes(h))) {
     event.respondWith(fetch(request).catch(() => new Response('', { status: 503 })));
