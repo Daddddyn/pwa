@@ -9,7 +9,7 @@
    • AdGuard Scriptlets issue #71 — vidstream/egybest adblock
      detection solved by returning a convincing fake window
 
-   8-LAYER DEFENCE:
+   8-LAYER DEFENCE + BLUR REFOCUS:
    1. window.open() Proxy (uBO/AdGuard confirmed technique)
    2. Top-frame navigation guard
    3. Anchor click intercept
@@ -18,6 +18,7 @@
    6. aflixHardenIframe() — enforces allow attrs, removes sandbox
    7. postMessage firewall
    8. Continuous overlay scanner (800ms poll)
+   9. Blur-refocus — steals back window focus if iframe fires a popup
    + Service Worker (sw.js) — network-level ad blocking
    ══════════════════════════════════════════════════════════════ */
 
@@ -45,14 +46,17 @@
   ];
 
   const SAFE_ORIGINS = [
-    'player.videasy.net', 'videasy.net',
+    // Tier 1 — ad-free by design
+    'iframe.pstream.org', 'pstream.org',
+    'vidora.su',
+    // Tier 2 — clean / low-ad
     'player.autoembed.cc', 'autoembed.cc',
-    'vidfast.pro',
     'vidsrc.icu',
-    'vidsrc.me',
-    '2embed.online', 'www.2embed.online',
+    // Tier 3 — fallback servers
+    'embed.su',
+    'vidlink.pro',
+    // General streaming infra
     'vidsrc.cc', 'vidsrc.to', 'vidsrc.xyz', 'vidsrc.su', 'vidsrc.vip',
-    'vidlink.pro', 'embed.su', 'moviesapi.club', 'vembed.stream',
     'youtube.com', 'youtu.be',
     'themoviedb.org', 'image.tmdb.org',
     window.location.hostname
@@ -440,6 +444,23 @@
     ? document.addEventListener('DOMContentLoaded', () => setInterval(scanOverlays, 800))
     : setInterval(scanOverlays, 800);
 
-  console.log('[AFlix AdBlock] ✓ Active — uBO/AdGuard Proxy technique, 8-layer protection');
+  /* ── 9. BLUR-REFOCUS — steal back focus if iframe fires a popup ──
+     When a new tab opens from inside the player iframe the browser
+     shifts focus there, firing our window's 'blur' event. We call
+     window.focus() immediately to pull focus back, keeping any rogue
+     popup buried behind AFlix. Only active while the player is open
+     so normal tab-switching outside the player still works fine.    */
+  window.addEventListener('blur', function() {
+    try {
+      var modal = document.getElementById('playerModal');
+      if (modal && modal.classList.contains('open')) {
+        setTimeout(function() { try { window.focus(); } catch(e) {} }, 0);
+      }
+    } catch(e) {}
+  }, true);
+
+  console.log('[AFlix AdBlock] ✓ Active — uBO/AdGuard Proxy technique, 9-layer protection');
 
 })();
+
+/* ── PATCH: replace closing section with Layer 9 + updated log ── */
