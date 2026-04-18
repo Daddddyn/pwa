@@ -5,13 +5,14 @@
    Ad network requests are blocked entirely.
 ══════════════════════════════════════════ */
 
-const CACHE_NAME = 'aflix-v2';
+const CACHE_NAME = 'aflix-v3';
 
 // App shell files to cache on install
 const SHELL_FILES = [
   './',
   './index.html',
   './adblock.js',
+  './popup-blocker.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
@@ -253,14 +254,67 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Never cache: API calls, embed streams, CORS fetch for playlists
-  const networkOnly = [
-    'api.themoviedb.org', 'image.tmdb.org',
+  // ── EMBED SERVERS — fetch + inject popup-blocker.js ─────────────
+  // The SW can't block ad requests *inside* iframes (they come from
+  // the embed server's origin, not ours).  BUT — if we can intercept
+  // the embed server's HTML response and prepend our popup-blocker.js
+  // script tag, then our blocker runs inside the iframe too, patching
+  // window.open / location / etc. before any ad code can call them.
+  //
+  // This is the exact same technique AdGuard uses: inject a content
+  // script into every page it proxies.
+  //
+  // We only inject into HTML responses (not JS/images/streams).
+  // Non-HTML responses from embed servers pass through unmodified.
+  const EMBED_HOSTS = [
     'player.videasy.net', 'videasy.net',
     'vidlink.pro',
     'player.autoembed.cc', 'autoembed.cc',
     'vidfast.pro',
     'vidsrc.cc', 'vembed.stream',
+  ];
+
+  // The blocker script URL — absolute so it works from any iframe origin.
+  // IMPORTANT: replace this with your actual deployed domain.
+  const BLOCKER_SCRIPT_URL = self.registration.scope + 'popup-blocker.js';
+
+  // The snippet we prepend to every HTML page from an embed server.
+  const INJECT_SNIPPET =
+    `<script src="${BLOCKER_SCRIPT_URL}" crossorigin="anonymous"></` + `script>`;
+
+  if (EMBED_HOSTS.some(h => url.hostname.includes(h))) {
+    event.respondWith(
+      fetch(request, { mode: 'no-cors' })
+        .then(async response => {
+          const ct = response.headers.get('content-type') || '';
+          // Only rewrite HTML — pass JS, HLS playlists, etc. straight through
+          if (!ct.includes('text/html')) return response;
+
+          const original = await response.text();
+          // Inject right after <head> or at the very start if no <head>
+          let rewritten;
+          if (original.includes('<head>')) {
+            rewritten = original.replace('<head>', '<head>' + INJECT_SNIPPET);
+          } else if (original.includes('<html')) {
+            rewritten = original.replace(/<html[^>]*>/, m => m + INJECT_SNIPPET);
+          } else {
+            rewritten = INJECT_SNIPPET + original;
+          }
+
+          return new Response(rewritten, {
+            status:     response.status,
+            statusText: response.statusText,
+            headers:    response.headers,
+          });
+        })
+        .catch(() => new Response('', { status: 503 }))
+    );
+    return;
+  }
+
+  // Never cache: API calls, IPTV streams, other network-only resources
+  const networkOnly = [
+    'api.themoviedb.org', 'image.tmdb.org',
     'raw.githubusercontent.com', 'corsproxy.io',
     'youtube.com', 'youtu.be'
   ];
