@@ -1385,9 +1385,11 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
     </div>
 
     <div class="stage" id="playerStage">
-      <!-- sandbox: no allow-popups, no allow-top-navigation — blocks ad popups & redirects -->
+      <!-- NO sandbox attribute: embed servers (VidLink, AutoEmbed, Videasy, VidFast etc.)
+           detect ANY sandbox attr and refuse to play. Ad blocking is handled
+           by adblock.js JS layers: window.open noop, MutationObserver, postMessage
+           firewall, click intercept. Source: vidlink.pro API docs + uBO issue #26880 -->
       <iframe id="playerFrame" class="p-iframe"
-        sandbox="allow-scripts allow-same-origin allow-fullscreen allow-presentation allow-orientation-lock allow-popups allow-popups-to-escape-sandbox allow-forms"
         allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer"
         referrerpolicy="no-referrer"
         allowfullscreen></iframe>
