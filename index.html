@@ -845,6 +845,214 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
 </style>
 </head>
 <body>
+
+<!-- ══════════════════════════════════════════
+     AFLIX LICENSE GATE
+     Shown on every load. Removed from DOM only
+     after a valid username + code is confirmed.
+══════════════════════════════════════════ -->
+<style>
+#aflixGate{
+  position:fixed;inset:0;z-index:999999;
+  background:#070708;
+  display:flex;align-items:center;justify-content:center;
+  padding:1.5rem;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  font-family:'DM Sans',sans-serif;
+}
+#aflixGate .gate-box{
+  width:100%;max-width:380px;
+  background:#0c0c0e;
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:16px;
+  padding:2rem 1.75rem 1.75rem;
+  display:flex;flex-direction:column;gap:1.1rem;
+}
+#aflixGate .gate-logo{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:1.7rem;
+  letter-spacing:-.04em;text-align:center;margin-bottom:.2rem;
+  color:#f0f0f2;
+}
+#aflixGate .gate-logo em{color:#e8192c;font-style:normal}
+#aflixGate .gate-sub{
+  font-size:.82rem;color:#8e8e9e;text-align:center;margin-top:-.6rem;
+}
+#aflixGate label{
+  font-size:.75rem;font-weight:600;color:#8e8e9e;
+  text-transform:uppercase;letter-spacing:.08em;
+  display:block;margin-bottom:.38rem;
+}
+#aflixGate input{
+  width:100%;padding:.72rem 1rem;
+  background:#17171a;border:1px solid rgba(255,255,255,0.08);
+  border-radius:9px;color:#f0f0f2;
+  font-size:1rem;font-family:'DM Sans',sans-serif;
+  outline:none;-webkit-appearance:none;
+  transition:border-color .18s;
+}
+#aflixGate input:focus{border-color:rgba(232,25,44,0.55);}
+#aflixGate input::placeholder{color:#4e4e5a}
+#aflixGate #gateCodeInput{
+  letter-spacing:.25em;font-size:1.2rem;font-weight:600;text-align:center;
+}
+#aflixGate .gate-btn{
+  width:100%;padding:.82rem;
+  background:#e8192c;color:#fff;border:none;border-radius:9px;
+  font-family:'DM Sans',sans-serif;font-size:.93rem;font-weight:600;
+  cursor:pointer;transition:background .2s,transform .15s;
+  margin-top:.2rem;
+}
+#aflixGate .gate-btn:hover{background:#ff2d41}
+#aflixGate .gate-btn:active{transform:scale(.98)}
+#aflixGate .gate-btn:disabled{background:#2a2a2e;color:#4e4e5a;cursor:not-allowed;transform:none}
+#aflixGate .gate-msg{
+  font-size:.82rem;text-align:center;min-height:1.1rem;
+  padding:.55rem .8rem;border-radius:8px;display:none;
+}
+#aflixGate .gate-msg.err{
+  display:block;background:rgba(232,25,44,.1);
+  border:1px solid rgba(232,25,44,.3);color:#ff6b7a;
+}
+#aflixGate .gate-msg.ok{
+  display:block;background:rgba(61,220,132,.08);
+  border:1px solid rgba(61,220,132,.25);color:#3ddc84;
+}
+#aflixGate .gate-spin{
+  display:inline-block;width:16px;height:16px;
+  border:2px solid rgba(255,255,255,.15);border-top-color:#fff;
+  border-radius:50%;animation:gspin .65s linear infinite;
+  vertical-align:middle;margin-right:6px;
+}
+@keyframes gspin{to{transform:rotate(360deg)}}
+#aflixGate .gate-footer{
+  font-size:.73rem;color:#4e4e5a;text-align:center;
+  margin-top:.3rem;
+}
+</style>
+
+<div id="aflixGate">
+  <div class="gate-box">
+    <div class="gate-logo">A<em>F</em>LIX</div>
+    <div class="gate-sub">Enter your license to continue</div>
+
+    <div>
+      <label for="gateUserInput">Username</label>
+      <input type="text" id="gateUserInput" placeholder="your username" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
+    <div>
+      <label for="gateCodeInput">License code</label>
+      <input type="text" id="gateCodeInput" placeholder="000000" maxlength="6" autocomplete="off" inputmode="numeric">
+    </div>
+
+    <div class="gate-msg" id="gateMsg"></div>
+    <button class="gate-btn" id="gateBtn" onclick="aflixVerifyLicense()">Access AFlix</button>
+    <div class="gate-footer">Need access? Contact the administrator.</div>
+  </div>
+</div>
+
+<script>
+/* ── AFlix License Gate ──
+   License list is stored via the same window.storage API used
+   by the license manager tool (key: 'aflix-licenses-v1').
+   On each app load we:
+     1. Read the stored list
+     2. Match username (case-insensitive) + exact code
+     3. Confirm the entry is not revoked
+   If valid → remove gate from DOM and let app load normally.
+   Session is remembered in sessionStorage so refreshes within
+   the same tab don't re-prompt (close tab = must re-enter).
+*/
+(function(){
+  const STORAGE_KEY = 'aflix-licenses-v1';
+  const SESSION_KEY = 'aflix-gate-passed';
+
+  // If already verified this session, remove gate immediately
+  if (sessionStorage.getItem(SESSION_KEY) === '1') {
+    document.getElementById('aflixGate').remove();
+    return;
+  }
+
+  // Allow Enter key on both inputs
+  ['gateUserInput','gateCodeInput'].forEach(function(id){
+    document.getElementById(id).addEventListener('keydown', function(e){
+      if (e.key === 'Enter') aflixVerifyLicense();
+    });
+  });
+
+  window.aflixVerifyLicense = async function() {
+    var username = (document.getElementById('gateUserInput').value || '').trim();
+    var code     = (document.getElementById('gateCodeInput').value || '').trim();
+    var btn      = document.getElementById('gateBtn');
+    var msg      = document.getElementById('gateMsg');
+
+    msg.className = 'gate-msg';
+    msg.style.display = 'none';
+
+    if (!username) { showGateMsg('err', 'Please enter your username.'); return; }
+    if (!code || code.length !== 6 || !/^\d{6}$/.test(code)) {
+      showGateMsg('err', 'Please enter a valid 6-digit code.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="gate-spin"></span>Checking…';
+
+    var licenses = [];
+    try {
+      var result = await window.storage.get(STORAGE_KEY);
+      if (result && result.value) {
+        licenses = JSON.parse(result.value);
+      }
+    } catch(e) {
+      // storage unavailable — fail closed
+      showGateMsg('err', 'Unable to reach license server. Please try again.');
+      resetBtn(); return;
+    }
+
+    var match = licenses.find(function(l){
+      return l.username.toLowerCase() === username.toLowerCase() && l.code === code;
+    });
+
+    if (!match) {
+      showGateMsg('err', 'Invalid username or code. Please try again.');
+      resetBtn(); return;
+    }
+
+    if (match.status === 'revoked') {
+      showGateMsg('err', 'This license has been revoked. Contact the administrator.');
+      resetBtn(); return;
+    }
+
+    // Valid + active
+    showGateMsg('ok', 'Welcome back, ' + match.username + '!');
+    sessionStorage.setItem(SESSION_KEY, '1');
+    setTimeout(function(){
+      var gate = document.getElementById('aflixGate');
+      if (gate) {
+        gate.style.transition = 'opacity .4s';
+        gate.style.opacity = '0';
+        setTimeout(function(){ gate.remove(); }, 420);
+      }
+    }, 700);
+  };
+
+  function showGateMsg(type, text) {
+    var msg = document.getElementById('gateMsg');
+    msg.className = 'gate-msg ' + type;
+    msg.textContent = text;
+    msg.style.display = 'block';
+  }
+
+  function resetBtn() {
+    var btn = document.getElementById('gateBtn');
+    btn.disabled = false;
+    btn.textContent = 'Access AFlix';
+  }
+})();
+</script>
+<!-- END LICENSE GATE -->
+
 <!-- cursor -->
 <div id="cur-dot"></div>
 <div id="cur-ring"></div>
