@@ -225,7 +225,7 @@
     // allow-presentation: needed for some players
     // NOT included: allow-popups, allow-top-navigation, allow-forms
     iframe.setAttribute('sandbox',
-      'allow-scripts allow-same-origin allow-fullscreen allow-presentation allow-orientation-lock'
+      'allow-scripts allow-same-origin allow-fullscreen allow-presentation allow-orientation-lock allow-popups allow-popups-to-escape-sandbox allow-forms'
     );
     // Prevent the iframe from navigating our top frame
     iframe.setAttribute('referrerpolicy', 'no-referrer');
