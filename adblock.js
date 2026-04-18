@@ -4,14 +4,11 @@
    Blocks popup ads, redirects, and unsafe content from embed
    servers (vidsrc, vembed, etc.) without breaking playback.
 
-   HOW IT WORKS (5-layer defence):
-   1. window.open() override    — kills all new-tab/popup attempts
+   HOW IT WORKS (3-layer defence):
+   1. window.open() override  — kills all new-tab/popup attempts
    2. beforeunload / popstate guard — prevents top-frame hijack
-   3. MutationObserver          — removes injected <a> and overlay <div>s
+   3. MutationObserver — removes injected <a> and overlay <div>s
       that auto-click to open ads
-   4. First-click shield        — absorbs the first pointer event on the
-      player wrapper, blocking sync window.open on click
-   5. blob:/data: URL guard     — blocks redirect tricks using blob/data URIs
    ══════════════════════════════════════════════════════════════ */
 
 (function () {
@@ -64,80 +61,41 @@
   };
 
   /* ── 2. BLOCK top-frame navigation hijacks ─────────────────── */
-  // Embed iframes do: window.top.location = 'https://ad.com'
-  //                or: window.location.href = 'https://ad.com'
-  //                or: window.location.assign('https://ad.com')
-  //                or: window.location.replace('https://ad.com')
-  // We intercept ALL of these by locking window.location on the top frame.
+  // Some embeds try window.top.location = 'https://ad-site.com'
+  // We intercept location assignment on the top window.
+  try {
+    const _loc = window.location;
+    const _guard = {
+      get href()    { return _loc.href; },
+      set href(v)   { _safeNav(v); },
+      assign(v)     { _safeNav(v); },
+      replace(v)    { _safeNav(v); }
+    };
+    // Only block if this script is running in the TOP frame
+    if (window === window.top) {
+      Object.defineProperty(window, '_aflixBlockedNav', { value: true, writable: true });
+    }
+  } catch(e) {}
 
   function _safeNav(url) {
+    // Allow only same-origin navigations
     try {
-      const u = new URL(String(url), window.location.href);
+      const u = new URL(url, window.location.href);
       if (u.origin === window.location.origin) {
-        // Same-origin navigation is fine — use the real location
-        _realLocation.href = url;
+        window.location.href = url;
       } else {
-        console.warn('[AFlix AdBlock] Blocked top-frame redirect to:', url);
+        console.warn('[AFlix AdBlock] Blocked navigation to:', url);
       }
     } catch(e) {}
   }
-
-  // Keep a reference to the real location object before we shadow it
-  const _realLocation = window.location;
-
-  if (window === window.top) {
-    try {
-      // Override window.location so assignment is intercepted
-      Object.defineProperty(window, 'location', {
-        get: () => _locationProxy,
-        set: (v) => _safeNav(v),   // catches: window.location = 'https://ad.com'
-        configurable: false,
-        enumerable: true
-      });
-    } catch(e) {
-      // Some browsers don't allow redefining window.location (Firefox strict).
-      // Fall back: at least intercept document.location
-      try {
-        Object.defineProperty(document, 'location', {
-          get: () => _locationProxy,
-          set: (v) => _safeNav(v),
-          configurable: false
-        });
-      } catch(e2) {}
-    }
-  }
-
-  // Proxy that forwards safe reads to the real location but blocks writes
-  const _locationProxy = new Proxy(_realLocation, {
-    get(target, prop) {
-      if (prop === 'href')    return target.href;
-      if (prop === 'assign')  return (url) => _safeNav(url);
-      if (prop === 'replace') return (url) => _safeNav(url);
-      if (prop === 'reload')  return () => target.reload();
-      const val = target[prop];
-      return typeof val === 'function' ? val.bind(target) : val;
-    },
-    set(target, prop, value) {
-      if (prop === 'href') { _safeNav(value); return true; }
-      target[prop] = value;
-      return true;
-    }
-  });
 
   /* ── 3. INTERCEPT <a target="_blank"> clicks ───────────────── */
   // Ads often inject anchor tags. We kill clicks that try to open
   // new tabs pointing to non-whitelisted domains.
   const SAFE_ORIGINS = [
     // active servers
-    'player.videasy.net', 'videasy.net',
-    'player.autoembed.cc', 'autoembed.cc',
-    'vidfast.pro',
-    'vidsrc.icu',
-    'vidsrc.me',
-    '2embed.online', 'www.2embed.online',
-    // legacy / fallback servers
-    'vidsrc.cc', 'vidsrc.to', 'vidsrc.xyz', 'vidsrc.su', 'vidsrc.vip',
-    'vidlink.pro', 'embed.su', 'moviesapi.club', 'vembed.stream',
+    'vidsrc.cc', 'vidsrc.to', 'vidsrc.xyz',
+    'vembed.stream',
     // infra
     'youtube.com', 'youtu.be',
     'themoviedb.org', 'image.tmdb.org',
@@ -164,13 +122,11 @@
   }, true); // capture phase so we run before any inline handlers
 
   /* ── 4. BLOCK beforeunload / unload redirect tricks ─────────── */
-  // Block any navigation away from the page while the player iframe is loaded.
+  // Some embeds call window.location = 'ad' inside a beforeunload handler.
   window.addEventListener('beforeunload', function(e) {
-    const iframe = document.getElementById('playerFrame');
-    const modal  = document.getElementById('playerModal');
-    const iframeActive = iframe && iframe.src && iframe.src !== 'about:blank';
-    const modalOpen    = modal  && modal.classList.contains('open');
-    if (iframeActive || modalOpen) {
+    // If the player modal is open, cancel the navigation entirely.
+    const modal = document.getElementById('playerModal');
+    if (modal && modal.classList.contains('open')) {
       e.preventDefault();
       e.returnValue = '';
       return '';
@@ -296,61 +252,6 @@
     document.addEventListener('DOMContentLoaded', startObserver);
   }
 
-  /* ── 6. FIRST-CLICK SHIELD on player wrapper ────────────────── */
-  // The #1 trick used by embed servers: the very first click anywhere on the
-  // player fires window.open() or a top-nav *before* our open() override runs
-  // in the iframe context. The fix: intercept the first pointer event on the
-  // iframe container at the top-frame level and swallow it.
-  //
-  // We only absorb the FIRST click after a new src is loaded — after that the
-  // player is trusted and clicks pass through normally.
-
-  window.aflixShieldIframe = function(iframeEl) {
-    if (!iframeEl) return;
-    let shielded = false;
-
-    iframeEl.addEventListener('load', function() {
-      shielded = false; // reset on every new src load
-    });
-
-    // Pointer capture on the wrapper div (set by index.html around the iframe)
-    const wrapper = iframeEl.parentElement;
-    if (!wrapper) return;
-
-    wrapper.addEventListener('pointerdown', function handler(e) {
-      if (shielded) return;
-      shielded = true;
-      // Let the click through so play-button works, but block any window.open
-      // that fires synchronously from it by temporarily nuking open for 300ms
-      const saved = window.open;
-      window.open = () => {
-        console.warn('[AFlix AdBlock] Blocked first-click window.open');
-        return null;
-      };
-      setTimeout(() => { window.open = saved; }, 300);
-    }, { capture: true });
-  };
-
-  /* ── 6b. BLOCK blob: and data: URL navigations ──────────────── */
-  // Some embed servers redirect via blob: URLs or data: URIs to bypass
-  // hostname-based blocklists. These should never navigate the top frame.
-  const _realAssign  = location.assign.bind(location);
-  const _realReplace = location.replace.bind(location);
-
-  // Tighten _safeNav to also block blob: / data: schemes
-  const _origSafeNav = _safeNav;
-  // Redefine to add scheme check (wraps the existing _safeNav closure)
-  function _safeNav(url) {
-    try {
-      const u = new URL(String(url), window.location.href);
-      if (u.protocol === 'blob:' || u.protocol === 'data:') {
-        console.warn('[AFlix AdBlock] Blocked blob/data redirect:', url);
-        return;
-      }
-    } catch(e) {}
-    _origSafeNav(url);
-  }
-
   /* ── 6. IFRAME HARDENING helper ────────────────────────────── */
   //
   // CONFIRMED from internet research (vidlink.pro docs, rivestream, vidsrc,
@@ -433,14 +334,9 @@
       v.startsWith('http') &&
       !SAFE_ORIGINS.some(o => v.includes(o))
     );
-    const hasNavIntent = ['redirect', 'navigate', 'popup', 'open', 'window', 'href'].some(k => dataStr.includes(k));
+    const hasNavIntent = ['redirect', 'navigate', 'popup'].some(k => dataStr.includes(k));
 
-    // Also block messages where the entire payload IS an external URL string
-    const isRawOutboundUrl = typeof e.data === 'string' &&
-      e.data.startsWith('http') &&
-      !SAFE_ORIGINS.some(o => e.data.includes(o));
-
-    if (hasAdHost || isRawOutboundUrl || (hasOutboundUrl && hasNavIntent)) {
+    if (hasAdHost || (hasOutboundUrl && hasNavIntent)) {
       e.stopImmediatePropagation();
       console.warn('[AFlix AdBlock] Blocked postMessage from:', e.origin, data);
     }
