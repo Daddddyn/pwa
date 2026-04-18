@@ -16,7 +16,6 @@
 <link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
 <link rel="apple-touch-startup-image" href="icon-512.png">
 <!-- ── POPUP & AD BLOCKER — load first, before any embed can run ── -->
-<script src="popup-blocker.js"></script>
 <script src="adblock.js"></script>
 <script>
   if ('serviceWorker' in navigator) {
@@ -1361,29 +1360,8 @@ async function loadRemoteConfig() {
         };
       });
     } else {
-      // ── DEFAULT SERVERS (best quality, lowest ads, most stable as of 2025) ──
-      // Priority: highest quality / fewest ads first; vidsrc.cc + vembed as fallbacks.
+      // ── DEFAULT SERVERS ──
       SRVS = {
-        'videasy': {
-          n:'Videasy', badge:'4K', badge2:'No Ads', imdb:false,
-          movie: id => `https://player.videasy.net/movie/${id}?autoplay=true&color=e8192c`,
-          tv:   (id,s,e) => `https://player.videasy.net/tv/${id}/${s}/${e}?autoplay=true&color=e8192c&nextEpisode=true`
-        },
-        'vidlink': {
-          n:'VidLink', badge:'4K', badge2:'No Ads', imdb:false,
-          movie: id => `https://vidlink.pro/movie/${id}?autoplay=true&primaryColor=e8192c&iconColor=e8192c`,
-          tv:   (id,s,e) => `https://vidlink.pro/tv/${id}/${s}/${e}?autoplay=true&primaryColor=e8192c&iconColor=e8192c`
-        },
-        'autoembed': {
-          n:'AutoEmbed', badge:'1080p', badge2:'No Ads', imdb:false,
-          movie: id => `https://player.autoembed.cc/embed/movie/${id}?autoplay=true`,
-          tv:   (id,s,e) => `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}?autoplay=true`
-        },
-        'vidfast': {
-          n:'VidFast', badge:'4K', badge2:'No Ads', imdb:false,
-          movie: id => `https://vidfast.pro/movie/${id}?autoPlay=true&theme=e8192c`,
-          tv:   (id,s,e) => `https://vidfast.pro/tv/${id}/${s}/${e}?autoPlay=true&theme=e8192c`
-        },
         'vidsrc-cc': {
           n:'VidSrc', badge:'1080p', badge2:'', imdb:false,
           movie: id => `https://vidsrc.cc/v2/embed/movie/${id}`,
@@ -1393,6 +1371,16 @@ async function loadRemoteConfig() {
           n:'VEmbed', badge:'1080p', badge2:'', imdb:false,
           movie: id => `https://vembed.stream/play/${id}`,
           tv:   (id,s,e) => `https://vembed.stream/play/${id}_s${s}`
+        },
+        'vidsrc-to': {
+          n:'VidSrc 2', badge:'1080p', badge2:'', imdb:true,
+          movie: id => `https://vidsrc.to/embed/movie/${id}`,
+          tv:   (id,s,e) => `https://vidsrc.to/embed/tv/${id}/${s}/${e}`
+        },
+        'vidsrc-xyz': {
+          n:'VidSrc 3', badge:'1080p', badge2:'', imdb:true,
+          movie: id => `https://vidsrc.xyz/embed/movie/${id}`,
+          tv:   (id,s,e) => `https://vidsrc.xyz/embed/tv/${id}/${s}/${e}`
         }
       };
     }
@@ -1427,7 +1415,7 @@ function renderSrvPills() {
    STATE
 ══════════════════════════════════════════ */
 const S = {
-  filter:'all', genre:null, srv:'videasy',
+  filter:'all', genre:null, srv:'vidsrc-cc',
   content:null,
   epList:[],
   heroItems:[], heroIdx:0, heroTimer:null,
@@ -2028,8 +2016,8 @@ function closePlayer(){
   document.getElementById('playerFrame').src='about:blank';
   document.body.classList.remove('no-scroll','ci');
   cancelAutoNext();
-  S.srv='videasy';
-  document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv==='videasy'));
+  S.srv='vidsrc-cc';
+  document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv==='vidsrc-cc'));
 }
 
 /* ══════════════════════════════════════════
