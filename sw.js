@@ -5,7 +5,7 @@
    Ad network requests are blocked entirely.
 ══════════════════════════════════════════ */
 
-const CACHE_NAME = 'aflix-v2';
+const CACHE_NAME = 'aflix-v3';
 
 // App shell files to cache on install
 const SHELL_FILES = [
@@ -115,16 +115,15 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Never cache: API calls, embed streams, CORS fetch for playlists
+  // Never cache: API calls, debrid/torrent streams, CORS fetch
   const networkOnly = [
     'api.themoviedb.org',
     'image.tmdb.org',
-    'vidlink.pro',
-    'vidsrc',
-    'autoembed.cc',
-    'embed.su',
-    'pstream.org',
-    'vidora.su',
+    'torrentio.strem.fun',
+    'real-debrid.com',
+    'alldebrid.com',
+    'premiumize.me',
+    'debrid-link.com',
     'raw.githubusercontent.com',
     'corsproxy.io',
     'youtube.com',
