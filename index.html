@@ -96,6 +96,7 @@ footer{padding-bottom:calc(2.5rem + var(--sab))}
   input[type="text"],
   input[type="url"],
   input[type="email"],
+  input[type="password"],
   input[type="search"],
   textarea {
     font-size: 16px !important;
@@ -441,6 +442,339 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
 /* ── REVEAL ── */
 .reveal{opacity:0;transform:translateY(18px);transition:opacity .5s ease,transform .5s ease}
 .reveal.in{opacity:1;transform:none}
+
+/* ══════════════════════════════════════════
+   PROFILE SYSTEM — CSS
+══════════════════════════════════════════ */
+.prof-avatar-btn{
+  position:relative;
+  width:38px; height:38px;
+  border-radius:50%;
+  background:rgba(255,255,255,.06);
+  border:1px solid var(--b1);
+  color:var(--text2);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all .2s; flex-shrink:0;
+  font-size:.72rem; font-weight:700; font-family:'Syne',sans-serif;
+  letter-spacing:.01em; overflow:hidden;
+}
+.prof-avatar-btn:hover{ background:rgba(255,255,255,.1); color:var(--text); }
+.prof-avatar-btn.signed-in{
+  background:linear-gradient(135deg,rgba(232,25,44,.25),rgba(232,25,44,.08));
+  border-color:rgba(232,25,44,.4); color:var(--red);
+}
+.prof-online-dot{
+  position:absolute; bottom:1px; right:1px;
+  width:8px; height:8px; border-radius:50%;
+  background:var(--green); border:2px solid var(--bg);
+  display:none;
+}
+.prof-avatar-btn.signed-in .prof-online-dot{ display:block; }
+
+.profile-modal{
+  position:fixed; inset:0; z-index:25000;
+  display:none; align-items:flex-end; justify-content:center;
+  background:rgba(0,0,0,.88);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+.profile-modal.open{ display:flex; animation:fadein .22s ease; }
+.prof-panel{
+  background:var(--bg2);
+  border:1px solid var(--b1);
+  border-radius:var(--rl) var(--rl) 0 0;
+  width:100%; max-width:480px;
+  max-height:92dvh;
+  overflow-y:auto;
+  overflow-x:hidden;
+  box-shadow:0 -24px 80px rgba(0,0,0,.9);
+  animation:profUp .32s cubic-bezier(.4,0,.2,1);
+  padding-bottom:calc(var(--sab) + .5rem);
+  -webkit-overflow-scrolling:touch;
+}
+@keyframes profUp{
+  from{transform:translateY(48px);opacity:0}
+  to{transform:none;opacity:1}
+}
+.prof-handle{
+  width:36px; height:4px; border-radius:2px;
+  background:var(--bg5); margin:.7rem auto .3rem;
+}
+.prof-hd{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:.9rem 1.3rem .7rem;
+}
+.prof-hd-title{
+  font-family:'Syne',sans-serif; font-weight:700;
+  font-size:1rem; letter-spacing:-.02em;
+}
+.prof-close{
+  width:30px; height:30px; border-radius:50%;
+  background:rgba(255,255,255,.06); border:1px solid var(--b1);
+  color:var(--text2); display:flex; align-items:center;
+  justify-content:center; cursor:pointer; transition:all .2s;
+  font-size:1rem; line-height:1;
+}
+.prof-close:hover{ background:var(--red); border-color:var(--red); color:#fff; }
+.auth-tabs{
+  display:flex; gap:0;
+  margin:.1rem 1.3rem .9rem;
+  background:var(--bg3); border-radius:9px;
+  padding:3px; border:1px solid var(--b2);
+}
+.auth-tab{
+  flex:1; text-align:center;
+  padding:.55rem; border-radius:7px;
+  font-size:.82rem; font-weight:600;
+  color:var(--text3); cursor:pointer;
+  transition:all .2s; user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.auth-tab.active{
+  background:var(--bg5); color:var(--text);
+  box-shadow:0 1px 4px rgba(0,0,0,.35);
+}
+.auth-body{ padding:0 1.3rem 1.1rem; }
+.inp-group{ margin-bottom:.9rem; }
+.inp-label{
+  display:block; font-size:.72rem; font-weight:700;
+  color:var(--text3); text-transform:uppercase;
+  letter-spacing:.08em; margin-bottom:.38rem;
+}
+.inp-field{
+  width:100%; padding:.78rem 1rem;
+  background:var(--bg4); border:1px solid var(--b1);
+  border-radius:9px; color:var(--text);
+  font-size:.92rem; font-family:'DM Sans',sans-serif;
+  outline:none; transition:border-color .18s, box-shadow .18s;
+  -webkit-text-fill-color:var(--text);
+  caret-color:var(--red);
+  -webkit-appearance:none; appearance:none;
+}
+.inp-field::placeholder{ color:var(--text3); }
+.inp-field:focus{ border-color:rgba(232,25,44,.55); box-shadow:0 0 0 3px rgba(232,25,44,.1); }
+.inp-field:-webkit-autofill,
+.inp-field:-webkit-autofill:hover,
+.inp-field:-webkit-autofill:focus{
+  -webkit-box-shadow:0 0 0 100px var(--bg4) inset;
+  -webkit-text-fill-color:var(--text);
+  border-color:rgba(232,25,44,.3);
+}
+.inp-field.err{ border-color:rgba(232,25,44,.7); }
+.inp-pw-wrap{ position:relative; }
+.inp-pw-wrap .inp-field{ padding-right:2.8rem; }
+.inp-pw-eye{
+  position:absolute; right:.8rem; top:50%; transform:translateY(-50%);
+  color:var(--text3); cursor:pointer; background:none; border:none;
+  padding:.25rem; display:flex; align-items:center; transition:color .18s;
+  -webkit-tap-highlight-color:transparent;
+}
+.inp-pw-eye:hover{ color:var(--text2); }
+.inp-hint{
+  font-size:.72rem; color:var(--text3); margin-top:.32rem;
+  min-height:.9rem; transition:color .18s;
+}
+.inp-hint.err{ color:var(--red2); }
+.inp-hint.ok{ color:var(--green); }
+.auth-submit{
+  width:100%; padding:.88rem; margin-top:.4rem;
+  background:var(--red); color:#fff; border:none;
+  border-radius:9px; font-family:'DM Sans',sans-serif;
+  font-size:.92rem; font-weight:700; cursor:pointer;
+  transition:all .22s cubic-bezier(.4,0,.2,1);
+  position:relative; overflow:hidden; letter-spacing:.01em;
+}
+.auth-submit::before{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(to bottom,rgba(255,255,255,.12),transparent);
+}
+.auth-submit:hover{ background:var(--red2); transform:translateY(-1px); box-shadow:0 8px 24px rgba(232,25,44,.38); }
+.auth-submit:active{ transform:none; }
+.auth-submit:disabled{ opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
+.auth-submit .spin{ width:16px; height:16px; border-width:2px; vertical-align:middle; margin-right:.4rem; }
+.auth-divider{
+  display:flex; align-items:center; gap:.7rem;
+  margin:.9rem 0; color:var(--text3); font-size:.72rem;
+}
+.auth-divider::before,.auth-divider::after{
+  content:''; flex:1; height:1px; background:var(--b1);
+}
+.auth-foot{
+  text-align:center; font-size:.76rem; color:var(--text3);
+  padding:.5rem 0 .2rem; line-height:1.55;
+}
+.auth-foot span{ color:var(--text2); cursor:pointer; }
+.auth-foot span:hover{ color:var(--text); text-decoration:underline; }
+.prof-user-hero{
+  display:flex; align-items:center; gap:1rem;
+  padding:.5rem 1.3rem 1.1rem;
+  border-bottom:1px solid var(--b2); margin-bottom:.5rem;
+}
+.prof-big-av{
+  width:58px; height:58px; border-radius:50%;
+  background:linear-gradient(135deg,var(--red),#6b0010);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Syne',sans-serif; font-weight:800;
+  font-size:1.3rem; color:#fff; flex-shrink:0;
+  border:2px solid rgba(232,25,44,.4);
+}
+.prof-user-name{
+  font-family:'Syne',sans-serif; font-weight:700;
+  font-size:1.05rem; letter-spacing:-.02em; margin-bottom:.18rem;
+}
+.prof-user-since{ font-size:.72rem; color:var(--text3); }
+.prof-sec-lbl{
+  font-size:.68rem; font-weight:700; color:var(--text3);
+  text-transform:uppercase; letter-spacing:.1em;
+  padding:.7rem 1.3rem .35rem;
+}
+.prof-stats{
+  display:grid; grid-template-columns:repeat(3,1fr);
+  gap:.5rem; padding:.3rem 1.3rem .8rem;
+}
+.prof-stat{
+  background:var(--bg3); border:1px solid var(--b2);
+  border-radius:10px; padding:.7rem .5rem;
+  text-align:center;
+}
+.prof-stat-val{
+  font-family:'Syne',sans-serif; font-weight:700;
+  font-size:1.2rem; color:var(--text); margin-bottom:.18rem;
+}
+.prof-stat-lbl{
+  font-size:.65rem; color:var(--text3); font-weight:500;
+  text-transform:uppercase; letter-spacing:.06em;
+}
+.prof-row{
+  display:flex; align-items:center; gap:.8rem;
+  padding:.8rem 1.3rem; border-radius:10px;
+  cursor:pointer; transition:background .14s; margin:0 .4rem;
+}
+.prof-row:hover{ background:rgba(255,255,255,.04); }
+.prof-row-icon{
+  width:34px; height:34px; border-radius:9px;
+  background:var(--bg3); border:1px solid var(--b2);
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; color:var(--text2); font-size:.95rem;
+}
+.prof-row-info{ flex:1; min-width:0; }
+.prof-row-title{ font-size:.88rem; font-weight:500; margin-bottom:.08rem; }
+.prof-row-sub{ font-size:.72rem; color:var(--text3); }
+.prof-row-arr{ color:var(--text3); font-size:.9rem; }
+.iptv-saved-list{ padding:0 1.3rem .5rem; }
+.iptv-saved-item{
+  display:flex; align-items:center; gap:.7rem;
+  padding:.62rem .7rem; border-radius:9px;
+  background:var(--bg3); border:1px solid var(--b2);
+  margin-bottom:.45rem; transition:border-color .16s;
+}
+.iptv-saved-item:hover{ border-color:rgba(232,25,44,.3); }
+.iptv-saved-name{
+  flex:1; font-size:.84rem; font-weight:500;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  min-width:0;
+}
+.iptv-saved-url{
+  font-size:.68rem; color:var(--text3);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  max-width:160px;
+}
+.iptv-saved-btns{ display:flex; gap:.35rem; flex-shrink:0; }
+.iptv-saved-btn{
+  width:28px; height:28px; border-radius:7px;
+  background:var(--bg4); border:1px solid var(--b1);
+  color:var(--text3); display:flex; align-items:center;
+  justify-content:center; cursor:pointer; transition:all .16s;
+  font-size:.75rem;
+}
+.iptv-saved-btn:hover{ border-color:var(--red); color:var(--red); background:rgba(232,25,44,.1); }
+.iptv-saved-btn.play-btn:hover{ color:var(--green); border-color:var(--green); background:rgba(61,220,132,.1); }
+.iptv-add-form{
+  display:flex; flex-direction:column; gap:.55rem;
+  padding:.5rem 1.3rem .8rem;
+}
+.iptv-add-row{ display:flex; gap:.5rem; }
+.iptv-add-input{
+  flex:1; padding:.6rem .85rem;
+  background:var(--bg4); border:1px solid var(--b1);
+  border-radius:8px; color:var(--text);
+  font-size:.82rem; font-family:'DM Sans',sans-serif;
+  outline:none; transition:border-color .18s;
+  -webkit-appearance:none;
+}
+.iptv-add-input::placeholder{ color:var(--text3); }
+.iptv-add-input:focus{ border-color:rgba(232,25,44,.45); }
+.iptv-add-btn{
+  padding:.6rem 1rem; background:var(--red); color:#fff;
+  border:none; border-radius:8px; font-size:.8rem;
+  font-weight:700; cursor:pointer; white-space:nowrap;
+  transition:background .18s; font-family:'DM Sans',sans-serif;
+}
+.iptv-add-btn:hover{ background:var(--red2); }
+.iptv-add-btn:disabled{ opacity:.5; cursor:not-allowed; }
+.prof-history-list{ padding:0 1.3rem .6rem; }
+.prof-hist-item{
+  display:flex; align-items:center; gap:.7rem;
+  padding:.55rem 0; border-bottom:1px solid var(--b2);
+  cursor:pointer; transition:opacity .15s;
+}
+.prof-hist-item:last-child{ border-bottom:none; }
+.prof-hist-item:hover{ opacity:.75; }
+.prof-hist-img{
+  width:38px; height:56px; border-radius:6px;
+  object-fit:cover; background:var(--bg4); flex-shrink:0;
+}
+.prof-hist-info{ flex:1; min-width:0; }
+.prof-hist-title{
+  font-size:.84rem; font-weight:500;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.prof-hist-meta{ font-size:.71rem; color:var(--text3); margin-top:.1rem; }
+.prof-hist-bar{
+  height:2px; background:var(--bg5); border-radius:1px;
+  margin-top:.4rem; overflow:hidden;
+}
+.prof-hist-fill{ height:100%; background:var(--red); border-radius:1px; }
+.prof-signout{
+  display:flex; align-items:center; justify-content:center;
+  gap:.5rem; width:calc(100% - 2.6rem); margin:0 1.3rem .8rem;
+  padding:.78rem; border-radius:9px;
+  background:rgba(232,25,44,.08); border:1px solid rgba(232,25,44,.2);
+  color:var(--red); font-size:.88rem; font-weight:600;
+  cursor:pointer; transition:all .2s; font-family:'DM Sans',sans-serif;
+}
+.prof-signout:hover{
+  background:rgba(232,25,44,.15); border-color:rgba(232,25,44,.4);
+}
+.sync-status{
+  display:flex; align-items:center; gap:.4rem;
+  font-size:.68rem; color:var(--text3);
+  padding:.4rem 1.3rem .5rem;
+}
+.sync-dot{
+  width:5px; height:5px; border-radius:50%;
+  background:var(--text3); flex-shrink:0;
+}
+.sync-dot.ok{ background:var(--green); }
+.sync-dot.err{ background:var(--red); }
+.sync-dot.spin-dot{ animation:pdot 1.5s ease infinite; background:var(--gold); }
+
+@media(min-width:641px){
+  .profile-modal{ align-items:center; }
+  .prof-panel{
+    border-radius:var(--rl);
+    max-height:88dvh;
+    box-shadow:0 40px 80px rgba(0,0,0,.9);
+    animation:slup .28s cubic-bezier(.4,0,.2,1);
+  }
+  .prof-handle{ display:none; }
+}
+@media(max-width:640px){
+  .profile-modal{ z-index:25000; }
+  .prof-panel{
+    padding-bottom:calc(var(--sab) + .5rem);
+  }
+}
 
 /* ══════════════════════════════════════════
    IPTV / LIVE TV MODAL
@@ -845,265 +1179,6 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
 </style>
 </head>
 <body>
-
-<!-- ══════════════════════════════════════════
-     AFLIX LICENSE GATE — Google Sheets backend
-     Fetches the published sheet as CSV on every
-     load and checks username + code + status.
-══════════════════════════════════════════ -->
-<style>
-#aflixGate{
-  position:fixed;inset:0;z-index:999999;
-  background:#070708;
-  display:flex;align-items:center;justify-content:center;
-  padding:1.5rem;
-  padding-top:env(safe-area-inset-top,0px);
-  padding-bottom:env(safe-area-inset-bottom,0px);
-  font-family:'DM Sans',sans-serif;
-}
-#aflixGate .gate-box{
-  width:100%;max-width:380px;
-  background:#0c0c0e;
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:16px;
-  padding:2rem 1.75rem 1.75rem;
-  display:flex;flex-direction:column;gap:1.1rem;
-}
-#aflixGate .gate-logo{
-  font-family:'Syne',sans-serif;font-weight:800;font-size:1.7rem;
-  letter-spacing:-.04em;text-align:center;margin-bottom:.2rem;
-  color:#f0f0f2;
-}
-#aflixGate .gate-logo em{color:#e8192c;font-style:normal}
-#aflixGate .gate-sub{
-  font-size:.82rem;color:#8e8e9e;text-align:center;margin-top:-.6rem;
-}
-#aflixGate label{
-  font-size:.75rem;font-weight:600;color:#8e8e9e;
-  text-transform:uppercase;letter-spacing:.08em;
-  display:block;margin-bottom:.38rem;
-}
-#aflixGate input{
-  width:100%;padding:.72rem 1rem;
-  background:#17171a;border:1px solid rgba(255,255,255,0.08);
-  border-radius:9px;color:#f0f0f2;
-  font-size:1rem;font-family:'DM Sans',sans-serif;
-  outline:none;-webkit-appearance:none;
-  transition:border-color .18s;
-}
-#aflixGate input:focus{border-color:rgba(232,25,44,0.55);}
-#aflixGate input::placeholder{color:#4e4e5a}
-#aflixGate #gateCodeInput{
-  letter-spacing:.25em;font-size:1.2rem;font-weight:600;text-align:center;
-}
-#aflixGate .gate-btn{
-  width:100%;padding:.82rem;
-  background:#e8192c;color:#fff;border:none;border-radius:9px;
-  font-family:'DM Sans',sans-serif;font-size:.93rem;font-weight:600;
-  cursor:pointer;transition:background .2s,transform .15s;
-  margin-top:.2rem;
-}
-#aflixGate .gate-btn:hover{background:#ff2d41}
-#aflixGate .gate-btn:active{transform:scale(.98)}
-#aflixGate .gate-btn:disabled{background:#2a2a2e;color:#4e4e5a;cursor:not-allowed;transform:none}
-#aflixGate .gate-msg{
-  font-size:.82rem;text-align:center;
-  padding:.55rem .8rem;border-radius:8px;display:none;
-}
-#aflixGate .gate-msg.err{
-  display:block;background:rgba(232,25,44,.1);
-  border:1px solid rgba(232,25,44,.3);color:#ff6b7a;
-}
-#aflixGate .gate-msg.ok{
-  display:block;background:rgba(61,220,132,.08);
-  border:1px solid rgba(61,220,132,.25);color:#3ddc84;
-}
-#aflixGate .gate-spin{
-  display:inline-block;width:16px;height:16px;
-  border:2px solid rgba(255,255,255,.15);border-top-color:#fff;
-  border-radius:50%;animation:gspin .65s linear infinite;
-  vertical-align:middle;margin-right:6px;
-}
-@keyframes gspin{to{transform:rotate(360deg)}}
-#aflixGate .gate-footer{
-  font-size:.73rem;color:#4e4e5a;text-align:center;margin-top:.3rem;
-}
-</style>
-
-<div id="aflixGate">
-  <div class="gate-box">
-    <div class="gate-logo">A<em>F</em>LIX</div>
-    <div class="gate-sub">Enter your license to continue</div>
-    <div>
-      <label for="gateUserInput">Username</label>
-      <input type="text" id="gateUserInput" placeholder="your username"
-             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-    </div>
-    <div>
-      <label for="gateCodeInput">License code</label>
-      <input type="text" id="gateCodeInput" placeholder="000000"
-             maxlength="6" autocomplete="off" inputmode="numeric">
-    </div>
-    <div class="gate-msg" id="gateMsg"></div>
-    <button class="gate-btn" id="gateBtn" onclick="aflixVerifyLicense()">Access AFlix</button>
-    <div class="gate-footer">Need access? Contact the administrator.</div>
-  </div>
-</div>
-
-<script>
-(function () {
-  /* ── CONFIG ──────────────────────────────────────────────────────────────
-     Published Google Sheet → File › Share › Publish to web › CSV format.
-     The sheet must have these column headers in row 1 (case-insensitive):
-       username | code | status | date
-     status must be "active" for access to be granted; anything else = denied.
-  ─────────────────────────────────────────────────────────────────────────*/
-  var SHEET_CSV_URL =
-    'https://docs.google.com/spreadsheets/d/e/' +
-    '2PACX-1vQ12vBXZ7C6vJrg8eGJHzR-8iEtzWbNZd-Zinc7JhLwWfGMDZ6-go0nPUKsn3_C6Q9x3OkYGpLsIU--' +
-    '/pub?output=csv&cachebust=' + Date.now();
-
-  var SESSION_KEY = 'aflix-gate-passed';
-
-  /* Already verified this tab session — skip gate instantly */
-  if (sessionStorage.getItem(SESSION_KEY) === '1') {
-    document.getElementById('aflixGate').remove();
-    return;
-  }
-
-  /* Enter key on either input triggers verify */
-  ['gateUserInput', 'gateCodeInput'].forEach(function (id) {
-    document.getElementById(id).addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') aflixVerifyLicense();
-    });
-  });
-
-  /* ── CSV PARSER ──────────────────────────────────────────────────────── */
-  function parseCSV(text) {
-    var lines = text.trim().split(/\r?\n/);
-    if (lines.length < 2) return [];
-
-    /* Parse header row to find column indices */
-    var headers = splitCSVRow(lines[0]).map(function (h) {
-      return h.trim().toLowerCase().replace(/[^a-z]/g, '');
-    });
-    var iUser   = headers.indexOf('username');
-    var iCode   = headers.indexOf('code');
-    var iStatus = headers.indexOf('status');
-
-    /* Fallback: treat columns 0,1,2 as username,code,status if headers missing */
-    if (iUser   === -1) iUser   = 0;
-    if (iCode   === -1) iCode   = 1;
-    if (iStatus === -1) iStatus = 2;
-
-    var rows = [];
-    for (var i = 1; i < lines.length; i++) {
-      var cols = splitCSVRow(lines[i]);
-      if (!cols[iUser] && !cols[iCode]) continue; /* skip blank rows */
-      rows.push({
-        username: (cols[iUser]   || '').trim(),
-        code:     (cols[iCode]   || '').trim(),
-        status:   (cols[iStatus] || 'active').trim().toLowerCase()
-      });
-    }
-    return rows;
-  }
-
-  /* Handles quoted fields with commas inside */
-  function splitCSVRow(row) {
-    var result = [], cur = '', inQ = false;
-    for (var i = 0; i < row.length; i++) {
-      var ch = row[i];
-      if (ch === '"') { inQ = !inQ; continue; }
-      if (ch === ',' && !inQ) { result.push(cur); cur = ''; continue; }
-      cur += ch;
-    }
-    result.push(cur);
-    return result;
-  }
-
-  /* ── MAIN VERIFY FUNCTION ────────────────────────────────────────────── */
-  window.aflixVerifyLicense = async function () {
-    var username = (document.getElementById('gateUserInput').value  || '').trim();
-    var code     = (document.getElementById('gateCodeInput').value  || '').trim();
-    var btn      = document.getElementById('gateBtn');
-    var msg      = document.getElementById('gateMsg');
-
-    /* Reset message */
-    msg.className = 'gate-msg';
-    msg.style.display = 'none';
-
-    /* Basic validation */
-    if (!username) { showMsg('err', 'Please enter your username.'); return; }
-    if (!code || !/^\d{6}$/.test(code)) {
-      showMsg('err', 'Please enter your 6-digit license code.');
-      return;
-    }
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="gate-spin"></span>Checking…';
-
-    /* Fetch the sheet */
-    var licenses = [];
-    try {
-      var res = await fetch(SHEET_CSV_URL, { cache: 'no-store' });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      var csv = await res.text();
-      licenses = parseCSV(csv);
-    } catch (e) {
-      showMsg('err', 'Could not reach the license server. Check your connection and try again.');
-      resetBtn(); return;
-    }
-
-    if (licenses.length === 0) {
-      showMsg('err', 'License list is empty. Contact the administrator.');
-      resetBtn(); return;
-    }
-
-    /* Find matching entry */
-    var match = licenses.find(function (l) {
-      return l.username.toLowerCase() === username.toLowerCase() && l.code === code;
-    });
-
-    if (!match) {
-      showMsg('err', 'Invalid username or code. Please try again.');
-      resetBtn(); return;
-    }
-
-    if (match.status !== 'active') {
-      showMsg('err', 'This license has been revoked. Contact the administrator.');
-      resetBtn(); return;
-    }
-
-    /* ✓ Valid & active */
-    showMsg('ok', 'Welcome, ' + match.username + '!');
-    sessionStorage.setItem(SESSION_KEY, '1');
-    setTimeout(function () {
-      var gate = document.getElementById('aflixGate');
-      if (gate) {
-        gate.style.transition = 'opacity .4s';
-        gate.style.opacity = '0';
-        setTimeout(function () { gate.remove(); }, 420);
-      }
-    }, 800);
-  };
-
-  function showMsg(type, text) {
-    var msg = document.getElementById('gateMsg');
-    msg.className = 'gate-msg ' + type;
-    msg.textContent = text;
-    msg.style.display = 'block';
-  }
-
-  function resetBtn() {
-    var btn = document.getElementById('gateBtn');
-    btn.disabled = false;
-    btn.textContent = 'Access AFlix';
-  }
-})();
-</script>
-<!-- END LICENSE GATE -->
-
 <!-- cursor -->
 <div id="cur-dot"></div>
 <div id="cur-ring"></div>
@@ -1310,16 +1385,11 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
     </div>
 
     <div class="stage" id="playerStage">
-      <!-- NO sandbox attribute. Every working streaming embed site (vidlink.pro,
-           vidsrc, videasy, autoembed, rivestream, etc.) uses exactly this pattern:
-           just allow + allowfullscreen, no sandbox. Any sandbox token — even a
-           permissive one — is detected by the player's JS and causes the
-           "Please disable sandbox" block screen. Ad blocking is done entirely by
-           the JS layers in adblock.js (window.open override, MutationObserver,
-           click capture, postMessage firewall) and the Service Worker. -->
+      <!-- sandbox: no allow-popups, no allow-top-navigation — blocks ad popups & redirects -->
       <iframe id="playerFrame" class="p-iframe"
-        allow="autoplay; fullscreen *; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write"
-        referrerpolicy="strict-origin-when-cross-origin"
+        sandbox="allow-scripts allow-same-origin allow-fullscreen allow-presentation allow-orientation-lock"
+        allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer"
+        referrerpolicy="no-referrer"
         allowfullscreen></iframe>
       <div class="p-loading" id="pLoading"><div class="spin"></div></div>
     </div>
@@ -2098,6 +2168,7 @@ function goHome(){
 async function init(){
   loadSettings(); updateWlCount(); renderWlPanel(); renderWlSection(); renderCW();
   setupHeader(); setupReveal(); setupEvents(); setupAutoNext();
+  authInit();
   const ok = await loadRemoteConfig();
   if (!ok) return;
   await Promise.all([loadHero(),loadGenres(),loadTop10(),loadTrend(),loadMovies(),loadTV()]);
@@ -2387,9 +2458,302 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+/* ══════════════════════════════════════════
+   PROFILE & AUTH SYSTEM
+══════════════════════════════════════════ */
+const AUTH = {
+  gistId: null, token: null, username: null, createdAt: null, gistData: null, syncing: false,
+  load(){ try{ const s=localStorage.getItem('aflix_auth'); if(s){ const d=JSON.parse(s); Object.assign(this,d); } }catch(e){} },
+  save(){ try{ localStorage.setItem('aflix_auth',JSON.stringify({gistId:this.gistId,token:this.token,username:this.username,createdAt:this.createdAt})); }catch(e){} },
+  clear(){ this.gistId=this.token=this.username=this.createdAt=this.gistData=null; try{ localStorage.removeItem('aflix_auth'); }catch(e){} },
+  get loggedIn(){ return !!(this.gistId&&this.token&&this.username); }
+};
 
+const GIST_FILE = 'aflix-profile.json';
+const GH_API = 'https://api.github.com';
+
+async function gistFetch(method, path, body=null){
+  if(!AUTH.token) return null;
+  const opts={method,headers:{'Authorization':`Bearer ${AUTH.token}`,'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'}};
+  if(body) opts.body=JSON.stringify(body);
+  try{
+    const r=await fetch(`${GH_API}${path}`,opts);
+    if(!r.ok){ const err=await r.json().catch(()=>({})); throw new Error(err.message||r.status); }
+    return r.status===204?true:await r.json();
+  }catch(e){ console.error('[AFlix Auth] gistFetch error:',e); return null; }
+}
+
+async function gistWrite(data){
+  if(!AUTH.gistId||!AUTH.token) return false;
+  AUTH.syncing=true; authSetSyncStatus('syncing','Syncing…');
+  const result=await gistFetch('PATCH',`/gists/${AUTH.gistId}`,{files:{[GIST_FILE]:{content:JSON.stringify(data,null,2)}}});
+  AUTH.syncing=false;
+  if(result){ AUTH.gistData=data; authSetSyncStatus('ok',`Synced ${new Date().toLocaleTimeString()}`); return true; }
+  else{ authSetSyncStatus('err','Sync failed — check token'); return false; }
+}
+
+async function gistRead(){
+  if(!AUTH.gistId||!AUTH.token) return null;
+  authSetSyncStatus('syncing','Loading…');
+  const data=await gistFetch('GET',`/gists/${AUTH.gistId}`);
+  if(!data){ authSetSyncStatus('err','Load failed'); return null; }
+  try{
+    const content=data.files[GIST_FILE]?.content;
+    if(!content) throw new Error('No profile file');
+    const parsed=JSON.parse(content);
+    AUTH.gistData=parsed;
+    authSetSyncStatus('ok',`Loaded ${new Date().toLocaleTimeString()}`);
+    return parsed;
+  }catch(e){ authSetSyncStatus('err','Corrupt profile data'); return null; }
+}
+
+function djb2Hash(str){
+  let h=5381;
+  for(let i=0;i<str.length;i++){ h=((h<<5)+h)^str.charCodeAt(i); h=h>>>0; }
+  return h;
+}
+
+function openProfile(){ document.getElementById('profileModal').classList.add('open'); document.body.classList.add('no-scroll'); if(AUTH.loggedIn){ authShowProfilePanel(); }else{ authShowAuthPanel(); } }
+function closeProfile(){ document.getElementById('profileModal').classList.remove('open'); document.body.classList.remove('no-scroll'); }
+
+document.getElementById('profileModal').addEventListener('click',e=>{ if(e.target===document.getElementById('profileModal')) closeProfile(); });
+
+function authSwitchTab(tab){
+  const isLogin=tab==='login';
+  document.getElementById('tabLogin').classList.toggle('active',isLogin);
+  document.getElementById('tabRegister').classList.toggle('active',!isLogin);
+  document.getElementById('loginForm').style.display=isLogin?'':'none';
+  document.getElementById('registerForm').style.display=isLogin?'none':'';
+}
+function authShowAuthPanel(){ document.getElementById('authPanel').style.display=''; document.getElementById('profilePanel').style.display='none'; }
+function authShowProfilePanel(){ document.getElementById('authPanel').style.display='none'; document.getElementById('profilePanel').style.display=''; profRenderDashboard(); }
+function authTogglePw(inputId,btn){ const inp=document.getElementById(inputId); const isText=inp.type==='text'; inp.type=isText?'password':'text'; btn.innerHTML=isText?`<svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>`:`<svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M2 2l16 16M8.5 8.7A3 3 0 0013 13M6.5 5.6C4.5 6.8 3 8.5 3 10s3.5 6 7 6c1.2 0 2.4-.4 3.4-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 4.1C9.3 4 9.7 4 10 4c3.5 0 7 2.5 7 6 0 .6-.2 1.3-.5 1.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`; }
+function authValidateUsername(inp){ const v=inp.value; const ok=/^[a-zA-Z0-9_]{3,20}$/.test(v); const hint=document.getElementById('regUserHint'); if(!v){ hint.className='inp-hint'; hint.textContent='3–20 chars, letters/numbers/underscores'; return false; } if(!ok){ inp.classList.add('err'); hint.className='inp-hint err'; hint.textContent='Only letters, numbers, underscores (3–20 chars)'; return false; } inp.classList.remove('err'); hint.className='inp-hint ok'; hint.textContent='Looks good ✓'; return true; }
+function authCheckPwStrength(inp){ const v=inp.value; const hint=document.getElementById('regPwHint'); if(!v){ hint.className='inp-hint'; hint.textContent='At least 6 characters'; return; } if(v.length<6){ hint.className='inp-hint err'; hint.textContent='Too short'; return; } if(v.length<10){ hint.className='inp-hint'; hint.textContent='Medium strength'; return; } hint.className='inp-hint ok'; hint.textContent='Strong password ✓'; }
+function authOpenGithubToken(){ window.open('https://github.com/settings/tokens/new?scopes=gist&description=AFlix+App','_blank','noopener'); }
+function authSetSyncStatus(state,msg){ const dot=document.getElementById('syncDot'); const lbl=document.getElementById('syncMsg'); if(!dot||!lbl) return; dot.className='sync-dot'+(state==='ok'?' ok':state==='err'?' err':state==='syncing'?' spin-dot':''); lbl.textContent=msg; }
+function authUpdateNavBtn(){ const btn=document.getElementById('profNavBtn'); const ini=document.getElementById('profNavInitial'); if(!btn||!ini) return; if(AUTH.loggedIn){ btn.classList.add('signed-in'); ini.textContent=(AUTH.username||'?').charAt(0).toUpperCase(); document.getElementById('tab-profile')?.classList.add('active'); }else{ btn.classList.remove('signed-in'); ini.innerHTML=`<svg width="15" height="15" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7.5" r="3.5" stroke="currentColor" stroke-width="1.6"/><path d="M3 18c0-4 3.1-6.5 7-6.5s7 2.5 7 6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`; document.getElementById('tab-profile')?.classList.remove('active'); } }
+
+async function authRegister(){
+  const username=document.getElementById('regUser').value.trim();
+  const token=document.getElementById('regToken').value.trim();
+  const password=document.getElementById('regPassword').value;
+  if(!authValidateUsername(document.getElementById('regUser'))) return;
+  if(!token){ toast('GitHub token is required','err'); return; }
+  if(password.length<6){ toast('Password must be at least 6 characters','err'); return; }
+  const btn=document.getElementById('registerBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Creating account…';
+  const profileData={schemaVersion:1,username,createdAt:new Date().toISOString(),passwordHash:djb2Hash(password),watchlist:wlGet(),history:cwGet(),iptvLinks:[]};
+  AUTH.token=token;
+  const gist=await gistFetch('POST','/gists',{description:'AFlix user profile — do not delete',public:false,files:{[GIST_FILE]:{content:JSON.stringify(profileData,null,2)}}});
+  if(!gist||!gist.id){ AUTH.token=null; toast('Failed to create account — check your token and try again','err'); btn.disabled=false; btn.textContent='Create Account'; return; }
+  AUTH.gistId=gist.id; AUTH.username=username; AUTH.createdAt=profileData.createdAt; AUTH.gistData=profileData; AUTH.save();
+  authUpdateNavBtn(); authShowProfilePanel(); toast(`Welcome, ${username}! 🎬`,'ok');
+  btn.disabled=false; btn.textContent='Create Account';
+}
+
+async function authLogin(){
+  const ghUser=document.getElementById('loginUser').value.trim();
+  const token=document.getElementById('loginToken').value.trim();
+  if(!ghUser){ toast('Enter your GitHub username','err'); return; }
+  if(!token){ toast('Enter your Personal Access Token','err'); return; }
+  const btn=document.getElementById('loginBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Signing in…';
+  AUTH.token=token;
+  const gists=await gistFetch('GET','/gists?per_page=100');
+  if(!gists||!Array.isArray(gists)){ AUTH.token=null; toast('Login failed — check username and token','err'); btn.disabled=false; btn.textContent='Sign In'; return; }
+  const profileGist=gists.find(g=>g.files&&g.files[GIST_FILE]);
+  if(!profileGist){ AUTH.token=null; toast('No AFlix profile found for this token — register first','err'); btn.disabled=false; btn.textContent='Sign In'; return; }
+  AUTH.gistId=profileGist.id;
+  const profileData=await gistRead();
+  if(!profileData){ AUTH.token=null; AUTH.gistId=null; toast('Failed to read profile data','err'); btn.disabled=false; btn.textContent='Sign In'; return; }
+  AUTH.username=profileData.username; AUTH.createdAt=profileData.createdAt; AUTH.gistData=profileData; AUTH.save();
+  if(profileData.watchlist?.length) wlSet(profileData.watchlist);
+  if(profileData.history?.length) cwSet(profileData.history);
+  authUpdateNavBtn(); authShowProfilePanel();
+  updateWlCount(); renderWlPanel(); renderWlSection(); renderCW();
+  toast(`Welcome back, ${AUTH.username}! 👋`,'ok');
+  btn.disabled=false; btn.textContent='Sign In';
+}
+
+function authSignOut(){ AUTH.clear(); authUpdateNavBtn(); authShowAuthPanel(); toast('Signed out'); }
+function authInit(){ AUTH.load(); authUpdateNavBtn(); document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('profileModal').classList.contains('open')) closeProfile(); }); }
+
+function profRenderDashboard(){
+  if(!AUTH.loggedIn) return;
+  const initials=(AUTH.username||'?').charAt(0).toUpperCase();
+  document.getElementById('profBigAv').textContent=initials;
+  document.getElementById('profDisplayName').textContent=AUTH.username||'—';
+  document.getElementById('profSince').textContent=AUTH.createdAt?'Member since '+new Date(AUTH.createdAt).toLocaleDateString('en-US',{month:'long',year:'numeric'}):'';
+  const wl=wlGet(); const hist=cwGet(); const iptv=profGetIPTV();
+  document.getElementById('statWl').textContent=wl.length;
+  document.getElementById('statHist').textContent=hist.length;
+  document.getElementById('statIptv').textContent=iptv.length;
+  profRenderIPTV(); profRenderHistory();
+  authSetSyncStatus('',AUTH.gistId?'Ready to sync':'Not connected');
+}
+
+function profGetIPTV(){ try{ return JSON.parse(localStorage.getItem('aflix_user_iptv')||'[]'); }catch{ return []; } }
+function profSetIPTV(arr){ try{ localStorage.setItem('aflix_user_iptv',JSON.stringify(arr)); }catch{} }
+
+function profRenderIPTV(){
+  const links=profGetIPTV(); const el=document.getElementById('iptvSavedList');
+  document.getElementById('statIptv').textContent=links.length;
+  if(!links.length){ el.innerHTML=`<div style="padding:.6rem 0;font-size:.81rem;color:var(--text3)">No saved playlists yet. Add one below.</div>`; return; }
+  el.innerHTML=links.map((l,i)=>`
+    <div class="iptv-saved-item">
+      <div style="flex:1;min-width:0">
+        <div class="iptv-saved-name">${esc(l.name)}</div>
+        <div class="iptv-saved-url">${esc(l.url)}</div>
+      </div>
+      <div class="iptv-saved-btns">
+        <button class="iptv-saved-btn play-btn" title="Open in Live TV" onclick="profPlayIPTV(${i})">▶</button>
+        <button class="iptv-saved-btn" title="Remove" onclick="profRemoveIPTV(${i})">×</button>
+      </div>
+    </div>`).join('');
+}
+
+function profAddIPTV(){ const name=document.getElementById('iptvAddName').value.trim(); const url=document.getElementById('iptvAddUrl').value.trim(); if(!name){ toast('Enter a name for the playlist','err'); return; } if(!url){ toast('Enter a playlist URL','err'); return; } const arr=profGetIPTV(); arr.push({name,url}); profSetIPTV(arr); document.getElementById('iptvAddName').value=''; document.getElementById('iptvAddUrl').value=''; profRenderIPTV(); toast('Playlist saved ✓','ok'); }
+function profRemoveIPTV(idx){ const arr=profGetIPTV(); arr.splice(idx,1); profSetIPTV(arr); profRenderIPTV(); toast('Playlist removed'); }
+function profPlayIPTV(idx){ const arr=profGetIPTV(); const link=arr[idx]; if(!link) return; closeProfile(); setTimeout(()=>{ openIPTV(); const inp=document.getElementById('iptvUrlInput'); if(inp){ inp.value=link.url; iptvLoad(); } },320); }
+
+function profRenderHistory(){
+  const hist=cwGet(); const el=document.getElementById('profHistoryList');
+  document.getElementById('statHist').textContent=hist.length;
+  if(!hist.length){ el.innerHTML=`<div style="padding:.6rem 0 1rem;font-size:.81rem;color:var(--text3)">No watch history yet.</div>`; return; }
+  el.innerHTML=hist.slice(0,6).map(i=>`
+    <div class="prof-hist-item" onclick="closeProfile();setTimeout(()=>playContent(${i.id},'${i.type}',\`${(i.title||'').replace(/`/g,'\\`')}\`),320)">
+      ${i.backdrop?`<img src="${IMG}/w92${i.backdrop}" class="prof-hist-img" alt="" loading="lazy">`:`<div class="prof-hist-img skel"></div>`}
+      <div class="prof-hist-info">
+        <div class="prof-hist-title">${esc(i.title||'')}</div>
+        <div class="prof-hist-meta">${i.type==='tv'&&i.season?`S${i.season} E${i.episode||1} · `:''}${i.year||''}</div>
+        <div class="prof-hist-bar"><div class="prof-hist-fill" style="width:${i.progress||8}%"></div></div>
+      </div>
+    </div>`).join('');
+}
+
+async function profSyncToCloud(){
+  if(!AUTH.loggedIn){ toast('Sign in first to sync','err'); return; }
+  const data={schemaVersion:1,username:AUTH.username,createdAt:AUTH.createdAt,passwordHash:AUTH.gistData?.passwordHash||0,watchlist:wlGet(),history:cwGet(),iptvLinks:profGetIPTV()};
+  const ok=await gistWrite(data);
+  if(ok){ toast('Synced to cloud ✓','ok'); profRenderDashboard(); }
+  else{ toast('Sync failed — check your token','err'); }
+}
 </script>
 
+<!-- ── PROFILE MODAL ── -->
+<div class="profile-modal" id="profileModal">
+  <div class="prof-panel" id="profPanel">
+    <div class="prof-handle"></div>
+    <!-- AUTH PANEL -->
+    <div id="authPanel">
+      <div class="prof-hd">
+        <div class="prof-hd-title">Account</div>
+        <button class="prof-close" onclick="closeProfile()">×</button>
+      </div>
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tabLogin" onclick="authSwitchTab('login')">Sign In</div>
+        <div class="auth-tab" id="tabRegister" onclick="authSwitchTab('register')">Create Account</div>
+      </div>
+      <div class="auth-body" id="loginForm">
+        <div class="inp-group">
+          <label class="inp-label" for="loginUser">GitHub Username</label>
+          <input class="inp-field" id="loginUser" type="text" placeholder="your-github-username" autocomplete="username" autocorrect="off" autocapitalize="none" spellcheck="false">
+          <div class="inp-hint">Your GitHub account username</div>
+        </div>
+        <div class="inp-group">
+          <label class="inp-label" for="loginToken">Personal Access Token</label>
+          <div class="inp-pw-wrap">
+            <input class="inp-field" id="loginToken" type="password" placeholder="ghp_xxxxxxxxxxxx" autocomplete="current-password" autocorrect="off" autocapitalize="none" spellcheck="false">
+            <button class="inp-pw-eye" type="button" onclick="authTogglePw('loginToken',this)" aria-label="Show/hide token">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
+          </div>
+          <div class="inp-hint" id="loginTokenHint">Token needs <strong>gist</strong> scope only — <span style="color:var(--text2);cursor:pointer" onclick="authOpenGithubToken()">create one here ↗</span></div>
+        </div>
+        <button class="auth-submit" id="loginBtn" onclick="authLogin()">Sign In</button>
+        <div class="auth-foot">Don't have an account? <span onclick="authSwitchTab('register')">Create one free →</span></div>
+      </div>
+      <div class="auth-body" id="registerForm" style="display:none">
+        <div class="inp-group">
+          <label class="inp-label" for="regUser">Display Name</label>
+          <input class="inp-field" id="regUser" type="text" placeholder="e.g. MovieFan2025" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" oninput="authValidateUsername(this)">
+          <div class="inp-hint" id="regUserHint">3–20 chars, letters/numbers/underscores</div>
+        </div>
+        <div class="inp-group">
+          <label class="inp-label" for="regToken">GitHub Personal Access Token</label>
+          <div class="inp-pw-wrap">
+            <input class="inp-field" id="regToken" type="password" placeholder="ghp_xxxxxxxxxxxx" autocomplete="new-password" autocorrect="off" autocapitalize="none" spellcheck="false">
+            <button class="inp-pw-eye" type="button" onclick="authTogglePw('regToken',this)" aria-label="Show/hide token">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
+          </div>
+          <div class="inp-hint">Needs <strong>gist</strong> scope only — <span style="color:var(--text2);cursor:pointer" onclick="authOpenGithubToken()">generate at GitHub ↗</span></div>
+        </div>
+        <div class="inp-group">
+          <label class="inp-label" for="regPassword">App Password</label>
+          <div class="inp-pw-wrap">
+            <input class="inp-field" id="regPassword" type="password" placeholder="Choose a password (6+ chars)" autocomplete="new-password" oninput="authCheckPwStrength(this)">
+            <button class="inp-pw-eye" type="button" onclick="authTogglePw('regPassword',this)" aria-label="Show/hide password">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
+          </div>
+          <div class="inp-hint" id="regPwHint">At least 6 characters</div>
+        </div>
+        <button class="auth-submit" id="registerBtn" onclick="authRegister()">Create Account</button>
+        <div class="auth-foot">Already have an account? <span onclick="authSwitchTab('login')">Sign in →</span></div>
+      </div>
+    </div><!-- /authPanel -->
+
+    <!-- PROFILE DASHBOARD -->
+    <div id="profilePanel" style="display:none">
+      <div class="prof-hd">
+        <div class="prof-hd-title">My Profile</div>
+        <button class="prof-close" onclick="closeProfile()">×</button>
+      </div>
+      <div class="prof-user-hero">
+        <div class="prof-big-av" id="profBigAv">?</div>
+        <div>
+          <div class="prof-user-name" id="profDisplayName">—</div>
+          <div class="prof-user-since" id="profSince">Member since —</div>
+        </div>
+      </div>
+      <div class="sync-status" id="syncStatus">
+        <div class="sync-dot" id="syncDot"></div>
+        <span id="syncMsg">Not synced</span>
+      </div>
+      <div class="prof-stats">
+        <div class="prof-stat"><div class="prof-stat-val" id="statWl">0</div><div class="prof-stat-lbl">Watchlist</div></div>
+        <div class="prof-stat"><div class="prof-stat-val" id="statHist">0</div><div class="prof-stat-lbl">Watched</div></div>
+        <div class="prof-stat"><div class="prof-stat-val" id="statIptv">0</div><div class="prof-stat-lbl">IPTV Links</div></div>
+      </div>
+      <div class="prof-sec-lbl">📡 My IPTV Playlists</div>
+      <div class="iptv-saved-list" id="iptvSavedList"></div>
+      <div class="iptv-add-form">
+        <div class="iptv-add-row">
+          <input class="iptv-add-input" id="iptvAddName" type="text" placeholder="Name (e.g. My Channels)" autocomplete="off" autocorrect="off" autocapitalize="none">
+        </div>
+        <div class="iptv-add-row">
+          <input class="iptv-add-input" id="iptvAddUrl" type="url" placeholder="M3U playlist URL or stream URL" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+          <button class="iptv-add-btn" id="iptvAddBtn" onclick="profAddIPTV()">Save</button>
+        </div>
+      </div>
+      <div class="prof-sec-lbl">🎬 Watch History</div>
+      <div class="prof-history-list" id="profHistoryList"></div>
+      <div style="padding:.3rem 1.3rem .6rem">
+        <button class="prof-row" style="width:100%;margin:0;border:1px solid var(--b2);border-radius:10px;background:var(--bg3)" onclick="profSyncToCloud()">
+          <div class="prof-row-icon">☁</div>
+          <div class="prof-row-info"><div class="prof-row-title">Sync to Cloud</div><div class="prof-row-sub">Save watchlist + history to your Gist</div></div>
+          <div class="prof-row-arr">→</div>
+        </button>
+      </div>
+      <button class="prof-signout" onclick="authSignOut()">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M8 3H4a1 1 0 00-1 1v12a1 1 0 001 1h4M13 14l4-4-4-4M17 10H8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sign Out
+      </button>
+    </div><!-- /profilePanel -->
+  </div>
+</div>
 
 <!-- ── IPTV / LIVE TV MODAL ── -->
 <div class="iptv-modal" id="iptvModal">
@@ -2518,6 +2882,17 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="tab-item" id="tab-wl" onclick="openWatchlist()" role="button" aria-label="Watchlist">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14a1 1 0 011 1v17l-7-4.5L5 21V4a1 1 0 011-1z"/></svg>
     <span>Saved</span>
+  </div>
+  <!-- Profile tab — this is the ONLY profile button in the app -->
+  <div class="tab-item" id="tab-profile" onclick="openProfile()" role="button" aria-label="Profile">
+    <!-- This button also serves as the signed-in avatar indicator -->
+    <span id="profNavBtn" class="prof-avatar-btn" style="width:24px;height:24px;font-size:.65rem;border:none;background:transparent;">
+      <span id="profNavInitial">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </span>
+      <div class="prof-online-dot"></div>
+    </span>
+    <span>Profile</span>
   </div>
 </nav>
 <script>
