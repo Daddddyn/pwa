@@ -119,6 +119,7 @@ self.addEventListener('fetch', event => {
   const networkOnly = [
     'api.themoviedb.org',
     'image.tmdb.org',
+    'vidlink.pro',
     'vidsrc',
     'vembed',
     'raw.githubusercontent.com',
