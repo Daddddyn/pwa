@@ -1385,13 +1385,12 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
     </div>
 
     <div class="stage" id="playerStage">
-      <!-- NO sandbox attribute: embed servers (VidLink, AutoEmbed, Videasy, VidFast etc.)
-           detect ANY sandbox attr and refuse to play. Ad blocking is handled
-           by adblock.js JS layers: window.open noop, MutationObserver, postMessage
-           firewall, click intercept. Source: vidlink.pro API docs + uBO issue #26880 -->
+      <!-- NO sandbox, NO referrerpolicy: embed servers detect both.
+           window.origin becomes "null" inside any sandboxed iframe — that is the
+           detection mechanism. referrerpolicy=no-referrer also breaks document.referrer
+           checks some embeds use. Ad blocking handled entirely by adblock.js JS layers. -->
       <iframe id="playerFrame" class="p-iframe"
         allow="autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer"
-        referrerpolicy="no-referrer"
         allowfullscreen></iframe>
       <div class="p-loading" id="pLoading"><div class="spin"></div></div>
     </div>
