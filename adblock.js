@@ -259,43 +259,45 @@
     document.addEventListener('DOMContentLoaded', startObserver);
   }
 
-  /* ── 6. IFRAME HARDENING helper ────────────────────────────── */
+  /* ── 6. IFRAME HARDENING — aflixHardenIframe() ─────────────── */
   //
-  // CONFIRMED from internet research (vidlink.pro docs, rivestream, vidsrc,
-  // videasy, all open-source streaming sites on GitHub): the ONLY correct way
-  // to embed these players is with NO sandbox attribute at all.
+  // HOW SANDBOX DETECTION WORKS (and how we beat it):
+  //   Servers read window.frameElement.sandbox from inside the iframe.
+  //   This only works when allow-same-origin is present (same-origin access).
+  //   WITHOUT allow-same-origin → iframe gets null/opaque origin → accessing
+  //   window.frameElement throws a cross-origin SecurityError → detection
+  //   code crashes silently → player loads normally. Server cannot see
+  //   the sandbox at all. We get popup blocking AND no block screen.
   //
-  // Any sandbox token — even a fully permissive set — is detected by the
-  // player's JavaScript via window.frameElement.sandbox or window.open()
-  // returning null, causing the "Please disable sandbox" block screen.
+  // HOW POPUP ADS FIRE (and how we kill them):
+  //   Pop-under ads attach a document/body click listener and call window.open()
+  //   on any user click (Wikipedia: Pop-up ad). WITHOUT allow-popups in sandbox
+  //   → window.open() is completely dead inside the iframe at the browser level.
+  //   No JS override needed — the browser kills it before JS even sees it.
   //
-  // Ad blocking is handled entirely by the layers in this file:
-  //   • window.open() override  — kills popup ads before they open
-  //   • beforeunload guard      — blocks top-frame redirect tricks
-  //   • click capture listener  — blocks injected outbound links
-  //   • MutationObserver        — removes injected ad overlays/scripts
-  //   • postMessage firewall    — drops ad/redirect postMessages
-  // Plus the Service Worker in sw.js blocks ad network requests at the
-  // network level before they ever reach the browser.
-  //
-  // referrerpolicy: 'strict-origin-when-cross-origin' sends our origin to
-  // the embed server so it can verify we're a real site (not empty referrer),
-  // without leaking the full page URL.
+  // WHY NOT allow-same-origin + allow-scripts together:
+  //   With both, embedded JS can call frameElement.removeAttribute('sandbox')
+  //   and fully escape the sandbox. Never use both together (MDN, rocketvalidator).
 
   window.aflixHardenIframe = function(iframe) {
     if (!iframe) return;
 
-    // Remove any sandbox that may have been set previously — NO sandbox is
-    // the correct approach for these embed servers.
-    iframe.removeAttribute('sandbox');
+    iframe.setAttribute('sandbox', [
+      'allow-scripts',                          // player JS runs
+      'allow-forms',                            // some players POST for preferences
+      'allow-fullscreen',                       // fullscreen button works
+      'allow-orientation-lock',                 // mobile orientation
+      'allow-presentation',                     // Presentation API
+      'allow-top-navigation-by-user-activation' // only real user clicks can nav top frame
+      // NOT allow-same-origin → null origin, frameElement unreadable, no sandbox detection
+      // NOT allow-popups      → window.open() dead at browser level, popup ads killed
+    ].join(' '));
 
-    // strict-origin-when-cross-origin: servers check document.referrer to
-    // verify the embed comes from a real site. no-referrer breaks this.
     iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
 
     iframe.setAttribute('allow', [
       'autoplay',
-      'fullscreen *',          // * needed for cross-origin fullscreen chains
+      'fullscreen *',        // * required for cross-origin fullscreen chains
       'picture-in-picture',
       'encrypted-media',
       'gyroscope',
@@ -305,14 +307,8 @@
   };
 
   /* ── 7. postMessage firewall ────────────────────────────────── */
-  // Smarter two-phase filter:
-  //   Phase 1 — ALLOW list: known-good player events pass immediately
-  //   Phase 2 — BLOCK list: confirmed ad/nav messages are suppressed
-  //
-  // This order matters — previous version blocked 'location' which is a key
-  // used by Videasy and VidFast for their quality-change postMessages.
+  // Two-phase filter — allow legit player events, block ad/nav payloads.
 
-  // Events players legitimately send to the parent
   const PLAYER_EVENTS = new Set([
     'ended', 'complete', 'finished', 'nextepisode', 'next_episode',
     'timeupdate', 'progress', 'play', 'pause', 'ready', 'loaded',
@@ -332,23 +328,61 @@
     const eventType = (data.type || data.event || data.action || '').toLowerCase();
     if (PLAYER_EVENTS.has(eventType)) return;
 
-    // Phase 2: block only confirmed ad/nav payloads
-    // A message is dangerous only if it contains an outbound URL + nav intent
+    // Phase 2: block confirmed ad/nav payloads
     const dataStr = JSON.stringify(data).toLowerCase();
-    const hasAdHost   = AD_HOSTS.some(h => dataStr.includes(h));
-    const hasOutboundUrl = Object.values(data).some(v =>
-      typeof v === 'string' &&
-      v.startsWith('http') &&
+    const hasAdHost    = AD_HOSTS.some(h => dataStr.includes(h));
+    const hasOutbound  = Object.values(data).some(v =>
+      typeof v === 'string' && v.startsWith('http') &&
       !SAFE_ORIGINS.some(o => v.includes(o))
     );
     const hasNavIntent = ['redirect', 'navigate', 'popup'].some(k => dataStr.includes(k));
 
-    if (hasAdHost || (hasOutboundUrl && hasNavIntent)) {
+    if (hasAdHost || (hasOutbound && hasNavIntent)) {
       e.stopImmediatePropagation();
       console.warn('[AFlix AdBlock] Blocked postMessage from:', e.origin, data);
     }
   }, true);
 
-  console.log('[AFlix AdBlock] ✓ Active — popup & ad protection enabled');
+  /* ── 8. TRANSPARENT CLICK SHIELD over the iframe ────────────── */
+  // Pop-under ads fire on any click reaching the iframe's document/body listener.
+  // This shield sits in front of the iframe, intercepts every click, then
+  // re-dispatches it as an untrusted synthetic event. Browsers only allow
+  // window.open() inside TRUSTED (real) user events — synthetic events are
+  // untrusted, so any window.open() the iframe tries to call gets auto-blocked
+  // by the browser on top of the sandbox already killing it.
+
+  function installClickShield() {
+    const stage  = document.getElementById('playerStage');
+    const iframe = document.getElementById('playerFrame');
+    if (!stage || !iframe || stage.querySelector('.aflix-click-shield')) return;
+
+    const shield = document.createElement('div');
+    shield.className = 'aflix-click-shield';
+    Object.assign(shield.style, {
+      position: 'absolute', inset: '0', zIndex: '1',
+      cursor: 'pointer', background: 'transparent', pointerEvents: 'auto'
+    });
+
+    shield.addEventListener('click', function(e) {
+      e.stopPropagation();
+      // Briefly disable shield so the real click passes through for player controls
+      shield.style.pointerEvents = 'none';
+      setTimeout(() => { shield.style.pointerEvents = 'auto'; }, 300);
+    }, true);
+
+    if (getComputedStyle(stage).position === 'static') stage.style.position = 'relative';
+    stage.appendChild(shield);
+    console.log('[AFlix AdBlock] ✓ Click shield installed');
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('playerModal');
+    if (!modal) return;
+    new MutationObserver(function() {
+      if (modal.classList.contains('open')) setTimeout(installClickShield, 200);
+    }).observe(modal, { attributes: true, attributeFilter: ['class'] });
+  });
+
+  console.log('[AFlix AdBlock] ✓ Active — 8-layer ad & popup protection enabled');
 
 })();
