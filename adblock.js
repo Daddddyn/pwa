@@ -93,8 +93,13 @@
   // Ads often inject anchor tags. We kill clicks that try to open
   // new tabs pointing to non-whitelisted domains.
   const SAFE_ORIGINS = [
-    // active servers
-    'vidsrc.cc', 'vidsrc.to', 'vidsrc.xyz',
+    // top-tier servers (front of queue)
+    'player.videasy.net', 'videasy.net',
+    'vidlink.pro',
+    'player.autoembed.cc', 'autoembed.cc',
+    'vidfast.pro',
+    // fallback servers
+    'vidsrc.cc',
     'vembed.stream',
     // infra
     'youtube.com', 'youtu.be',
