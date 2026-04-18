@@ -847,9 +847,9 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
 <body>
 
 <!-- ══════════════════════════════════════════
-     AFLIX LICENSE GATE — Google Apps Script backend
-     Calls your deployed Apps Script with username + code.
-     Shows on every app open — no session caching.
+     AFLIX LICENSE GATE — Google Sheets backend
+     Fetches the published sheet as CSV on every
+     load and checks username + code + status.
 ══════════════════════════════════════════ -->
 <style>
 #aflixGate{
@@ -893,6 +893,9 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
 }
 #aflixGate input:focus{border-color:rgba(232,25,44,0.55);}
 #aflixGate input::placeholder{color:#4e4e5a}
+#aflixGate #gateCodeInput{
+  letter-spacing:.25em;font-size:1.2rem;font-weight:600;text-align:center;
+}
 #aflixGate .gate-btn{
   width:100%;padding:.82rem;
   background:#e8192c;color:#fff;border:none;border-radius:9px;
@@ -930,104 +933,166 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
 <div id="aflixGate">
   <div class="gate-box">
     <div class="gate-logo">A<em>F</em>LIX</div>
-    <div class="gate-sub">Enter your credentials to continue</div>
+    <div class="gate-sub">Enter your license to continue</div>
     <div>
       <label for="gateUserInput">Username</label>
       <input type="text" id="gateUserInput" placeholder="your username"
              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     </div>
     <div>
-      <label for="gateCodeInput">Password</label>
-      <input type="password" id="gateCodeInput" placeholder="your password"
-             autocomplete="current-password">
+      <label for="gateCodeInput">License code</label>
+      <input type="text" id="gateCodeInput" placeholder="000000"
+             maxlength="6" autocomplete="off" inputmode="numeric">
     </div>
     <div class="gate-msg" id="gateMsg"></div>
     <button class="gate-btn" id="gateBtn" onclick="aflixVerifyLicense()">Access AFlix</button>
-    <div class="gate-footer">Need access? Email ammiller1151@gmail.com</div>
+    <div class="gate-footer">Need access? Contact the administrator.</div>
   </div>
 </div>
 
 <script>
 (function () {
   /* ── CONFIG ──────────────────────────────────────────────────────────────
-     Your Google Apps Script deployment URL.
-     The script receives ?username=X&code=Y and should return JSON:
-       { "status": "ok",    "name": "DisplayName" }   — access granted
-       { "status": "error", "message": "reason"    }   — access denied
+     Published Google Sheet → File › Share › Publish to web › CSV format.
+     The sheet must have these column headers in row 1 (case-insensitive):
+       username | code | status | date
+     status must be "active" for access to be granted; anything else = denied.
   ─────────────────────────────────────────────────────────────────────────*/
-  var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxKFBwcRtoW7WttNI1L4BttzcxAa6DdDIT2E3afqD3C6jcjVJE3939Q781WyD-kj-jm/exec';
+  var SHEET_CSV_URL =
+    'https://docs.google.com/spreadsheets/d/e/' +
+    '2PACX-1vQ12vBXZ7C6vJrg8eGJHzR-8iEtzWbNZd-Zinc7JhLwWfGMDZ6-go0nPUKsn3_C6Q9x3OkYGpLsIU--' +
+    '/pub?output=csv&cachebust=' + Date.now();
+
+  var SESSION_KEY = 'aflix-gate-passed';
+
+  /* Already verified this tab session — skip gate instantly */
+  if (sessionStorage.getItem(SESSION_KEY) === '1') {
+    document.getElementById('aflixGate').remove();
+    return;
+  }
 
   /* Enter key on either input triggers verify */
-  document.addEventListener('DOMContentLoaded', function () {
-    ['gateUserInput', 'gateCodeInput'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') aflixVerifyLicense();
-      });
-    });
-  });
-  /* Also attach immediately in case DOMContentLoaded already fired */
   ['gateUserInput', 'gateCodeInput'].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) el.addEventListener('keydown', function (e) {
+    document.getElementById(id).addEventListener('keydown', function (e) {
       if (e.key === 'Enter') aflixVerifyLicense();
     });
   });
 
+  /* ── CSV PARSER ──────────────────────────────────────────────────────── */
+  function parseCSV(text) {
+    var lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) return [];
+
+    /* Parse header row to find column indices */
+    var headers = splitCSVRow(lines[0]).map(function (h) {
+      return h.trim().toLowerCase().replace(/[^a-z]/g, '');
+    });
+    var iUser   = headers.indexOf('username');
+    var iCode   = headers.indexOf('code');
+    var iStatus = headers.indexOf('status');
+
+    /* Fallback: treat columns 0,1,2 as username,code,status if headers missing */
+    if (iUser   === -1) iUser   = 0;
+    if (iCode   === -1) iCode   = 1;
+    if (iStatus === -1) iStatus = 2;
+
+    var rows = [];
+    for (var i = 1; i < lines.length; i++) {
+      var cols = splitCSVRow(lines[i]);
+      if (!cols[iUser] && !cols[iCode]) continue; /* skip blank rows */
+      rows.push({
+        username: (cols[iUser]   || '').trim(),
+        code:     (cols[iCode]   || '').trim(),
+        status:   (cols[iStatus] || 'active').trim().toLowerCase()
+      });
+    }
+    return rows;
+  }
+
+  /* Handles quoted fields with commas inside */
+  function splitCSVRow(row) {
+    var result = [], cur = '', inQ = false;
+    for (var i = 0; i < row.length; i++) {
+      var ch = row[i];
+      if (ch === '"') { inQ = !inQ; continue; }
+      if (ch === ',' && !inQ) { result.push(cur); cur = ''; continue; }
+      cur += ch;
+    }
+    result.push(cur);
+    return result;
+  }
+
   /* ── MAIN VERIFY FUNCTION ────────────────────────────────────────────── */
   window.aflixVerifyLicense = async function () {
-    var username = (document.getElementById('gateUserInput').value || '').trim();
-    var code     = (document.getElementById('gateCodeInput').value || '').trim();
+    var username = (document.getElementById('gateUserInput').value  || '').trim();
+    var code     = (document.getElementById('gateCodeInput').value  || '').trim();
     var btn      = document.getElementById('gateBtn');
     var msg      = document.getElementById('gateMsg');
 
+    /* Reset message */
     msg.className = 'gate-msg';
+    msg.style.display = 'none';
 
+    /* Basic validation */
     if (!username) { showMsg('err', 'Please enter your username.'); return; }
-    if (!code)     { showMsg('err', 'Please enter your password.');  return; }
+    if (!code || !/^\d{6}$/.test(code)) {
+      showMsg('err', 'Please enter your 6-digit license code.');
+      return;
+    }
 
     btn.disabled = true;
     btn.innerHTML = '<span class="gate-spin"></span>Checking…';
 
+    /* Fetch the sheet */
+    var licenses = [];
     try {
-      var url = APPS_SCRIPT_URL
-        + '?username=' + encodeURIComponent(username)
-        + '&code='     + encodeURIComponent(code)
-        + '&_='        + Date.now();
-
-      var res = await fetch(url, { cache: 'no-store' });
+      var res = await fetch(SHEET_CSV_URL, { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
-
-      var data = await res.json();
-
-      if (data.status === 'ok') {
-        var displayName = data.name || username;
-        showMsg('ok', 'Welcome, ' + displayName + '!');
-        setTimeout(function () {
-          var gate = document.getElementById('aflixGate');
-          if (gate) {
-            gate.style.transition = 'opacity .4s';
-            gate.style.opacity = '0';
-            setTimeout(function () { gate.remove(); }, 420);
-          }
-        }, 800);
-        return; /* do NOT reset button — gate is going away */
-      } else {
-        showMsg('err', data.message || 'Invalid username or password. Please try again.');
-      }
-
+      var csv = await res.text();
+      licenses = parseCSV(csv);
     } catch (e) {
-      console.error('[AFlix Gate]', e);
-      showMsg('err', 'Could not reach the server. Check your connection and try again.');
+      showMsg('err', 'Could not reach the license server. Check your connection and try again.');
+      resetBtn(); return;
     }
 
-    resetBtn();
+    if (licenses.length === 0) {
+      showMsg('err', 'License list is empty. Contact the administrator.');
+      resetBtn(); return;
+    }
+
+    /* Find matching entry */
+    var match = licenses.find(function (l) {
+      return l.username.toLowerCase() === username.toLowerCase() && l.code === code;
+    });
+
+    if (!match) {
+      showMsg('err', 'Invalid username or code. Please try again.');
+      resetBtn(); return;
+    }
+
+    if (match.status !== 'active') {
+      showMsg('err', 'This license has been revoked. Contact the administrator.');
+      resetBtn(); return;
+    }
+
+    /* ✓ Valid & active */
+    showMsg('ok', 'Welcome, ' + match.username + '!');
+    sessionStorage.setItem(SESSION_KEY, '1');
+    setTimeout(function () {
+      var gate = document.getElementById('aflixGate');
+      if (gate) {
+        gate.style.transition = 'opacity .4s';
+        gate.style.opacity = '0';
+        setTimeout(function () { gate.remove(); }, 420);
+      }
+    }, 800);
   };
 
   function showMsg(type, text) {
     var msg = document.getElementById('gateMsg');
     msg.className = 'gate-msg ' + type;
     msg.textContent = text;
+    msg.style.display = 'block';
   }
 
   function resetBtn() {
