@@ -119,8 +119,8 @@ self.addEventListener('fetch', event => {
   const networkOnly = [
     'api.themoviedb.org',
     'image.tmdb.org',
-    'vidsrc.cc', 'vidsrc.to', 'vidsrc.xyz',
-    'vembed.stream',
+    'vidsrc',
+    'vembed',
     'raw.githubusercontent.com',
     'corsproxy.io',
     'youtube.com',
