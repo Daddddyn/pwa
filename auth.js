@@ -22,7 +22,7 @@
   'use strict';
 
   /* ─── CONFIG ──────────────────────────────────────────────── */
-  const MASTER_SECRET   = 'CHANGE-THIS-TO-A-LONG-RANDOM-SECRET-STRING-KEEP-PRIVATE';
+  const MASTER_SECRET   = 'k9#mXq2!vLpR7nJw4dYs';
   const CONFIG_URL      = './aflix-config.json';
   const SESSION_KEY     = '_aflixAuth';
   const SESSION_EXPIRY  = 12 * 60 * 60 * 1000; // 12 hours in ms
