@@ -214,26 +214,31 @@
     document.addEventListener('DOMContentLoaded', startObserver);
   }
 
-  /* ── 6. SANDBOX ENFORCEMENT helper ─────────────────────────── */
-  // Whenever AFlix creates a player iframe, we tighten its sandbox.
-  // This is called from index.html's setFrame() — see patch below.
+  /* ── 6. IFRAME HARDENING helper ────────────────────────────── */
+  // These embed servers (VidLink, AutoEmbed, Videasy, VidFast, etc.) actively
+  // detect ANY sandbox attribute on the parent iframe and refuse to play if
+  // one is present — regardless of which tokens are included.
+  //
+  // Working sites (nunflix.org, 456movie.com, etc.) use zero sandbox attribute.
+  // Ad blocking is handled entirely by JS layers 1-5 and 7 above:
+  //   • window.open() is no-op'd → all popup ads silently fail
+  //   • click capture blocks outbound _blank/_top links
+  //   • MutationObserver removes injected ad overlays/scripts
+  //   • postMessage firewall blocks redirect messages
+  //   • beforeunload guard prevents page hijack
+  //
+  // Source: VidLink official API docs (no sandbox in their embed example),
+  //         uBlock Origin issue #26880, Techies Tech Guide vidcloud analysis.
   window.aflixHardenIframe = function(iframe) {
     if (!iframe) return;
-    // allow-scripts: needed for the player to work
-    // allow-same-origin: needed so the embed can fetch its own resources
-    // allow-fullscreen: so users can go fullscreen
-    // allow-presentation: needed for some players
-    // NOT included: allow-popups, allow-top-navigation, allow-forms
-    iframe.setAttribute('sandbox',
-      'allow-scripts allow-same-origin allow-fullscreen allow-presentation allow-orientation-lock allow-popups allow-popups-to-escape-sandbox allow-forms'
-    );
-    // Prevent the iframe from navigating our top frame
+    // DO NOT set sandbox attribute — embed servers detect and block it
+    iframe.removeAttribute('sandbox');
+    // Keep referrer policy to limit info leakage to embed servers
     iframe.setAttribute('referrerpolicy', 'no-referrer');
-    // Content-Security help via feature policy
+    // Feature/permissions policy — allow playback features, block harmful ones
     iframe.setAttribute('allow',
       'autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer'
     );
-    // Remove allow-popups and allow-top-navigation from any existing allow attr
   };
 
   /* ── 7. postMessage firewall ────────────────────────────────── */
