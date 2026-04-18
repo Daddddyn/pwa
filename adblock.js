@@ -307,7 +307,12 @@
       'allow-top-navigation-by-user-activation'
     ].join(' '));
 
-    iframe.setAttribute('referrerpolicy', 'no-referrer');
+    // 'no-referrer' caused servers like VidFast, VidSrc, and Videasy to block
+    // playback because they check document.referrer inside the frame to verify
+    // the embed comes from a real site. 'strict-origin-when-cross-origin' sends
+    // only our origin (no path/query) — enough to pass their check while not
+    // leaking the full URL of the user's session.
+    iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
 
     iframe.setAttribute('allow', [
       'autoplay',
