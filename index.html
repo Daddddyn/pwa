@@ -1421,11 +1421,12 @@ async function loadRemoteConfig() {
       SRVS = {};
       cfg.servers.forEach(s => {
         SRVS[s.id] = {
-          n: s.name,
+          n:      s.name,
           badge:  s.badge  || '',
           badge2: s.badge2 || '',
-          movie: id => s.movie_url.replace('{id}', id),
-          tv:   (id,se,ep) => s.tv_url.replace('{id}',id).replace('{s}',se).replace('{e}',ep)
+          imdb:   !!s.imdb,   // if true, server needs IMDb ID instead of TMDB ID
+          movie:  id => s.movie_url.replace('{id}', id),
+          tv:    (id,se,ep) => s.tv_url.replace('{id}',id).replace('{s}',se).replace('{e}',ep)
         };
       });
     } else {
@@ -1433,32 +1434,32 @@ async function loadRemoteConfig() {
       // All use TMDB IDs. URL formats verified from official docs + dev communities.
       SRVS = {
         'videasy': {
-          n:'Videasy', badge:'4K', badge2:'No Ads',
+          n:'Videasy', badge:'4K', badge2:'No Ads', imdb:false,
           movie: id => `https://player.videasy.net/movie/${id}?autoplay=true&color=e8192c`,
           tv:   (id,s,e) => `https://player.videasy.net/tv/${id}/${s}/${e}?autoplay=true&color=e8192c&nextEpisode=true`
         },
         'autoembed': {
-          n:'AutoEmbed', badge:'1080p', badge2:'No Ads',
+          n:'AutoEmbed', badge:'1080p', badge2:'No Ads', imdb:false,
           movie: id => `https://player.autoembed.cc/embed/movie/${id}?autoplay=true`,
           tv:   (id,s,e) => `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}?autoplay=true`
         },
         'vidfast': {
-          n:'VidFast', badge:'4K', badge2:'',
+          n:'VidFast', badge:'4K', badge2:'', imdb:false,
           movie: id => `https://vidfast.pro/movie/${id}?autoPlay=true&theme=e8192c`,
           tv:   (id,s,e) => `https://vidfast.pro/tv/${id}/${s}/${e}?autoPlay=true&theme=e8192c`
         },
         'vidlink': {
-          n:'VidLink', badge:'1080p', badge2:'No Ads',
+          n:'VidLink', badge:'1080p', badge2:'No Ads', imdb:false,
           movie: id => `https://vidlink.pro/movie/${id}?autoplay=true&primaryColor=e8192c&iconColor=e8192c`,
           tv:   (id,s,e) => `https://vidlink.pro/tv/${id}/${s}/${e}?autoplay=true&primaryColor=e8192c&iconColor=e8192c`
         },
         'embedsu': {
-          n:'Embed.su', badge:'1080p', badge2:'',
+          n:'Embed.su', badge:'1080p', badge2:'', imdb:false,
           movie: id => `https://embed.su/embed/movie/${id}`,
           tv:   (id,s,e) => `https://embed.su/embed/tv/${id}/${s}/${e}`
         },
         'vidbinge': {
-          n:'MoviesAPI', badge:'1080p', badge2:'',
+          n:'MoviesAPI', badge:'1080p', badge2:'', imdb:false,
           movie: id => `https://moviesapi.club/movie/${id}`,
           tv:   (id,s,e) => `https://moviesapi.club/tv/${id}-${s}-${e}`
         }
@@ -1998,18 +1999,21 @@ async function playContent(id, mediaType, title){
   if(!details){ toast('Failed to load details','err'); document.getElementById('pLoading').classList.remove('show'); return; }
 
   const srv=SRVS[S.srv];
-  S.content={id,type:mediaType,season:1,episode:1,title};
+  const imdbId=details.external_ids?.imdb_id||null;
+  S.content={id,imdbId,type:mediaType,season:1,episode:1,title};
 
   cwAdd({id,type:mediaType,title,backdrop:details.backdrop_path||null,year:(details.release_date||details.first_air_date||'').split('-')[0],season:1,episode:1,progress:Math.floor(Math.random()*30+5)});
 
-  if(mediaType==='tv'&&details.seasons){
+  const useId=srv.imdb?imdbId:id;
+  if(srv.imdb&&!imdbId){ showUnavail(); }
+  else if(mediaType==='tv'&&details.seasons){
     const seasons=details.seasons.filter(s=>s.season_number>0);
     document.getElementById('tvCtrl').style.display='block';
     renderSeasons(seasons,id,title);
     await loadEpisodes(id,1);
-    setFrame(srv.tv(id,1,1));
+    setFrame(srv.tv(useId,1,1));
   } else {
-    setFrame(srv.movie(id));
+    setFrame(srv.movie(useId));
   }
 
   const r=details.vote_average?.toFixed(1)||'—';
@@ -2064,7 +2068,9 @@ function selectSeason(tvId,season){
   document.querySelectorAll('.stab').forEach(t=>t.classList.toggle('active',parseInt(t.dataset.s)===season));
   loadEpisodes(tvId,season);
   const srv=SRVS[S.srv];
-  setFrame(srv.tv(S.content.id,season,1));
+  const useId=srv.imdb?S.content.imdbId:S.content.id;
+  if(srv.imdb&&!S.content.imdbId){ showUnavail(); return; }
+  setFrame(srv.tv(useId,season,1));
 }
 function selectEpisode(ep){
   if(!S.content) return;
@@ -2073,14 +2079,18 @@ function selectEpisode(ep){
   const active=document.querySelector('.ep-card.active');
   if(active) active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
   const srv=SRVS[S.srv];
-  setFrame(srv.tv(S.content.id,S.content.season,ep));
+  const useId=srv.imdb?S.content.imdbId:S.content.id;
+  if(srv.imdb&&!S.content.imdbId){ showUnavail(); return; }
+  setFrame(srv.tv(useId,S.content.season,ep));
 }
 function switchServer(key){
   S.srv=key;
   document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv===key));
   if(!S.content) return;
   const srv=SRVS[key];
-  setFrame(S.content.type==='tv'?srv.tv(S.content.id,S.content.season,S.content.episode):srv.movie(S.content.id));
+  const useId=srv.imdb?S.content.imdbId:S.content.id;
+  if(srv.imdb&&!S.content.imdbId){ showUnavail(); return; }
+  setFrame(S.content.type==='tv'?srv.tv(useId,S.content.season,S.content.episode):srv.movie(useId));
 }
 function closePlayer(){
   document.getElementById('playerModal').classList.remove('open');
