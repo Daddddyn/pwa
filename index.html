@@ -23,19 +23,6 @@
       navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW registration failed:', err));
     });
   }
-
-  /* ── BLUR-REFOCUS POPUP KILLER ──────────────────────────────────
-     When a popup/new tab fires from inside an iframe, the browser
-     shifts focus to that new window, causing our page to emit a
-     'blur' event. We immediately re-grab focus, which keeps the
-     popup buried behind AFlix. Best-effort net on top of adblock.js.
-  ─────────────────────────────────────────────────────────────── */
-  window.addEventListener('blur', function() {
-    var modal = document.getElementById('playerModal');
-    if (modal && modal.classList.contains('open')) {
-      setTimeout(function() { window.focus(); }, 0);
-    }
-  }, true);
   // ── iOS INPUT ZOOM RESET ──
   // After any input loses focus, snap the viewport scale back to 1
   // in case the browser still shifted it (belt-and-suspenders fix).
@@ -352,27 +339,29 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
 .autonext-cancel:hover{color:var(--text);border-color:var(--b1)}
 
 /* ── SERVER PANEL ── */
-.server-panel{border-bottom:1px solid var(--b1);background:var(--bg3)}
-.server-panel-hd{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.4rem .4rem}
-.server-lbl{font-size:.65rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;display:flex;align-items:center;gap:.45rem}
-.server-lbl::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pdot 2s ease infinite}
-.srv-note{font-size:.67rem;color:var(--text3);font-weight:400;letter-spacing:0}
-.srv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:.4rem;padding:.4rem 1.4rem .85rem}
-.srv-card{position:relative;display:flex;flex-direction:column;gap:.22rem;padding:.52rem .7rem;background:var(--bg4);border:1px solid var(--b1);border-radius:9px;cursor:pointer;transition:all .18s cubic-bezier(.4,0,.2,1);overflow:hidden;text-align:left}
-.srv-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(232,25,44,.08) 0%,transparent 60%);opacity:0;transition:opacity .18s}
-.srv-card:hover{border-color:rgba(255,255,255,.18);transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.35)}
-.srv-card:hover::before{opacity:1}
-.srv-card.active{border-color:var(--red);background:rgba(232,25,44,.07);box-shadow:0 0 0 1px rgba(232,25,44,.25),0 6px 18px rgba(232,25,44,.12)}
-.srv-card.active::before{opacity:1}
-.srv-card-name{font-size:.82rem;font-weight:700;color:var(--text2);letter-spacing:-.01em;transition:color .18s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.srv-card:hover .srv-card-name,.srv-card.active .srv-card-name{color:var(--text)}
-.srv-card-meta{display:flex;align-items:center;gap:.3rem}
-.srv-badge{font-size:.6rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:.1rem .32rem;border-radius:4px;line-height:1.4}
-.srv-badge.q4k{background:rgba(245,197,24,.13);color:var(--gold);border:1px solid rgba(245,197,24,.25)}
-.srv-badge.q1080{background:rgba(61,220,132,.1);color:var(--green);border:1px solid rgba(61,220,132,.2)}
-.srv-badge.noads{background:rgba(100,180,255,.1);color:#6ab4ff;border:1px solid rgba(100,180,255,.2)}
-.srv-active-bar{position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--red);border-radius:0;opacity:0;transform:scaleX(0);transition:opacity .18s,transform .22s cubic-bezier(.4,0,.2,1)}
-.srv-card.active .srv-active-bar{opacity:1;transform:scaleX(1)}
+.stream-panel{border-bottom:1px solid var(--b1);background:var(--bg3)}
+.stream-panel-hd{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.4rem .4rem}
+.stream-lbl{font-size:.65rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;display:flex;align-items:center;gap:.45rem}
+.stream-lbl::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pdot 2s ease infinite}
+.stream-note{font-size:.67rem;color:var(--text3);font-weight:400;letter-spacing:0}
+.stream-list{display:flex;flex-direction:column;gap:.35rem;padding:.4rem 1.4rem .85rem;max-height:220px;overflow-y:auto}
+.stream-item{position:relative;display:flex;align-items:center;gap:.7rem;padding:.55rem .8rem;background:var(--bg4);border:1px solid var(--b1);border-radius:9px;cursor:pointer;transition:all .18s cubic-bezier(.4,0,.2,1);overflow:hidden;text-align:left}
+.stream-item:hover{border-color:rgba(255,255,255,.18);box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.stream-item.active{border-color:var(--red);background:rgba(232,25,44,.07);box-shadow:0 0 0 1px rgba(232,25,44,.25)}
+.stream-item-q{flex-shrink:0;font-size:.7rem;font-weight:800;padding:.18rem .42rem;border-radius:5px;background:rgba(255,255,255,.08);color:var(--text2);letter-spacing:.04em;min-width:36px;text-align:center}
+.stream-item-q.q4k{background:rgba(80,200,120,.15);color:#50c878}
+.stream-item-q.q1080{background:rgba(100,160,255,.13);color:#7eb8ff}
+.stream-item-q.q720{background:rgba(255,200,60,.11);color:#ffc83c}
+.stream-item-info{flex:1;min-width:0}
+.stream-item-name{font-size:.78rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stream-item-meta{font-size:.67rem;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:.1rem}
+.stream-no-rd{padding:.7rem 1.4rem .9rem;font-size:.8rem;color:var(--text3);line-height:1.5}
+.stream-no-rd a{color:var(--red);text-decoration:underline;cursor:pointer}
+.rd-key-input{display:flex;gap:.5rem;margin-top:.5rem}
+.rd-key-input input{flex:1;background:var(--bg4);border:1px solid var(--b1);border-radius:7px;padding:.42rem .7rem;font-size:.8rem;color:var(--text);outline:none}
+.rd-key-input input:focus{border-color:var(--red)}
+.rd-key-input button{background:var(--red);border:none;border-radius:7px;padding:.42rem .9rem;font-size:.78rem;font-weight:700;color:#fff;cursor:pointer}
+
 
 /* tv controls */
 .tv-ctrl{border-bottom:1px solid var(--b1);background:var(--bg3)}
@@ -1307,13 +1296,13 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
       <button class="autonext-cancel" onclick="cancelAutoNext()">Cancel</button>
     </div>
 
-    <div class="server-panel">
-      <div class="server-panel-hd">
-        <span class="server-lbl">Sources</span>
-        <span class="srv-note">Switch if one isn't loading</span>
+    <div class="stream-panel" id="streamPanel">
+      <div class="stream-panel-hd">
+        <span class="stream-lbl">Streams</span>
+        <span class="stream-note" id="streamNote">Click a stream to play</span>
       </div>
-      <div class="srv-grid" id="srvPills">
-        <!-- rendered by renderSrvPills() -->
+      <div class="stream-list" id="streamList">
+        <!-- rendered by renderStreamList() -->
       </div>
     </div>
 
@@ -1323,18 +1312,7 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
     </div>
 
     <div class="stage" id="playerStage">
-      <!-- NO sandbox attribute. Every working streaming embed site (vidlink.pro,
-           vidsrc, videasy, autoembed, rivestream, etc.) uses exactly this pattern:
-           just allow + allowfullscreen, no sandbox. Any sandbox token — even a
-           permissive one — is detected by the player's JS and causes the
-           "Please disable sandbox" block screen. Ad blocking is done entirely by
-           the JS layers in adblock.js (window.open override, MutationObserver,
-           click capture, postMessage firewall) and the Service Worker. -->
-      <iframe id="playerFrame" class="p-iframe"
-        allow="autoplay; fullscreen *; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write"
-        referrerpolicy="strict-origin-when-cross-origin"
-        allowfullscreen></iframe>
-      <video id="directVideo" class="p-iframe" controls playsinline style="display:none;background:#000;object-fit:contain"></video>
+      <video id="playerVideo" class="p-iframe" controls playsinline></video>
       <div class="p-loading" id="pLoading"><div class="spin"></div></div>
     </div>
 
@@ -1351,71 +1329,141 @@ const CONFIG_URL = 'https://raw.githubusercontent.com/themillsteam11-code/tmd/re
 let AK   = '';
 let TB   = 'https://api.themoviedb.org/3';
 const IMG  = 'https://image.tmdb.org/t/p';
-let SRVS = {};
 let IPTV_PLAYLISTS = [];
 
+// ── Torrentio ─────────────────────────────────────────────────
+const TORRENTIO_BASE = 'https://torrentio.strem.fun';
+
+function torrentioUrl(type, imdbId, season, episode) {
+  // Always fetch without a debrid key — returns free direct HTTP streams
+  const cfg = 'sort=qualitysize';
+  if (type === 'movie') return `${TORRENTIO_BASE}/${cfg}/stream/movie/${imdbId}.json`;
+  return `${TORRENTIO_BASE}/${cfg}/stream/series/${imdbId}:${season}:${episode}.json`;
+}
+
+// ── Torrentio stream fetch ────────────────────────────────────
+async function fetchStreams(imdbId, type, season = 1, episode = 1) {
+  const list = document.getElementById('streamList');
+  const note = document.getElementById('streamNote');
+  if (!imdbId) {
+    if (list) list.innerHTML = '<div style="padding:.5rem 0;font-size:.78rem;color:var(--text3)">No IMDB ID found for this title.</div>';
+    return;
+  }
+  if (note) note.textContent = 'Fetching streams…';
+  if (list) list.innerHTML = '<div style="padding:.6rem 0;display:flex;align-items:center;gap:.5rem"><div class="spin"></div><span style="font-size:.78rem;color:var(--text3)">Searching…</span></div>';
+
+  try {
+    const url = torrentioUrl(type, imdbId, season, episode);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Torrentio ${res.status}`);
+    const data = await res.json();
+    renderStreamList(data.streams || []);
+  } catch(e) {
+    console.error('[AFlix] Torrentio fetch failed:', e);
+    if (list) list.innerHTML = '<div style="padding:.5rem 0;font-size:.78rem;color:var(--text3)">Failed to fetch streams. Try again in a moment.</div>';
+    if (note) note.textContent = 'Error fetching streams';
+  }
+  document.getElementById('pLoading')?.classList.remove('show');
+}
+
+function parseQuality(title = '') {
+  const t = title.toUpperCase();
+  if (t.includes('2160') || t.includes('4K') || t.includes('UHD')) return '4K';
+  if (t.includes('1080')) return '1080p';
+  if (t.includes('720'))  return '720p';
+  if (t.includes('480'))  return '480p';
+  return 'SD';
+}
+function parseSize(title = '') {
+  const m = title.match(/💾\s*([\d.]+\s*(?:GB|MB))/i);
+  return m ? m[1].trim() : '';
+}
+function parseSource(title = '') {
+  const m = title.match(/⚙️\s*(\S+)/);
+  return m ? m[1] : '';
+}
+
+function renderStreamList(streams) {
+  const list = document.getElementById('streamList');
+  const note = document.getElementById('streamNote');
+  if (!list) return;
+  if (!streams.length) {
+    list.innerHTML = '<div style="padding:.5rem 0;font-size:.78rem;color:var(--text3)">No streams found. Try a different title.</div>';
+    if (note) note.textContent = 'No streams found';
+    return;
+  }
+  if (note) note.textContent = `${streams.length} streams available`;
+  list.innerHTML = streams.map((s, i) => {
+    const raw = (s.title || s.name || '');
+    const q = parseQuality(raw);
+    const qClass = q === '4K' ? 'q4k' : q === '1080p' ? 'q1080' : q === '720p' ? 'q720' : '';
+    const size = parseSize(raw);
+    const src  = parseSource(raw);
+    const lines = raw.split('\n');
+    const fname = lines[0] || 'Unknown file';
+    const meta  = [size, src].filter(Boolean).join(' · ');
+    return `<button class="stream-item" data-idx="${i}" onclick="playStream(${i})">
+      <span class="stream-item-q ${qClass}">${q}</span>
+      <span class="stream-item-info">
+        <span class="stream-item-name">${esc(fname)}</span>
+        ${meta ? `<span class="stream-item-meta">${esc(meta)}</span>` : ''}
+      </span>
+    </button>`;
+  }).join('');
+  // Store streams on window for playStream() to access
+  window._aflixStreams = streams;
+}
+
+// ── HLS / direct video playback ──────────────────────────────
+let _hlsInst = null;
+function playStream(idx) {
+  const streams = window._aflixStreams || [];
+  const stream = streams[idx];
+  if (!stream?.url) { toast('No playable URL for this stream', 'err'); return; }
+
+  // Mark active
+  document.querySelectorAll('.stream-item').forEach((el, i) => el.classList.toggle('active', i === idx));
+
+  const video = document.getElementById('playerVideo');
+  const ov    = document.getElementById('pLoading');
+  if (ov) ov.classList.add('show');
+
+  // Destroy any existing HLS instance
+  if (_hlsInst) { try { _hlsInst.destroy(); } catch(e){} _hlsInst = null; }
+  video.src = '';
+
+  const url = stream.url;
+
+  if (url.includes('.m3u8') && typeof Hls !== 'undefined' && Hls.isSupported()) {
+    _hlsInst = new Hls({ startLevel: -1 });
+    _hlsInst.loadSource(url);
+    _hlsInst.attachMedia(video);
+    _hlsInst.on(Hls.Events.MANIFEST_PARSED, () => {
+      video.play().catch(()=>{});
+      if (ov) ov.classList.remove('show');
+    });
+    _hlsInst.on(Hls.Events.ERROR, (e, d) => {
+      if (d.fatal) { toast('Playback error — try another stream', 'err'); if(ov) ov.classList.remove('show'); }
+    });
+  } else {
+    // Direct MP4 or native HLS (Safari)
+    video.src = url;
+    video.load();
+    video.play().catch(()=>{});
+    video.oncanplay = () => { if(ov) ov.classList.remove('show'); };
+    video.onerror   = () => { toast('Playback error — try another stream','err'); if(ov) ov.classList.remove('show'); };
+  }
+}
+
+// ── Remote config (TMDB key + IPTV only) ─────────────────────
 async function loadRemoteConfig() {
   try {
     const r = await fetch(CONFIG_URL + '?_=' + Date.now());
     if (!r.ok) throw new Error('Config fetch failed: ' + r.status);
     const cfg = await r.json();
-    AK   = cfg.tmdb_api_key || '';
-    TB   = cfg.tmdb_base    || 'https://api.themoviedb.org/3';
-    if (cfg.servers && cfg.servers.length) {
-      SRVS = {};
-      cfg.servers.forEach(s => {
-        const isVidlink = s.movie_url === 'VIDLINK_DIRECT';
-        SRVS[s.id] = {
-          n:       s.name,
-          badge:   s.badge  || '',
-          badge2:  s.badge2 || '',
-          imdb:    !!s.imdb,
-          vidlink: isVidlink,
-          movie:  id => isVidlink ? null : s.movie_url.replace('{id}', id),
-          tv:    (id,se,ep) => isVidlink ? null : s.tv_url.replace('{id}',id).replace('{s}',se).replace('{e}',ep)
-        };
-      });
-    } else {
-      // ── DEFAULT SERVERS — ordered cleanest-first (lowest popup ads) ──
-      // pstream + vidora = ad-free by design, no popup scripts at all.
-      // autoembed + vidsrc.icu = low-ad, clean embeds in practice.
-      // embedsu + vidlink = fallback, occasional ads but manageable.
-      // vidsrc.me, 2embed, videasy, vidfast REMOVED — popup offenders.
-      SRVS = {
-        'pstream': {
-          n:'PStream', badge:'1080p', badge2:'No Ads', imdb:false,
-          movie: id => `https://iframe.pstream.org/media/tmdb-movie-${id}`,
-          tv:   (id,s,e) => `https://iframe.pstream.org/media/tmdb-tv-${id}/${s}/${e}`
-        },
-        'vidora': {
-          n:'Vidora', badge:'1080p', badge2:'No Ads', imdb:false,
-          movie: id => `https://vidora.su/movie/${id}`,
-          tv:   (id,s,e) => `https://vidora.su/tv/${id}/${s}/${e}`
-        },
-        'autoembed': {
-          n:'AutoEmbed', badge:'1080p', badge2:'Clean', imdb:false,
-          movie: id => `https://player.autoembed.cc/embed/movie/${id}?autoplay=true`,
-          tv:   (id,s,e) => `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}?autoplay=true`
-        },
-        'vidsrc_icu': {
-          n:'VidSrc', badge:'1080p', badge2:'Clean', imdb:false,
-          movie: id => `https://vidsrc.icu/embed/movie/${id}`,
-          tv:   (id,s,e) => `https://vidsrc.icu/embed/tv/${id}/${s}/${e}`
-        },
-        'embedsu': {
-          n:'Embed.su', badge:'1080p', badge2:'', imdb:false,
-          movie: id => `https://embed.su/embed/movie/${id}`,
-          tv:   (id,s,e) => `https://embed.su/embed/tv/${id}/${s}/${e}`
-        },
-        'vidlink': {
-          n:'VidLink', badge:'1080p', badge2:'', imdb:false,
-          movie: id => `https://vidlink.pro/movie/${id}?autoplay=true&primaryColor=e8192c&iconColor=e8192c`,
-          tv:   (id,s,e) => `https://vidlink.pro/tv/${id}/${s}/${e}?autoplay=true&primaryColor=e8192c&iconColor=e8192c`
-        }
-      };
-    }
+    AK  = cfg.tmdb_api_key || '';
+    TB  = cfg.tmdb_base    || 'https://api.themoviedb.org/3';
     IPTV_PLAYLISTS = cfg.iptv_playlists || [];
-    renderSrvPills();
     return true;
   } catch(e) {
     console.error('[AFlix] Remote config load failed:', e);
@@ -1424,28 +1472,11 @@ async function loadRemoteConfig() {
   }
 }
 
-function renderSrvPills() {
-  const pills = document.getElementById('srvPills');
-  if (!pills || !Object.keys(SRVS).length) return;
-  const first = Object.keys(SRVS)[0];
-  if (!SRVS[S.srv]) S.srv = first;
-  pills.innerHTML = Object.entries(SRVS).map(([id, srv], i) => {
-    const isActive = (i === 0 && S.srv === first) || S.srv === id;
-    const b1 = srv.badge  ? `<span class="srv-badge ${srv.badge==='4K'?'q4k':'q1080'}">${srv.badge}</span>` : '';
-    const b2 = srv.badge2 ? `<span class="srv-badge noads">${srv.badge2}</span>` : '';
-    return `<button class="srv-card${isActive?' active':''}" data-srv="${id}" onclick="switchServer('${id}')">
-      <span class="srv-card-name">${srv.n}</span>
-      <span class="srv-card-meta">${b1}${b2}</span>
-      <span class="srv-active-bar"></span>
-    </button>`;
-  }).join('');
-}
-
 /* ══════════════════════════════════════════
    STATE
 ══════════════════════════════════════════ */
 const S = {
-  filter:'all', genre:null, srv:'videasy',
+  filter:'all', genre:null,
   content:null,
   epList:[],
   heroItems:[], heroIdx:0, heroTimer:null,
@@ -1597,7 +1628,7 @@ function toast(msg,type=''){
   let mx=0,my=0,rx=0,ry=0;
   document.addEventListener('mousemove',e=>{ mx=e.clientX; my=e.clientY; dot.style.left=mx+'px'; dot.style.top=my+'px'; });
   (function anim(){ rx+=(mx-rx)*.11; ry+=(my-ry)*.11; ring.style.left=rx+'px'; ring.style.top=ry+'px'; requestAnimationFrame(anim); })();
-  const hov='button,a,[onclick],.card,.nav-link,.gchip,.srv-card,.stab,.ep-card,.sitem,.wl-item,.cw-card,.t10-card';
+  const hov='button,a,[onclick],.card,.nav-link,.gchip,.stream-item,.stab,.ep-card,.sitem,.wl-item,.cw-card,.t10-card';
   document.addEventListener('mouseover',e=>{ if(e.target.closest(hov)) document.body.classList.add('ch'); });
   document.addEventListener('mouseout', e=>{ if(e.target.closest(hov)) document.body.classList.remove('ch'); });
   document.addEventListener('mouseover',e=>{ if(e.target.closest('.stage')) document.body.classList.add('ci'); });
@@ -1930,51 +1961,33 @@ function closeDetail(){ document.getElementById('detailModal').classList.remove(
 ══════════════════════════════════════════ */
 async function playContent(id, mediaType, title){
   const modal=document.getElementById('playerModal');
-  const iframe=document.getElementById('playerFrame');
+  const video=document.getElementById('playerVideo');
   cancelAutoNext();
-  iframe.src='about:blank';
+  if(_hlsInst){ try{_hlsInst.destroy();}catch(e){} _hlsInst=null; }
+  if(video){ video.pause(); video.src=''; }
+  window._aflixStreams=[];
+  document.getElementById('streamList').innerHTML='';
   document.getElementById('playerT').textContent=title;
   document.getElementById('playerSub').textContent=mediaType==='movie'?'Movie':'TV Series';
   document.getElementById('tvCtrl').style.display='none';
   document.getElementById('pInfo').innerHTML='';
   document.getElementById('pLoading').classList.add('show');
-  document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv===S.srv));
-
+  updateStreamNote();
   modal.classList.add('open');
   document.body.classList.add('no-scroll');
   modal.scrollTop=0;
-
   const details=await api(`/${mediaType}/${id}`,{append_to_response:'external_ids'});
   if(!details){ toast('Failed to load details','err'); document.getElementById('pLoading').classList.remove('show'); return; }
-
-  const srv=SRVS[S.srv];
   const imdbId=details.external_ids?.imdb_id||null;
   S.content={id,imdbId,type:mediaType,season:1,episode:1,title};
-
   cwAdd({id,type:mediaType,title,backdrop:details.backdrop_path||null,year:(details.release_date||details.first_air_date||'').split('-')[0],season:1,episode:1,progress:Math.floor(Math.random()*30+5)});
-
-  const useId=srv.imdb?imdbId:id;
-  if(srv.vidlink){
-    if(mediaType==='tv'&&details.seasons){
-      const seasons=details.seasons.filter(s=>s.season_number>0);
-      document.getElementById('tvCtrl').style.display='block';
-      renderSeasons(seasons,id,title);
-      await loadEpisodes(id,1);
-      playDirect(id,'tv',1,1);
-    } else {
-      playDirect(id,'movie',1,1);
-    }
-  } else if(srv.imdb&&!imdbId){ showUnavail(); }
-  else if(mediaType==='tv'&&details.seasons){
+  if(mediaType==='tv'&&details.seasons){
     const seasons=details.seasons.filter(s=>s.season_number>0);
     document.getElementById('tvCtrl').style.display='block';
     renderSeasons(seasons,id,title);
     await loadEpisodes(id,1);
-    setFrame(srv.tv(useId,1,1));
-  } else {
-    setFrame(srv.movie(useId));
   }
-
+  await fetchStreams(imdbId, mediaType, 1, 1);
   const r=details.vote_average?.toFixed(1)||'—';
   const runtime=details.runtime||details.episode_run_time?.[0]||null;
   const genres=details.genres?.map(g=>g.name).join(', ')||'—';
@@ -1987,92 +2000,6 @@ async function playContent(id, mediaType, title){
       <div><div class="p-stat-lbl">Year</div><div class="p-stat-val">${yr}</div></div>
       <div><div class="p-stat-lbl">Genre</div><div class="p-stat-val">${genres}</div></div>
     </div>`;
-}
-
-/* ── VidLink direct HLS player ──────────────────────────────── */
-let _vlHls = null;
-
-async function playDirect(tmdbId, mediaType, season, episode) {
-  const ov     = document.getElementById('pLoading');
-  const iframe = document.getElementById('playerFrame');
-  const video  = document.getElementById('directVideo');
-  ov.classList.add('show');
-  iframe.src = 'about:blank';
-  iframe.style.display = 'none';
-  video.style.display = 'block';
-  if (_vlHls) { try { _vlHls.destroy(); } catch(e){} _vlHls = null; }
-  video.pause(); video.removeAttribute('src'); video.load();
-  while (video.firstChild) video.removeChild(video.firstChild);
-  try {
-    const isMovie = mediaType !== 'tv';
-    const vlTarget = isMovie
-      ? `https://vidlink.pro/api/vidlink/watch?isMovie=true&id=${tmdbId}`
-      : `https://vidlink.pro/api/vidlink/watch?isMovie=false&id=${tmdbId}&season=${season}&episode=${episode}`;
-
-    // VidLink's API returns 403 to direct cross-origin requests.
-    // Route through corsproxy.io which forwards the request with the correct origin.
-    // If you have your own aflix-proxy on Vercel, replace this with your proxy URL.
-    const apiUrl = `https://corsproxy.io/?${encodeURIComponent(vlTarget)}`;
-
-    const r = await fetch(apiUrl, {
-      headers: {
-        'Referer': 'https://vidlink.pro/',
-        'Origin':  'https://vidlink.pro'
-      }
-    });
-    if (!r.ok) throw new Error('VidLink API ' + r.status);
-    const data = await r.json();
-    const m3u8 = data?.stream?.playlist;
-    if (!m3u8) { showDirect404(); return; }
-    (data.stream.captions || []).forEach(cap => {
-      if (!cap.url) return;
-      const track = document.createElement('track');
-      track.kind = 'subtitles'; track.label = cap.language || 'Subtitle';
-      track.src = cap.url; track.srclang = (cap.language||'en').slice(0,2).toLowerCase();
-      video.appendChild(track);
-    });
-    if (Hls.isSupported()) {
-      const hls = new Hls({ enableWorker:true, maxBufferLength:60 });
-      _vlHls = hls;
-      hls.loadSource(m3u8); hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => { ov.classList.remove('show'); video.play().catch(()=>{}); });
-      hls.on(Hls.Events.ERROR, (_,d) => { if (d.fatal) showDirect404(); });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = m3u8;
-      video.addEventListener('loadedmetadata', () => { ov.classList.remove('show'); video.play().catch(()=>{}); }, { once:true });
-    } else { showDirect404(); return; }
-  } catch(err) { console.error('[AFlix VidLink]', err); showDirect404(); }
-  setTimeout(() => ov.classList.remove('show'), 15000);
-}
-
-function showDirect404() {
-  document.getElementById('pLoading').classList.remove('show');
-  const video = document.getElementById('directVideo');
-  const iframe = document.getElementById('playerFrame');
-  video.style.display = 'none'; iframe.style.display = 'block';
-  iframe.srcdoc = '<style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#000;color:#fff;font-family:sans-serif;text-align:center;padding:1rem}</style><div><h2 style="font-size:1rem;margin-bottom:.5rem">No direct stream found</h2><p style="color:#666;font-size:.82rem">VidLink could not resolve a direct HLS stream for this title.<br>Try switching to a different source above,<br>or the VidLink embed server.</p></div>';
-}
-
-function _teardownDirect() {
-  if (_vlHls) { try { _vlHls.destroy(); } catch(e){} _vlHls = null; }
-  const video = document.getElementById('directVideo');
-  const iframe = document.getElementById('playerFrame');
-  if (video)  { video.pause(); video.removeAttribute('src'); video.load(); video.style.display='none'; while(video.firstChild) video.removeChild(video.firstChild); }
-  if (iframe) { iframe.style.display='block'; }
-}
-
-function setFrame(src){
-  _teardownDirect();
-  const iframe=document.getElementById('playerFrame'), ov=document.getElementById('pLoading');
-  ov.classList.add('show');
-  if(typeof aflixHardenIframe==='function') aflixHardenIframe(iframe);
-  iframe.src=src;
-  iframe.onload=()=>ov.classList.remove('show');
-  setTimeout(()=>ov.classList.remove('show'),10000);
-}
-function showUnavail(){
-  document.getElementById('playerFrame').srcdoc=`<style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#000;color:#fff;font-family:'DM Sans',sans-serif;text-align:center}</style><div><h2 style="font-size:1rem;margin-bottom:.5rem">Unavailable on this server</h2><p style="color:#666;font-size:.82rem">Try switching to a different source above</p></div>`;
-  document.getElementById('pLoading').classList.remove('show');
 }
 function renderSeasons(seasons,tvId,title){
   document.getElementById('seasonsRow').innerHTML=seasons.map(s=>`
@@ -2088,7 +2015,7 @@ async function loadEpisodes(tvId,season){
   S.epList=data.episodes.map(ep=>({number:ep.episode_number, name:ep.name||`Episode ${ep.episode_number}`, still:ep.still_path||null}));
   grid.innerHTML=S.epList.map(ep=>`
     <div class="ep-card${ep.number===1?' active':''}" data-ep="${ep.number}" onclick="selectEpisode(${ep.number})">
-      ${ep.still?`<img src="${IMG}/w300${ep.still}" class="ep-thumb" loading="lazy" alt="">`:`<div class="ep-thumb skel"></div>`}
+      ${ep.still?`<img src="${IMG}/w300${ep.still}" class="ep-thumb" loading="lazy" alt="">`:'<div class="ep-thumb skel"></div>'}
       <div class="ep-info">
         <div class="ep-num">EP ${ep.number}</div>
         <div class="ep-name">${esc(ep.name)}</div>
@@ -2099,11 +2026,7 @@ function selectSeason(tvId,season){
   S.content.season=season; S.content.episode=1;
   document.querySelectorAll('.stab').forEach(t=>t.classList.toggle('active',parseInt(t.dataset.s)===season));
   loadEpisodes(tvId,season);
-  const srv=SRVS[S.srv];
-  if(srv.vidlink){ playDirect(S.content.id,'tv',season,1); return; }
-  const useId=srv.imdb?S.content.imdbId:S.content.id;
-  if(srv.imdb&&!S.content.imdbId){ showUnavail(); return; }
-  setFrame(srv.tv(useId,season,1));
+  fetchStreams(S.content.imdbId,'tv',season,1);
 }
 function selectEpisode(ep){
   if(!S.content) return;
@@ -2111,34 +2034,16 @@ function selectEpisode(ep){
   document.querySelectorAll('.ep-card').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.ep)===ep));
   const active=document.querySelector('.ep-card.active');
   if(active) active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
-  const srv=SRVS[S.srv];
-  if(srv.vidlink){ playDirect(S.content.id,'tv',S.content.season,ep); return; }
-  const useId=srv.imdb?S.content.imdbId:S.content.id;
-  if(srv.imdb&&!S.content.imdbId){ showUnavail(); return; }
-  setFrame(srv.tv(useId,S.content.season,ep));
-}
-function switchServer(key){
-  S.srv=key;
-  document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv===key));
-  if(!S.content) return;
-  const srv=SRVS[key];
-  if(srv.vidlink){
-    playDirect(S.content.id,S.content.type,S.content.season,S.content.episode);
-    return;
-  }
-  _teardownDirect();
-  const useId=srv.imdb?S.content.imdbId:S.content.id;
-  if(srv.imdb&&!S.content.imdbId){ showUnavail(); return; }
-  setFrame(S.content.type==='tv'?srv.tv(useId,S.content.season,S.content.episode):srv.movie(useId));
+  fetchStreams(S.content.imdbId,'tv',S.content.season,ep);
 }
 function closePlayer(){
-  _teardownDirect();
   document.getElementById('playerModal').classList.remove('open');
-  document.getElementById('playerFrame').src='about:blank';
+  const video=document.getElementById('playerVideo');
+  if(_hlsInst){ try{_hlsInst.destroy();}catch(e){} _hlsInst=null; }
+  if(video){ video.pause(); video.src=''; }
   document.body.classList.remove('no-scroll','ci');
   cancelAutoNext();
-  S.srv=Object.keys(SRVS)[0]||'videasy';
-  document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv===S.srv));
+  window._aflixStreams=[];
 }
 
 /* ══════════════════════════════════════════
@@ -2153,10 +2058,6 @@ function setupAutoNext(){
       const evt=d?.data?.event||d?.event||d?.type||d?.status||'';
       if(['complete','ended','finish','end'].includes(String(evt).toLowerCase())) startAutoNextCountdown();
     }catch(err){}
-  });
-  document.getElementById('directVideo')?.addEventListener('ended',()=>{
-    if(!S.content||S.content.type!=='tv'||!S.settings.autoplay) return;
-    startAutoNextCountdown();
   });
 }
 function startAutoNextCountdown(){
