@@ -119,8 +119,15 @@ self.addEventListener('fetch', event => {
   const networkOnly = [
     'api.themoviedb.org',
     'image.tmdb.org',
-    'vidsrc.cc', 'vidsrc.to', 'vidsrc.xyz',
+    // top-tier servers
+    'player.videasy.net', 'videasy.net',
+    'vidlink.pro',
+    'player.autoembed.cc', 'autoembed.cc',
+    'vidfast.pro',
+    // fallback servers
+    'vidsrc.cc',
     'vembed.stream',
+    // misc
     'raw.githubusercontent.com',
     'corsproxy.io',
     'youtube.com',
