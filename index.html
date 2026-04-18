@@ -1310,12 +1310,19 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
     </div>
 
     <div class="stage" id="playerStage">
-      <!-- No sandbox — servers detect any sandbox token and block playback.
-           Ad blocking is handled entirely by adblock.js JS layers and sw.js. -->
+      <!-- NO sandbox attribute. Every working streaming embed site (vidlink.pro,
+           vidsrc, videasy, autoembed, rivestream, etc.) uses exactly this pattern:
+           just allow + allowfullscreen, no sandbox. Any sandbox token — even a
+           permissive one — is detected by the player's JS and causes the
+           "Please disable sandbox" block screen. Ad blocking is done entirely by
+           the JS layers in adblock.js (window.open override, MutationObserver,
+           click capture, postMessage firewall) and the Service Worker. -->
       <iframe id="playerFrame" class="p-iframe"
         allow="autoplay; fullscreen *; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write"
         referrerpolicy="strict-origin-when-cross-origin"
         allowfullscreen></iframe>
+      <!-- Direct HLS player used by CinePro (no iframe) -->
+      <video id="directVideo" class="p-iframe" controls playsinline style="display:none;background:#000;object-fit:contain"></video>
       <div class="p-loading" id="pLoading"><div class="spin"></div></div>
     </div>
 
@@ -1345,19 +1352,25 @@ async function loadRemoteConfig() {
     if (cfg.servers && cfg.servers.length) {
       SRVS = {};
       cfg.servers.forEach(s => {
+        const isVidlink = s.movie_url === 'VIDLINK_DIRECT';
         SRVS[s.id] = {
-          n:      s.name,
-          badge:  s.badge  || '',
-          badge2: s.badge2 || '',
-          imdb:   !!s.imdb,   // if true, server needs IMDb ID instead of TMDB ID
-          movie:  id => s.movie_url.replace('{id}', id),
-          tv:    (id,se,ep) => s.tv_url.replace('{id}',id).replace('{s}',se).replace('{e}',ep)
+          n:       s.name,
+          badge:   s.badge  || '',
+          badge2:  s.badge2 || '',
+          imdb:    !!s.imdb,
+          vidlink: isVidlink,
+          movie:  id => isVidlink ? null : s.movie_url.replace('{id}', id),
+          tv:    (id,se,ep) => isVidlink ? null : s.tv_url.replace('{id}',id).replace('{s}',se).replace('{e}',ep)
         };
       });
     } else {
       // ── DEFAULT SERVERS (best quality, lowest ads, most stable as of 2025) ──
       // All use TMDB IDs. URL formats verified from official docs + dev communities.
       SRVS = {
+        'vidlink_direct': {
+          n:'VidLink', badge:'Direct', badge2:'No Ads', imdb:false, vidlink:true,
+          movie: () => null, tv: () => null
+        },
         'videasy': {
           n:'Videasy', badge:'4K', badge2:'No Ads', imdb:false,
           movie: id => `https://player.videasy.net/movie/${id}?autoplay=true&color=e8192c`,
@@ -1930,7 +1943,17 @@ async function playContent(id, mediaType, title){
   cwAdd({id,type:mediaType,title,backdrop:details.backdrop_path||null,year:(details.release_date||details.first_air_date||'').split('-')[0],season:1,episode:1,progress:Math.floor(Math.random()*30+5)});
 
   const useId=srv.imdb?imdbId:id;
-  if(srv.imdb&&!imdbId){ showUnavail(); }
+  if(srv.vidlink){
+    if(mediaType==='tv'&&details.seasons){
+      const seasons=details.seasons.filter(s=>s.season_number>0);
+      document.getElementById('tvCtrl').style.display='block';
+      renderSeasons(seasons,id,title);
+      await loadEpisodes(id,1);
+      playDirect(id,'tv',1,1);
+    } else {
+      playDirect(id,'movie',1,1);
+    }
+  } else if(srv.imdb&&!imdbId){ showUnavail(); }
   else if(mediaType==='tv'&&details.seasons){
     const seasons=details.seasons.filter(s=>s.season_number>0);
     document.getElementById('tvCtrl').style.display='block';
@@ -1955,7 +1978,93 @@ async function playContent(id, mediaType, title){
     </div>`;
 }
 
+/* ── VidLink direct HLS player ──────────────────────────────── */
+// Uses vidlink.pro's undocumented /api/vidlink/watch endpoint which returns
+// a raw m3u8 URL — no hosting, no keys, just a fetch call.
+let _vlHls = null;
+
+async function playDirect(tmdbId, mediaType, season, episode) {
+  const ov    = document.getElementById('pLoading');
+  const iframe = document.getElementById('playerFrame');
+  const video  = document.getElementById('directVideo');
+
+  ov.classList.add('show');
+  iframe.src = 'about:blank';
+  iframe.style.display = 'none';
+  video.style.display = 'block';
+
+  if (_vlHls) { try { _vlHls.destroy(); } catch(e){} _vlHls = null; }
+  video.pause();
+  video.removeAttribute('src');
+  video.load();
+  while (video.firstChild) video.removeChild(video.firstChild);
+
+  try {
+    const isMovie = mediaType !== 'tv';
+    const url = isMovie
+      ? `https://vidlink.pro/api/vidlink/watch?isMovie=true&id=${tmdbId}`
+      : `https://vidlink.pro/api/vidlink/watch?isMovie=false&id=${tmdbId}&season=${season}&episode=${episode}`;
+
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`VidLink API ${r.status}`);
+    const data = await r.json();
+
+    const stream = data?.stream;
+    const m3u8   = stream?.playlist;
+    if (!m3u8) { showDirect404(); return; }
+
+    // Captions
+    (stream.captions || []).forEach(cap => {
+      if (!cap.url) return;
+      const track = document.createElement('track');
+      track.kind    = 'subtitles';
+      track.label   = cap.language || 'Subtitle';
+      track.src     = cap.url;
+      track.srclang = (cap.language || 'en').slice(0,2).toLowerCase();
+      video.appendChild(track);
+    });
+
+    // Play via hls.js or native (Safari)
+    if (Hls.isSupported()) {
+      const hls = new Hls({ enableWorker: true, maxBufferLength: 60 });
+      _vlHls = hls;
+      hls.loadSource(m3u8);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => { ov.classList.remove('show'); video.play().catch(()=>{}); });
+      hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) showDirect404(); });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = m3u8;
+      video.addEventListener('loadedmetadata', () => { ov.classList.remove('show'); video.play().catch(()=>{}); }, { once: true });
+    } else {
+      showDirect404(); return;
+    }
+
+  } catch(err) {
+    console.error('[AFlix VidLink] playDirect error:', err);
+    showDirect404();
+  }
+  setTimeout(() => ov.classList.remove('show'), 15000);
+}
+
+function showDirect404() {
+  document.getElementById('pLoading').classList.remove('show');
+  const video  = document.getElementById('directVideo');
+  const iframe = document.getElementById('playerFrame');
+  video.style.display  = 'none';
+  iframe.style.display = 'block';
+  iframe.srcdoc = `<style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#000;color:#fff;font-family:'DM Sans',sans-serif;text-align:center;padding:1rem}</style><div><h2 style="font-size:1rem;margin-bottom:.5rem">No sources found</h2><p style="color:#666;font-size:.82rem">VidLink couldn't resolve this title.<br>Try a different source above.</p></div>`;
+}
+
+function _teardownDirect() {
+  if (_vlHls) { try { _vlHls.destroy(); } catch(e){} _vlHls = null; }
+  const video  = document.getElementById('directVideo');
+  const iframe = document.getElementById('playerFrame');
+  if (video)  { video.pause(); video.removeAttribute('src'); video.load(); video.style.display = 'none'; while(video.firstChild) video.removeChild(video.firstChild); }
+  if (iframe) { iframe.style.display = 'block'; }
+}
+
 function setFrame(src){
+  _teardownDirect(); // clean up any active direct player
   const iframe=document.getElementById('playerFrame'), ov=document.getElementById('pLoading');
   ov.classList.add('show');
   if(typeof aflixHardenIframe==='function') aflixHardenIframe(iframe);
@@ -1993,6 +2102,7 @@ function selectSeason(tvId,season){
   document.querySelectorAll('.stab').forEach(t=>t.classList.toggle('active',parseInt(t.dataset.s)===season));
   loadEpisodes(tvId,season);
   const srv=SRVS[S.srv];
+  if(srv.vidlink){ playDirect(S.content.id,'tv',season,1); return; }
   const useId=srv.imdb?S.content.imdbId:S.content.id;
   if(srv.imdb&&!S.content.imdbId){ showUnavail(); return; }
   setFrame(srv.tv(useId,season,1));
@@ -2004,6 +2114,7 @@ function selectEpisode(ep){
   const active=document.querySelector('.ep-card.active');
   if(active) active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
   const srv=SRVS[S.srv];
+  if(srv.vidlink){ playDirect(S.content.id,'tv',S.content.season,ep); return; }
   const useId=srv.imdb?S.content.imdbId:S.content.id;
   if(srv.imdb&&!S.content.imdbId){ showUnavail(); return; }
   setFrame(srv.tv(useId,S.content.season,ep));
@@ -2013,23 +2124,30 @@ function switchServer(key){
   document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv===key));
   if(!S.content) return;
   const srv=SRVS[key];
+  if(srv.vidlink){
+    playDirect(S.content.id, S.content.type, S.content.season, S.content.episode);
+    return;
+  }
+  _teardownDirect(); // clean up video if switching away from CinePro
   const useId=srv.imdb?S.content.imdbId:S.content.id;
   if(srv.imdb&&!S.content.imdbId){ showUnavail(); return; }
   setFrame(S.content.type==='tv'?srv.tv(useId,S.content.season,S.content.episode):srv.movie(useId));
 }
 function closePlayer(){
+  _teardownDirect();
   document.getElementById('playerModal').classList.remove('open');
   document.getElementById('playerFrame').src='about:blank';
   document.body.classList.remove('no-scroll','ci');
   cancelAutoNext();
-  S.srv='videasy';
-  document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv==='videasy'));
+  S.srv=Object.keys(SRVS)[0]||'videasy';
+  document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv===S.srv));
 }
 
 /* ══════════════════════════════════════════
    AUTO-NEXT
 ══════════════════════════════════════════ */
 function setupAutoNext(){
+  // postMessage-based auto-next (embed servers)
   window.addEventListener('message',e=>{
     if(!S.content||S.content.type!=='tv'||!S.settings.autoplay) return;
     try{
@@ -2038,6 +2156,11 @@ function setupAutoNext(){
       const evt=d?.data?.event||d?.event||d?.type||d?.status||'';
       if(['complete','ended','finish','end'].includes(String(evt).toLowerCase())) startAutoNextCountdown();
     }catch(err){}
+  });
+  // Native video 'ended' event for CinePro direct player
+  document.getElementById('directVideo')?.addEventListener('ended',()=>{
+    if(!S.content||S.content.type!=='tv'||!S.settings.autoplay) return;
+    startAutoNextCountdown();
   });
 }
 function startAutoNextCountdown(){
