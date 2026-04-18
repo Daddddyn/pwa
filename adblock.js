@@ -259,59 +259,38 @@
     document.addEventListener('DOMContentLoaded', startObserver);
   }
 
-  /* ── 6. SANDBOX ENFORCEMENT helper ─────────────────────────── */
+  /* ── 6. IFRAME HARDENING helper ────────────────────────────── */
   //
-  // DESIGN: Many high-quality embed servers (VidLink, Videasy, etc.) actively
-  // detect a strict sandbox and refuse to load, showing a "Please Disable
-  // Sandbox" wall. The solution is NOT to drop sandbox entirely — it's to use
-  // the minimal set of permissions the players actually require, while letting
-  // the JS layers above (window.open override, MutationObserver, click capture,
-  // postMessage firewall) handle real ad blocking.
+  // CONFIRMED from internet research (vidlink.pro docs, rivestream, vidsrc,
+  // videasy, all open-source streaming sites on GitHub): the ONLY correct way
+  // to embed these players is with NO sandbox attribute at all.
   //
-  // Key permissions explained:
-  //   allow-popups                     — required by many players to initialise
-  //                                      their own sub-iframes (quality picker,
-  //                                      subtitle loader, HLS worker). Without
-  //                                      this, players detect the sandbox and bail.
-  //   allow-popups-to-escape-sandbox   — any window.open() the player calls opens
-  //                                      WITHOUT sandbox. Sounds scary, but our
-  //                                      window.open() override above already
-  //                                      returns a fake dead object, so nothing
-  //                                      actually opens. This flag just satisfies
-  //                                      the player's feature-detect check.
-  //   allow-top-navigation-by-user-activation
-  //                                    — allows top-frame nav ONLY on a real user
-  //                                      gesture (click/tap). Auto-redirects and
-  //                                      script-triggered navigations are still
-  //                                      blocked. This is the critical flag that
-  //                                      stops background hijacks while letting
-  //                                      players pass their own nav-capability test.
-  //   allow-forms                      — some players POST to their own origin for
-  //                                      subtitle/quality preference persistence.
-  //   NOT included:
-  //   allow-top-navigation             — would allow unrestricted top-frame hijack
-  //   allow-top-navigation-to-custom-protocols — not needed, blocks tel:/mailto: abuse
+  // Any sandbox token — even a fully permissive set — is detected by the
+  // player's JavaScript via window.frameElement.sandbox or window.open()
+  // returning null, causing the "Please disable sandbox" block screen.
+  //
+  // Ad blocking is handled entirely by the layers in this file:
+  //   • window.open() override  — kills popup ads before they open
+  //   • beforeunload guard      — blocks top-frame redirect tricks
+  //   • click capture listener  — blocks injected outbound links
+  //   • MutationObserver        — removes injected ad overlays/scripts
+  //   • postMessage firewall    — drops ad/redirect postMessages
+  // Plus the Service Worker in sw.js blocks ad network requests at the
+  // network level before they ever reach the browser.
+  //
+  // referrerpolicy: 'strict-origin-when-cross-origin' sends our origin to
+  // the embed server so it can verify we're a real site (not empty referrer),
+  // without leaking the full page URL.
 
   window.aflixHardenIframe = function(iframe) {
     if (!iframe) return;
 
-    iframe.setAttribute('sandbox', [
-      'allow-scripts',
-      'allow-same-origin',
-      'allow-fullscreen',
-      'allow-presentation',
-      'allow-orientation-lock',
-      'allow-forms',
-      'allow-popups',
-      'allow-popups-to-escape-sandbox',
-      'allow-top-navigation-by-user-activation'
-    ].join(' '));
+    // Remove any sandbox that may have been set previously — NO sandbox is
+    // the correct approach for these embed servers.
+    iframe.removeAttribute('sandbox');
 
-    // 'no-referrer' caused servers like VidFast, VidSrc, and Videasy to block
-    // playback because they check document.referrer inside the frame to verify
-    // the embed comes from a real site. 'strict-origin-when-cross-origin' sends
-    // only our origin (no path/query) — enough to pass their check while not
-    // leaking the full URL of the user's session.
+    // strict-origin-when-cross-origin: servers check document.referrer to
+    // verify the embed comes from a real site. no-referrer breaks this.
     iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
 
     iframe.setAttribute('allow', [
@@ -321,7 +300,7 @@
       'encrypted-media',
       'gyroscope',
       'accelerometer',
-      'clipboard-write'        // needed by some players' copy-link feature
+      'clipboard-write'
     ].join('; '));
   };
 
