@@ -2711,7 +2711,7 @@ function tabNav(type) {
 ══════════════════════════════════════════════════════════════ */
 
 /* ── CONFIG — paste your Apps Script Web App URL here ─────── */
-const SHEET_WRITE_URL = ''; /* e.g. 'https://script.google.com/macros/s/ABC123.../exec' */
+const SHEET_WRITE_URL = 'https://script.google.com/macros/s/AKfycbxUOQkcMuJWf6dCvLuDxfhWuxTDezV_Q-gAmie4G4ZinQXdRI10lNyzxL9nw2sfkSc0XA/exec'; /* e.g. 'https://script.google.com/macros/s/ABC123.../exec' */
 
 /* ── Same CSV URL used by the license gate ─────────────────── */
 const SHEET_READ_URL =
@@ -2761,6 +2761,7 @@ async function logWatchedToSheet(tmdbId, type, title, year) {
       mode: 'no-cors', // Apps Script doesn't send CORS headers for unauthenticated POST
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        action: 'log_watched',
         username: user.username,
         code: user.code,
         tmdbId: String(tmdbId),
@@ -2812,25 +2813,46 @@ function parseSheetCSV(text) {
 /* ── Fetch history from sheet + merge with localStorage ────── */
 async function fetchCloudHistory() {
   setSyncState('syncing');
+  const user = aflixGetUser();
+
+  // Strategy 1: Apps Script get_watched endpoint (fastest, user-specific)
+  if (SHEET_WRITE_URL && user) {
+    try {
+      const url = SHEET_WRITE_URL +
+        '?action=get_watched' +
+        '&username=' + encodeURIComponent(user.username) +
+        '&code='     + encodeURIComponent(user.code);
+      const res = await fetch(url, { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.ok && Array.isArray(json.watched_ids)) {
+          json.watched_ids.forEach(k => localWatchedAdd(k));
+          setSyncState('ok');
+          return json.watched_ids;
+        }
+      }
+    } catch(e) {
+      console.warn('[AFlix Account] Apps Script get_watched failed, trying CSV:', e);
+    }
+  }
+
+  // Strategy 2: Published CSV fallback
   try {
     const res = await fetch(SHEET_READ_URL + Date.now(), { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const csv = await res.text();
     const cloudIds = parseSheetCSV(csv);
-
     if (cloudIds !== null) {
-      // Merge cloud list into local cache
       cloudIds.forEach(k => localWatchedAdd(k));
       setSyncState('ok');
       return cloudIds;
-    } else {
-      setSyncState('ok');
-      return localWatchedGet();
     }
+    setSyncState('ok');
+    return localWatchedGet();
   } catch(e) {
     console.warn('[AFlix Account] Cloud read failed:', e);
     setSyncState('err');
-    return localWatchedGet(); // fall back to local
+    return localWatchedGet();
   }
 }
 
