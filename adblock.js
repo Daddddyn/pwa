@@ -14,6 +14,17 @@
 (function () {
   'use strict';
 
+  /* ── ADBLOCK KILL-SWITCH ────────────────────────────────────
+     If the user has toggled adblock OFF in Settings, bail out
+     immediately so none of the protection layers are applied.
+  ──────────────────────────────────────────────────────────── */
+  try {
+    if (localStorage.getItem('aflix_adblock_off') === '1') {
+      console.warn('[AFlix AdBlock] ⚠ Disabled by user — ads may appear.');
+      return; // exit the IIFE entirely — nothing else runs
+    }
+  } catch(e) {}
+
   /* ── 1. BLOCK window.open() ────────────────────────────────── */
   // Embed iframes call window.open() to launch popup ads.
   // We replace it with a no-op that returns a fake window object
