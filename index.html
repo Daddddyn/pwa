@@ -1078,6 +1078,14 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
     /* ✓ Valid & active */
     showMsg('ok', 'Welcome, ' + match.username + '!');
     sessionStorage.setItem(SESSION_KEY, '1');
+    /* Persist identity for account tab */
+    try {
+      localStorage.setItem('aflix-user', JSON.stringify({
+        username: match.username,
+        code: code,
+        loginTs: Date.now()
+      }));
+    } catch(e) {}
     setTimeout(function () {
       var gate = document.getElementById('aflixGate');
       if (gate) {
@@ -1922,6 +1930,8 @@ async function playContent(id, mediaType, title){
   S.content={id,imdbId,type:mediaType,season:1,episode:1,title};
 
   cwAdd({id,type:mediaType,title,backdrop:details.backdrop_path||null,year:(details.release_date||details.first_air_date||'').split('-')[0],season:1,episode:1,progress:Math.floor(Math.random()*30+5)});
+  /* ── Log TMDB key to Google Sheets for this user ── */
+  logWatchedToSheet(id, mediaType, title, (details.release_date||details.first_air_date||'').split('-')[0]);
 
   const useId=srv.imdb?imdbId:id;
   if(srv.imdb&&!imdbId){ showUnavail(); }
@@ -2380,6 +2390,84 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 
+<!-- ── ACCOUNT MODAL ── -->
+<div class="account-modal" id="accountModal">
+  <div class="account-inner">
+    <div class="account-header">
+      <h2>My Account</h2>
+      <button class="close-btn" onclick="closeAccountModal()">×</button>
+    </div>
+
+    <!-- Avatar + name -->
+    <div style="text-align:center;margin-bottom:1.2rem">
+      <div class="account-avatar" id="acctAvatar">?</div>
+      <div class="account-name" id="acctName">—</div>
+      <div style="text-align:center">
+        <span class="account-badge">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span>
+          Active License
+        </span>
+      </div>
+      <div class="account-sync-row">
+        <span class="account-sync-dot" id="syncDot"></span>
+        <span id="syncLabel">Syncing with cloud…</span>
+      </div>
+    </div>
+
+    <!-- Stats grid -->
+    <div class="account-stats-grid">
+      <div class="account-stat">
+        <div class="account-stat-val" id="acctStatMovies">0</div>
+        <div class="account-stat-lbl">Movies</div>
+      </div>
+      <div class="account-stat">
+        <div class="account-stat-val" id="acctStatShows">0</div>
+        <div class="account-stat-lbl">Shows</div>
+      </div>
+      <div class="account-stat">
+        <div class="account-stat-val" id="acctStatTotal">0</div>
+        <div class="account-stat-lbl">Total</div>
+      </div>
+    </div>
+
+    <!-- Account info -->
+    <div class="account-section">
+      <div class="account-section-title">Account Info</div>
+      <div class="account-row">
+        <span class="account-row-lbl">Username</span>
+        <span class="account-row-val" id="acctInfoUser">—</span>
+      </div>
+      <div class="account-row">
+        <span class="account-row-lbl">License</span>
+        <span class="account-row-val" style="color:var(--green)">Active</span>
+      </div>
+      <div class="account-row">
+        <span class="account-row-lbl">Member since</span>
+        <span class="account-row-val" id="acctSince">—</span>
+      </div>
+      <div class="account-row">
+        <span class="account-row-lbl">Watchlist</span>
+        <span class="account-row-val" id="acctWlCount">0 titles</span>
+      </div>
+      <div class="account-row">
+        <span class="account-row-lbl">Last watched</span>
+        <span class="account-row-val" id="acctLastWatched">—</span>
+      </div>
+    </div>
+
+    <!-- Watch history from cloud -->
+    <div class="account-section">
+      <div class="account-section-title">Watch History (Cloud)</div>
+      <div class="account-history-list" id="acctHistoryList">
+        <div style="text-align:center;color:var(--text3);font-size:.8rem;padding:1rem 0">Loading history…</div>
+      </div>
+    </div>
+
+    <!-- Logout -->
+    <button class="account-logout-btn" onclick="aflixLogout()">Sign Out</button>
+  </div>
+</div>
+
 <!-- ── IPTV / LIVE TV MODAL ── -->
 <div class="iptv-modal" id="iptvModal">
   <!-- Header -->
@@ -2486,6 +2574,40 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- ── BOTTOM TAB BAR (mobile only) ── -->
 <style>
   .bottom-tab-bar{ display:none; }
+
+/* ── ACCOUNT MODAL ── */
+.account-modal{position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:19000;display:none;overflow-y:auto;backdrop-filter:blur(10px)}
+.account-modal.open{display:flex;align-items:flex-start;justify-content:center;padding:calc(1.5rem + env(safe-area-inset-top,0px)) 1rem calc(80px + env(safe-area-inset-bottom,0px));animation:fadein .22s ease}
+.account-inner{width:100%;max-width:480px}
+.account-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.4rem;padding-top:.3rem}
+.account-header h2{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:-.03em}
+.account-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--red) 0%,#7a0010 100%);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:1.5rem;color:#fff;letter-spacing:-.02em;margin:0 auto 1rem;border:2px solid rgba(232,25,44,.4);box-shadow:0 0 0 4px rgba(232,25,44,.12)}
+.account-name{font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;text-align:center;letter-spacing:-.03em;margin-bottom:.22rem}
+.account-badge{display:inline-flex;align-items:center;gap:.35rem;font-size:.72rem;font-weight:700;color:var(--green);background:rgba(61,220,132,.09);border:1px solid rgba(61,220,132,.25);padding:.25rem .65rem;border-radius:100px;margin-bottom:1.3rem}
+.account-stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.65rem;margin-bottom:1rem}
+.account-stat{background:var(--bg3);border:1px solid var(--b1);border-radius:12px;padding:.95rem .7rem;text-align:center}
+.account-stat-val{font-family:'Syne',sans-serif;font-weight:800;font-size:1.55rem;letter-spacing:-.04em;color:var(--text);line-height:1}
+.account-stat-lbl{font-size:.65rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-top:.28rem}
+.account-section{background:var(--bg3);border:1px solid var(--b1);border-radius:12px;padding:1rem 1.1rem;margin-bottom:.65rem}
+.account-section-title{font-size:.65rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.8rem}
+.account-row{display:flex;align-items:center;justify-content:space-between;padding:.42rem 0;border-bottom:1px solid var(--b2)}
+.account-row:last-child{border-bottom:none}
+.account-row-lbl{font-size:.84rem;color:var(--text2);font-weight:400}
+.account-row-val{font-size:.84rem;color:var(--text);font-weight:500;max-width:55%;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.account-history-list{display:flex;flex-direction:column;gap:.4rem;max-height:280px;overflow-y:auto}
+.account-history-item{display:flex;align-items:center;gap:.75rem;padding:.5rem .5rem;border-radius:8px;cursor:pointer;transition:background .14s}
+.account-history-item:hover{background:rgba(255,255,255,.04)}
+.account-history-poster{width:34px;height:50px;object-fit:cover;border-radius:5px;background:var(--bg5);flex-shrink:0}
+.account-history-info{flex:1;min-width:0}
+.account-history-title{font-size:.84rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.account-history-meta{font-size:.7rem;color:var(--text3);margin-top:.1rem}
+.account-history-type{font-size:.63rem;font-weight:700;padding:.1rem .4rem;border-radius:4px;background:var(--bg5);color:var(--text3);flex-shrink:0}
+.account-logout-btn{width:100%;padding:.78rem;background:rgba(232,25,44,.08);color:var(--red);border:1px solid rgba(232,25,44,.25);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .2s;margin-top:.3rem}
+.account-logout-btn:hover{background:rgba(232,25,44,.18);border-color:var(--red)}
+.account-sync-row{display:flex;align-items:center;gap:.5rem;font-size:.73rem;color:var(--text3);justify-content:center;margin-bottom:.8rem}
+.account-sync-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;box-shadow:0 0 5px var(--green)}
+.account-sync-dot.syncing{background:var(--gold);box-shadow:0 0 5px var(--gold);animation:pdot 1s ease infinite}
+.account-sync-dot.err{background:var(--red);box-shadow:0 0 5px var(--red);animation:none}
 </style>
 <nav class="bottom-tab-bar" id="bottomTabBar" aria-label="Main navigation">
   <div class="tab-item active" id="tab-home" onclick="tabNav('all')" role="button" aria-label="Home">
@@ -2508,6 +2630,10 @@ document.addEventListener('DOMContentLoaded', () => {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14a1 1 0 011 1v17l-7-4.5L5 21V4a1 1 0 011-1z"/></svg>
     <span>Saved</span>
   </div>
+  <div class="tab-item" id="tab-account" onclick="openAccountModal()" role="button" aria-label="Account">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    <span>Account</span>
+  </div>
 </nav>
 <script>
 function tabNav(type) {
@@ -2523,6 +2649,320 @@ function tabNav(type) {
   filterContent();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+</script>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   AFLIX ACCOUNT SYSTEM — Google Sheets cloud sync
+   ──────────────────────────────────────────────────────────────
+   HOW IT WORKS:
+   • On login, username + 6-digit code are stored in localStorage.
+   • When user clicks/watches a title, logWatchedToSheet() is called.
+   • It reads the sheet, checks if that TMDB ID is already in the
+     user's "watched" column, and if not, writes it back via the
+     Apps Script Web App endpoint (POST).
+   • The Account tab reads the sheet to display history + telemetry.
+
+   GOOGLE SHEET COLUMNS (row per user):
+     A: username  B: code  C: status  D: date  E: watched_ids
+   "watched_ids" is a comma-separated list of "type:tmdb_id" pairs,
+   e.g. "movie:550,tv:1396,movie:27205"
+
+   SETUP REQUIRED:
+   1. In your Google Sheet, add an Apps Script (Extensions › Apps Script)
+   2. Deploy it as a Web App (anyone can access, no auth required for POST)
+   3. Paste that Web App URL into SHEET_WRITE_URL below.
+   4. The Apps Script code (paste in Apps Script editor):
+
+   function doPost(e) {
+     var data = JSON.parse(e.postData.contents);
+     var sheet = SpreadsheetApp.openById('YOUR_SHEET_ID').getActiveSheet();
+     var rows = sheet.getDataRange().getValues();
+     var headers = rows[0].map(h => String(h).trim().toLowerCase());
+     var uCol = headers.indexOf('username');
+     var cCol = headers.indexOf('code');
+     var wCol = headers.indexOf('watched_ids');
+     if (wCol === -1) {
+       // Add the column if missing
+       wCol = rows[0].length;
+       sheet.getRange(1, wCol+1).setValue('watched_ids');
+     }
+     for (var i = 1; i < rows.length; i++) {
+       if (String(rows[i][uCol]).toLowerCase() === data.username.toLowerCase() &&
+           String(rows[i][cCol]) === data.code) {
+         var existing = String(rows[i][wCol] || '');
+         var ids = existing ? existing.split(',').filter(Boolean) : [];
+         var key = data.type + ':' + data.tmdbId;
+         if (!ids.includes(key)) {
+           ids.push(key);
+           sheet.getRange(i+1, wCol+1).setValue(ids.join(','));
+         }
+         return ContentService.createTextOutput(JSON.stringify({ok:true}))
+           .setMimeType(ContentService.MimeType.JSON);
+       }
+     }
+     return ContentService.createTextOutput(JSON.stringify({ok:false,err:'user not found'}))
+       .setMimeType(ContentService.MimeType.JSON);
+   }
+
+   function doGet(e) {
+     return ContentService.createTextOutput('AFlix Sheet API ok');
+   }
+══════════════════════════════════════════════════════════════ */
+
+/* ── CONFIG — paste your Apps Script Web App URL here ─────── */
+const SHEET_WRITE_URL = ''; /* e.g. 'https://script.google.com/macros/s/ABC123.../exec' */
+
+/* ── Same CSV URL used by the license gate ─────────────────── */
+const SHEET_READ_URL =
+  'https://docs.google.com/spreadsheets/d/e/' +
+  '2PACX-1vQ12vBXZ7C6vJrg8eGJHzR-8iEtzWbNZd-Zinc7JhLwWfGMDZ6-go0nPUKsn3_C6Q9x3OkYGpLsIU--' +
+  '/pub?output=csv&cachebust=';
+
+/* ── Get current user identity ─────────────────────────────── */
+function aflixGetUser() {
+  try { return JSON.parse(localStorage.getItem('aflix-user') || 'null'); }
+  catch(e) { return null; }
+}
+
+/* ── Local cache of watched IDs for dedup ──────────────────── */
+function localWatchedGet() {
+  try { return JSON.parse(localStorage.getItem('aflix-watched') || '[]'); }
+  catch(e) { return []; }
+}
+function localWatchedAdd(key) {
+  const arr = localWatchedGet();
+  if (!arr.includes(key)) { arr.push(key); }
+  try { localStorage.setItem('aflix-watched', JSON.stringify(arr)); } catch(e) {}
+}
+
+/* ── Log a watched title to Google Sheets ──────────────────── */
+async function logWatchedToSheet(tmdbId, type, title, year) {
+  const user = aflixGetUser();
+  if (!user) return; // not logged in
+
+  const key = type + ':' + tmdbId;
+
+  // Dedup check: already logged locally?
+  if (localWatchedGet().includes(key)) return;
+
+  // Mark as logged locally immediately (optimistic)
+  localWatchedAdd(key);
+
+  // If no write URL configured, stop here (read-only CSV mode)
+  if (!SHEET_WRITE_URL) {
+    console.log('[AFlix Account] No SHEET_WRITE_URL set — logging locally only:', key);
+    return;
+  }
+
+  try {
+    await fetch(SHEET_WRITE_URL, {
+      method: 'POST',
+      mode: 'no-cors', // Apps Script doesn't send CORS headers for unauthenticated POST
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: user.username,
+        code: user.code,
+        tmdbId: String(tmdbId),
+        type: type,
+        title: title || '',
+        year: year || '',
+        ts: Date.now()
+      })
+    });
+    console.log('[AFlix Account] Logged to sheet:', key);
+  } catch(e) {
+    console.warn('[AFlix Account] Sheet write failed (non-fatal):', e);
+  }
+}
+
+/* ── Parse watched_ids column from CSV ─────────────────────── */
+function parseSheetCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return null;
+  function splitRow(row) {
+    const res = [], cur = []; let inQ = false;
+    for (let i = 0; i < row.length; i++) {
+      const ch = row[i];
+      if (ch === '"') { inQ = !inQ; continue; }
+      if (ch === ',' && !inQ) { res.push(cur.join('')); cur.length = 0; continue; }
+      cur.push(ch);
+    }
+    res.push(cur.join(''));
+    return res;
+  }
+  const headers = splitRow(lines[0]).map(h => h.trim().toLowerCase().replace(/[^a-z_]/g,''));
+  const uCol = headers.indexOf('username');
+  const wCol = headers.findIndex(h => h.includes('watched'));
+
+  const user = aflixGetUser();
+  if (!user) return null;
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = splitRow(lines[i]);
+    if (!cols[uCol]) continue;
+    if (cols[uCol].trim().toLowerCase() === user.username.toLowerCase()) {
+      const raw = wCol >= 0 ? (cols[wCol] || '') : '';
+      return raw ? raw.split(',').filter(Boolean) : [];
+    }
+  }
+  return null;
+}
+
+/* ── Fetch history from sheet + merge with localStorage ────── */
+async function fetchCloudHistory() {
+  setSyncState('syncing');
+  try {
+    const res = await fetch(SHEET_READ_URL + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const csv = await res.text();
+    const cloudIds = parseSheetCSV(csv);
+
+    if (cloudIds !== null) {
+      // Merge cloud list into local cache
+      cloudIds.forEach(k => localWatchedAdd(k));
+      setSyncState('ok');
+      return cloudIds;
+    } else {
+      setSyncState('ok');
+      return localWatchedGet();
+    }
+  } catch(e) {
+    console.warn('[AFlix Account] Cloud read failed:', e);
+    setSyncState('err');
+    return localWatchedGet(); // fall back to local
+  }
+}
+
+function setSyncState(state) {
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncLabel');
+  if (!dot || !lbl) return;
+  dot.className = 'account-sync-dot' + (state === 'syncing' ? ' syncing' : state === 'err' ? ' err' : '');
+  if (state === 'syncing') lbl.textContent = 'Syncing with cloud…';
+  else if (state === 'ok')  lbl.textContent = 'Synced with cloud ✓';
+  else                       lbl.textContent = 'Offline — showing local data';
+}
+
+/* ── Open / close account modal ────────────────────────────── */
+function openAccountModal() {
+  // Mark tab active
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  const tabEl = document.getElementById('tab-account');
+  if (tabEl) tabEl.classList.add('active');
+
+  const user = aflixGetUser();
+  const modal = document.getElementById('accountModal');
+  modal.classList.add('open');
+  document.body.classList.add('no-scroll');
+
+  // Populate static fields
+  if (user) {
+    const initials = (user.username || '?').slice(0,2).toUpperCase();
+    document.getElementById('acctAvatar').textContent = initials;
+    document.getElementById('acctName').textContent = user.username;
+    document.getElementById('acctInfoUser').textContent = user.username;
+    const since = user.loginTs ? new Date(user.loginTs).toLocaleDateString('en-US',{month:'short',year:'numeric'}) : '—';
+    document.getElementById('acctSince').textContent = since;
+  }
+
+  const wl = wlGet();
+  document.getElementById('acctWlCount').textContent = wl.length + (wl.length===1?' title':' titles');
+
+  // Async: load history
+  loadAccountHistory();
+}
+
+function closeAccountModal() {
+  document.getElementById('accountModal').classList.remove('open');
+  document.body.classList.remove('no-scroll');
+  // Remove active from account tab, restore home
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  const homeTab = document.getElementById('tab-home');
+  if (homeTab) homeTab.classList.add('active');
+}
+
+async function loadAccountHistory() {
+  const listEl = document.getElementById('acctHistoryList');
+  listEl.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:.8rem;padding:1rem 0">Syncing…</div>';
+
+  const ids = await fetchCloudHistory();
+
+  // Update stats
+  const movies = ids.filter(k => k.startsWith('movie:')).length;
+  const shows  = ids.filter(k => k.startsWith('tv:')).length;
+  document.getElementById('acctStatMovies').textContent = movies;
+  document.getElementById('acctStatShows').textContent  = shows;
+  document.getElementById('acctStatTotal').textContent  = movies + shows;
+
+  if (!ids.length) {
+    listEl.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:.8rem;padding:1rem 0">No watch history yet.</div>';
+    document.getElementById('acctLastWatched').textContent = '—';
+    return;
+  }
+
+  // Fetch TMDB details for each (cap at 20 for perf)
+  const cap = ids.slice(-20).reverse(); // most recent last → show newest first
+  listEl.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:.8rem;padding:.5rem 0"><div class="spin" style="width:20px;height:20px;border-width:2px;margin:0 auto"></div></div>';
+
+  const items = await Promise.all(cap.map(async key => {
+    const [type, tmdbId] = key.split(':');
+    try {
+      const ep = type === 'movie' ? `/movie/${tmdbId}` : `/tv/${tmdbId}`;
+      const d = await api(ep);
+      if (!d) return null;
+      return { type, id: tmdbId, title: d.title || d.name || '—', poster: d.poster_path, year: (d.release_date||d.first_air_date||'').split('-')[0] };
+    } catch(e) { return null; }
+  }));
+
+  const valid = items.filter(Boolean);
+  if (!valid.length) {
+    listEl.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:.8rem;padding:1rem 0">Could not load history details.</div>';
+    return;
+  }
+
+  // Last watched
+  document.getElementById('acctLastWatched').textContent = valid[0].title;
+
+  listEl.innerHTML = valid.map(item => `
+    <div class="account-history-item" onclick="closeAccountModal();playContent(${item.id},'${item.type}',\`${(item.title||'').replace(/\`/g,'\\`')}\`)">
+      ${item.poster
+        ? `<img src="${IMG}/w92${item.poster}" class="account-history-poster" alt="" loading="lazy">`
+        : `<div class="account-history-poster"></div>`}
+      <div class="account-history-info">
+        <div class="account-history-title">${esc(item.title)}</div>
+        <div class="account-history-meta">${item.year || ''}${item.year && item.type ? ' · ' : ''}${item.type === 'movie' ? 'Movie' : 'TV Series'}</div>
+      </div>
+      <span class="account-history-type">${item.type === 'movie' ? '🎬' : '📺'}</span>
+    </div>
+  `).join('');
+}
+
+/* ── Logout ─────────────────────────────────────────────────── */
+function aflixLogout() {
+  if (!confirm('Sign out of AFlix?')) return;
+  localStorage.removeItem('aflix-user');
+  localStorage.removeItem('aflix-watched');
+  sessionStorage.clear();
+  toast('Signed out. See you next time!');
+  closeAccountModal();
+  // Reload to show license gate
+  setTimeout(() => location.reload(), 900);
+}
+
+/* ── Seed local watched cache from sheet on startup ─────────── */
+(async function seedLocalCache() {
+  const user = aflixGetUser();
+  if (!user) return;
+  try {
+    const res = await fetch(SHEET_READ_URL + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const csv = await res.text();
+    const ids = parseSheetCSV(csv);
+    if (ids) ids.forEach(k => localWatchedAdd(k));
+    console.log('[AFlix Account] Seeded', localWatchedGet().length, 'watched keys from sheet');
+  } catch(e) {}
+})();
 </script>
 </body>
 </html>
