@@ -2002,7 +2002,10 @@ async function playContent(id, mediaType, title){
 function setFrame(src){
   const iframe=document.getElementById('playerFrame'), ov=document.getElementById('pLoading');
   ov.classList.add('show');
-  if(typeof aflixHardenIframe==='function') aflixHardenIframe(iframe);
+  // NOTE: Do NOT call aflixHardenIframe() here. All embed servers (vidsrc, vembed, etc.)
+  // break under any sandbox attribute — they redirect internally and the sandbox causes
+  // those redirects to resolve against localhost, producing Apache 404s.
+  // Ad blocking is handled entirely by the JS layers in adblock.js instead.
   iframe.src=src;
   iframe.onload=()=>ov.classList.remove('show');
   setTimeout(()=>ov.classList.remove('show'),10000);
