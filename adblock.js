@@ -2,13 +2,20 @@
    AFlix Ad & Popup Blocker — adblock.js
    ──────────────────────────────────────────────────────────────
    Blocks popup ads, redirects, and unsafe content from embed
-   servers (vidsrc, vembed, etc.) without breaking playback.
+   servers without breaking playback.
 
    HOW IT WORKS (3-layer defence):
    1. window.open() override  — kills all new-tab/popup attempts
    2. beforeunload / popstate guard — prevents top-frame hijack
    3. MutationObserver — removes injected <a> and overlay <div>s
       that auto-click to open ads
+
+   DYNAMIC SERVER WHITELIST:
+   index.html sets  window.aflixServers = [array of server URL
+   strings from the loaded config] before this script runs.
+   If that global is absent we fall back to a built-in list.
+   This means adblock.js never needs editing when you add a new
+   server to aflix-config.json.
    ══════════════════════════════════════════════════════════════ */
 
 (function () {
@@ -21,14 +28,56 @@
   try {
     if (localStorage.getItem('aflix_adblock_off') === '1') {
       console.warn('[AFlix AdBlock] ⚠ Disabled by user — ads may appear.');
-      return; // exit the IIFE entirely — nothing else runs
+      return;
     }
   } catch(e) {}
 
+  /* ── DYNAMIC SAFE_ORIGINS ──────────────────────────────────
+     Built from window.aflixServers (set by index.html after
+     the config loads) + a permanent fallback set.
+     Hostnames only — no protocols or paths.
+  ──────────────────────────────────────────────────────────── */
+  const PERMANENT_SAFE = [
+    'themoviedb.org',
+    'image.tmdb.org',
+    'youtube.com',
+    'youtu.be',
+    window.location.hostname
+  ];
+
+  function buildSafeOrigins() {
+    const origins = new Set(PERMANENT_SAFE);
+    // Pull hostnames out of every server URL the config registered
+    const serverUrls = window.aflixServers || [];
+    for (const raw of serverUrls) {
+      try {
+        // raw may be a full URL like "https://vidsrc-me.ru/embed/movie/{id}"
+        // or just a hostname — handle both
+        const url = raw.startsWith('http') ? raw : 'https://' + raw;
+        origins.add(new URL(url).hostname.toLowerCase());
+      } catch(e) {}
+    }
+    return [...origins];
+  }
+
+  // Safe origins are evaluated lazily on first use so that
+  // index.html has time to set window.aflixServers even if it
+  // does so after this script executes.
+  let _safeOrigins = null;
+  function getSafeOrigins() {
+    if (!_safeOrigins) _safeOrigins = buildSafeOrigins();
+    return _safeOrigins;
+  }
+
+  // index.html can call this after config loads to refresh the list
+  window.aflixRefreshSafeOrigins = function() { _safeOrigins = null; };
+
+  function isSafeOrigin(hostname) {
+    const h = hostname.toLowerCase();
+    return getSafeOrigins().some(o => h === o || h.endsWith('.' + o));
+  }
+
   /* ── 1. BLOCK window.open() ────────────────────────────────── */
-  // Embed iframes call window.open() to launch popup ads.
-  // We replace it with a no-op that returns a fake window object
-  // so the embed doesn't crash, it just silently fails to open anything.
   const _noop = () => ({
     closed: true, focus: () => {}, blur: () => {},
     close: () => {}, postMessage: () => {},
@@ -37,24 +86,7 @@
   window.open = _noop;
 
   /* ── 2. BLOCK top-frame navigation hijacks ─────────────────── */
-  // Some embeds try window.top.location = 'https://ad-site.com'
-  // We intercept location assignment on the top window.
-  try {
-    const _loc = window.location;
-    const _guard = {
-      get href()    { return _loc.href; },
-      set href(v)   { _safeNav(v); },
-      assign(v)     { _safeNav(v); },
-      replace(v)    { _safeNav(v); }
-    };
-    // Only block if this script is running in the TOP frame
-    if (window === window.top) {
-      Object.defineProperty(window, '_aflixBlockedNav', { value: true, writable: true });
-    }
-  } catch(e) {}
-
   function _safeNav(url) {
-    // Allow only same-origin navigations
     try {
       const u = new URL(url, window.location.href);
       if (u.origin === window.location.origin) {
@@ -66,38 +98,25 @@
   }
 
   /* ── 3. INTERCEPT <a target="_blank"> clicks ───────────────── */
-  // Ads often inject anchor tags. We kill clicks that try to open
-  // new tabs pointing to non-whitelisted domains.
-  const SAFE_ORIGINS = [
-    'vidsrc.cc', 'vidsrc.to', 'vidsrc.xyz',
-    'vembed.stream', 'youtube.com', 'youtu.be',
-    'themoviedb.org', 'image.tmdb.org',
-    window.location.hostname
-  ];
-
   document.addEventListener('click', function(e) {
     const a = e.target.closest('a[href]');
     if (!a) return;
     const href = a.getAttribute('href') || '';
-    if (!href || href.startsWith('#') || href.startsWith('javascript:')) {
-      if (href.startsWith('javascript:')) e.preventDefault();
-      return;
-    }
+    if (!href || href.startsWith('#')) return;
+    if (href.startsWith('javascript:')) { e.preventDefault(); return; }
     try {
       const u = new URL(href, window.location.href);
-      const isSafe = SAFE_ORIGINS.some(o => u.hostname.endsWith(o));
-      if (!isSafe && (a.target === '_blank' || a.target === '_top' || a.target === '_parent')) {
+      if (!isSafeOrigin(u.hostname) &&
+          (a.target === '_blank' || a.target === '_top' || a.target === '_parent')) {
         e.preventDefault();
         e.stopImmediatePropagation();
         console.warn('[AFlix AdBlock] Blocked outbound link:', href);
       }
     } catch(e) {}
-  }, true); // capture phase so we run before any inline handlers
+  }, true);
 
-  /* ── 4. BLOCK beforeunload / unload redirect tricks ─────────── */
-  // Some embeds call window.location = 'ad' inside a beforeunload handler.
+  /* ── 4. BLOCK beforeunload redirect tricks ───────────────────── */
   window.addEventListener('beforeunload', function(e) {
-    // If the player modal is open, cancel the navigation entirely.
     const modal = document.getElementById('playerModal');
     if (modal && modal.classList.contains('open')) {
       e.preventDefault();
@@ -107,30 +126,23 @@
   });
 
   /* ── 5. MUTATION OBSERVER — remove injected ad overlays ─────── */
-  // Embeds sometimes inject a transparent full-screen <div> or <a>
-  // on top of the video that redirects on click.
-  //
-  // We watch for:
-  //  • <a> tags added to <body> with suspicious hrefs
-  //  • full-screen positioned divs with z-index > 9000 (ad overlays)
-  //  • <script> tags injected into <body> pointing to ad networks
-
-  // Known ad/tracker hostname fragments to block
   const AD_HOSTS = [
     'doubleclick', 'googlesyndication', 'adservice', 'popads',
     'popcash', 'exoclick', 'trafficjunky', 'juicyads', 'hilltopads',
     'adnxs', 'rubiconproject', 'openx', 'pubmatic', 'criteo',
     'smartadserver', 'advertising', 'clickadu', 'adcash',
-    'propellerads', 'popcash', 'adsterra', 'yllix', 'hilltopads',
-    'clkrev', 'onclick', 'popunder', 'redirect', 'go2jump',
-    'adult', 'xxx', 'porn', 'sex', 'nude', 'naked', 'erotic',
-    'onlyfans', 'chaturbate', 'livejasmin', 'cams.com'
+    'propellerads', 'adsterra', 'yllix', 'clkrev', 'onclick',
+    'popunder', 'go2jump', 'adult', 'xxx', 'porn', 'sex',
+    'nude', 'naked', 'erotic', 'onlyfans', 'chaturbate',
+    'livejasmin', 'cams.com'
   ];
 
   function isAdUrl(url) {
     if (!url) return false;
     try {
       const u = new URL(url, window.location.href);
+      // Never flag URLs from our own safe servers
+      if (isSafeOrigin(u.hostname)) return false;
       const full = (u.hostname + u.pathname).toLowerCase();
       return AD_HOSTS.some(h => full.includes(h));
     } catch(e) {
@@ -141,12 +153,11 @@
   function isFullscreenOverlay(el) {
     try {
       const st = window.getComputedStyle(el);
-      const pos = st.position;
       const zi  = parseInt(st.zIndex, 10);
       const w   = parseInt(st.width, 10);
       const h   = parseInt(st.height, 10);
       return (
-        (pos === 'fixed' || pos === 'absolute') &&
+        (st.position === 'fixed' || st.position === 'absolute') &&
         zi > 9000 &&
         w  > window.innerWidth  * 0.7 &&
         h  > window.innerHeight * 0.7
@@ -154,12 +165,16 @@
     } catch(e) { return false; }
   }
 
+  const OUR_IDS = new Set([
+    'playerModal','detailModal','settingsModal',
+    'wlPanel','iptvModal','toastWrap'
+  ]);
+
   const observer = new MutationObserver(function(mutations) {
     for (const mut of mutations) {
       for (const node of mut.addedNodes) {
-        if (node.nodeType !== 1) continue; // elements only
+        if (node.nodeType !== 1) continue;
 
-        // Remove injected <a> pointing to ad domains
         if (node.tagName === 'A') {
           const href = node.href || node.getAttribute('href') || '';
           if (isAdUrl(href)) {
@@ -169,7 +184,6 @@
           }
         }
 
-        // Remove injected <script> pointing to ad networks
         if (node.tagName === 'SCRIPT') {
           const src = node.src || '';
           if (isAdUrl(src)) {
@@ -179,30 +193,20 @@
           }
         }
 
-        // Remove suspicious full-screen overlay divs
         if (node.tagName === 'DIV' || node.tagName === 'SECTION' || node.tagName === 'SPAN') {
-          // Small delay to let styles apply, then check
           setTimeout(() => {
-            if (node.parentNode && isFullscreenOverlay(node)) {
-              const href = node.getAttribute('onclick') || '';
-              // Only remove if it has no legit id (not our own modals)
-              const id = node.id || '';
-              const isOurs = ['playerModal','detailModal','settingsModal',
-                              'wlPanel','iptvModal','toastWrap'].includes(id);
-              if (!isOurs) {
-                node.remove();
-                console.warn('[AFlix AdBlock] Removed overlay element:', node.tagName, id);
-              }
+            if (node.parentNode && isFullscreenOverlay(node) && !OUR_IDS.has(node.id || '')) {
+              node.remove();
+              console.warn('[AFlix AdBlock] Removed overlay element:', node.tagName, node.id);
             }
           }, 100);
         }
 
-        // Recursively check children (some ads inject wrapper divs)
         const adLinks = node.querySelectorAll && node.querySelectorAll('a[href]');
         if (adLinks) {
           adLinks.forEach(a => {
             if (isAdUrl(a.href)) {
-              a.addEventListener('click', e => { e.preventDefault(); e.stopImmediatePropagation(); }, true);
+              a.addEventListener('click', ev => { ev.preventDefault(); ev.stopImmediatePropagation(); }, true);
               a.removeAttribute('href');
               a.style.pointerEvents = 'none';
             }
@@ -212,73 +216,59 @@
     }
   });
 
-  // Start observing once DOM is ready
   function startObserver() {
     observer.observe(document.body || document.documentElement, {
-      childList: true,
-      subtree: true
+      childList: true, subtree: true
     });
   }
-  if (document.body) {
-    startObserver();
-  } else {
-    document.addEventListener('DOMContentLoaded', startObserver);
-  }
+  if (document.body) startObserver();
+  else document.addEventListener('DOMContentLoaded', startObserver);
 
   /* ── 6. SANDBOX ENFORCEMENT helper ─────────────────────────── */
-  // Whenever AFlix creates a player iframe, we tighten its sandbox.
-  // This is called from index.html's setFrame() — see patch below.
   window.aflixHardenIframe = function(iframe) {
     if (!iframe) return;
-    // allow-scripts: needed for the player to work
-    // allow-same-origin: needed so the embed can fetch its own resources
-    // allow-fullscreen: so users can go fullscreen
-    // allow-presentation: needed for some players
-    // NOT included: allow-popups, allow-top-navigation, allow-forms
+    // allow-popups-to-escape-sandbox is intentionally omitted.
+    // allow-same-origin is required for many players to fetch their
+    // own sub-resources (HLS segments, subtitle files, etc.).
     iframe.setAttribute('sandbox',
       'allow-scripts allow-same-origin allow-fullscreen allow-presentation allow-orientation-lock'
     );
-    // Prevent the iframe from navigating our top frame
     iframe.setAttribute('referrerpolicy', 'no-referrer');
-    // Content-Security help via feature policy
     iframe.setAttribute('allow',
       'autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer'
     );
-    // Remove allow-popups and allow-top-navigation from any existing allow attr
   };
 
   /* ── 7. postMessage firewall ────────────────────────────────── */
-  // Block suspicious postMessages from iframes trying to trigger
-  // navigation or open windows in the parent frame.
+  // Only block messages that carry an actual external HTTP URL in
+  // a navigation-intent key. Plain strings like "location" that
+  // are part of normal player state objects are ignored.
   window.addEventListener('message', function(e) {
-    // Only intercept messages from non-same-origin frames
     if (e.origin === window.location.origin) return;
+
+    // Check if the sender is a known-safe server — if so, trust it
+    try {
+      if (isSafeOrigin(new URL(e.origin).hostname)) return;
+    } catch(err) {}
 
     let data;
     try { data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; }
     catch(err) { return; }
+    if (!data || typeof data !== 'object') return;
 
-    if (!data) return;
+    // Look specifically for values that are external HTTP URLs
+    // pointing to non-safe origins — that's the real ad telltale.
+    const hasAdUrl = Object.values(data).some(v => {
+      if (typeof v !== 'string' || !v.startsWith('http')) return false;
+      try {
+        const u = new URL(v);
+        return !isSafeOrigin(u.hostname) && AD_HOSTS.some(h => u.hostname.includes(h));
+      } catch(e) { return false; }
+    });
 
-    // Block any postMessage that tries to navigate the top window
-    const suspicious = ['redirect', 'navigate', 'open', 'popup', 'location'];
-    const dataStr = JSON.stringify(data).toLowerCase();
-    if (suspicious.some(k => dataStr.includes(k))) {
-      // Only log — don't stopImmediatePropagation so auto-next still works
-      // for legit 'ended'/'complete' events (checked by setupAutoNext())
-      const isAdMessage = AD_HOSTS.some(h => dataStr.includes(h)) ||
-                          suspicious.slice(0, 4).some(k => {
-                            // check if the value of a key contains a URL-like string
-                            try {
-                              return Object.values(data).some(v =>
-                                typeof v === 'string' && v.startsWith('http') && !SAFE_ORIGINS.some(o => v.includes(o))
-                              );
-                            } catch(e) { return false; }
-                          });
-      if (isAdMessage) {
-        e.stopImmediatePropagation();
-        console.warn('[AFlix AdBlock] Blocked postMessage from:', e.origin, data);
-      }
+    if (hasAdUrl) {
+      e.stopImmediatePropagation();
+      console.warn('[AFlix AdBlock] Blocked postMessage from:', e.origin, data);
     }
   }, true);
 
