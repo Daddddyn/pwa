@@ -224,20 +224,12 @@
   if (document.body) startObserver();
   else document.addEventListener('DOMContentLoaded', startObserver);
 
-  /* ── 6. SANDBOX ENFORCEMENT helper ─────────────────────────── */
-  window.aflixHardenIframe = function(iframe) {
-    if (!iframe) return;
-    // allow-popups-to-escape-sandbox is intentionally omitted.
-    // allow-same-origin is required for many players to fetch their
-    // own sub-resources (HLS segments, subtitle files, etc.).
-    iframe.setAttribute('sandbox',
-      'allow-scripts allow-same-origin allow-fullscreen allow-presentation allow-orientation-lock'
-    );
-    iframe.setAttribute('referrerpolicy', 'no-referrer');
-    iframe.setAttribute('allow',
-      'autoplay; fullscreen; picture-in-picture; encrypted-media; gyroscope; accelerometer'
-    );
-  };
+  /* ── 6. SANDBOX NOTE ────────────────────────────────────────── */
+  // Sandbox attributes are intentionally NOT applied to embed iframes.
+  // All vidsrc/vembed-style players do internal same-origin redirects
+  // during player init; any sandbox token — even allow-same-origin alone
+  // — causes those redirects to resolve against localhost (Apache 404).
+  // Ad protection is handled entirely by the JS layers above.
 
   /* ── 7. postMessage firewall ────────────────────────────────── */
   // Only block messages that carry an actual external HTTP URL in
