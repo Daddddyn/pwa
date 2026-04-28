@@ -1334,6 +1334,9 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
         allow="autoplay; fullscreen *; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write"
         referrerpolicy="strict-origin-when-cross-origin"
         allowfullscreen></iframe>
+      <!-- Native HLS player — used by consumet/FlixHQ servers (no iframe, no ads) -->
+      <video id="nativePlayer" class="p-iframe" controls playsinline webkit-playsinline
+        style="display:none;background:#000"></video>
       <div class="p-loading" id="pLoading"><div class="spin"></div></div>
     </div>
 
@@ -1364,10 +1367,12 @@ async function loadRemoteConfig() {
       SRVS = {};
       cfg.servers.forEach(s => {
         SRVS[s.id] = {
-          n:      s.name,
-          badge:  s.badge  || '',
-          badge2: s.badge2 || '',
-          imdb:   !!s.imdb,   // if true, server needs IMDb ID instead of TMDB ID
+          n:         s.name,
+          badge:     s.badge     || '',
+          badge2:    s.badge2    || '',
+          imdb:      !!s.imdb,
+          _consumet: !!s._consumet,
+          _api:      s._api || 'https://api.consumet.org',
           movie:  id => s.movie_url.replace('{id}', id),
           tv:    (id,se,ep) => s.tv_url.replace('{id}',id).replace('{s}',se).replace('{e}',ep)
         };
@@ -1394,6 +1399,13 @@ async function loadRemoteConfig() {
           n:'VidSrc 3', badge:'1080p', badge2:'', imdb:true,
           movie: id => `https://vidsrc.xyz/embed/movie/${id}`,
           tv:   (id,s,e) => `https://vidsrc.xyz/embed/tv/${id}/${s}/${e}`
+        },
+        'flixhq': {
+          n:'FlixHQ', badge:'4K', badge2:'No Ads', imdb:false,
+          _consumet: true,
+          _api: 'https://api.consumet.org',
+          movie: id => `consumet:movie:${id}`,
+          tv:   (id,s,e) => `consumet:tv:${id}:${s}:${e}`
         }
       };
     }
@@ -1999,13 +2011,115 @@ async function playContent(id, mediaType, title){
     </div>`;
 }
 
+// Shared HLS instance for the native player
+let _hlsNative = null;
+
+function _destroyNativePlayer(){
+  if(_hlsNative){ _hlsNative.destroy(); _hlsNative=null; }
+  const vid=document.getElementById('nativePlayer');
+  if(vid){ vid.pause(); vid.src=''; vid.style.display='none'; }
+  const iframe=document.getElementById('playerFrame');
+  if(iframe) iframe.style.display='';
+}
+
+async function _playNativeHLS(m3u8Url){
+  _destroyNativePlayer();
+  const vid=document.getElementById('nativePlayer');
+  const iframe=document.getElementById('playerFrame');
+  const ov=document.getElementById('pLoading');
+
+  iframe.style.display='none';
+  vid.style.display='block';
+  ov.classList.add('show');
+
+  const done=()=>ov.classList.remove('show');
+
+  if(typeof Hls!=='undefined' && Hls.isSupported()){
+    _hlsNative=new Hls({maxBufferLength:30,enableWorker:true});
+    _hlsNative.loadSource(m3u8Url);
+    _hlsNative.attachMedia(vid);
+    _hlsNative.on(Hls.Events.MANIFEST_PARSED,()=>{ vid.play().catch(()=>{}); done(); });
+    _hlsNative.on(Hls.Events.ERROR,(_,d)=>{ if(d.fatal){ done(); toast('Stream error — try another source','err'); } });
+  } else if(vid.canPlayType('application/vnd.apple.mpegurl')){
+    vid.src=m3u8Url;
+    vid.addEventListener('loadedmetadata',()=>{ vid.play().catch(()=>{}); done(); },{once:true});
+  } else {
+    _destroyNativePlayer(); done();
+    toast('HLS not supported in this browser','err');
+  }
+}
+
+async function _consumetPlay(src){
+  const ov=document.getElementById('pLoading');
+  ov.classList.add('show');
+
+  const srv=SRVS[S.srv];
+  const apiBase=srv._api||'https://api.consumet.org';
+
+  // parse the consumet:type:id[:s:e] token
+  const parts=src.split(':');
+  const cType=parts[1];      // 'movie' or 'tv'
+  const tmdbId=parts[2];
+  const season=parts[3]||'1';
+  const episode=parts[4]||'1';
+
+  try{
+    // Step 1 — search FlixHQ
+    const q=encodeURIComponent(S.content?.title||tmdbId);
+    const searchRes=await fetch(`${apiBase}/movies/flixhq/${q}`);
+    if(!searchRes.ok) throw new Error('FlixHQ search failed');
+    const searchData=await searchRes.json();
+    const results=searchData.results||[];
+    const wantType=cType==='movie'?'Movie':'TV Series';
+    const match=results.find(r=>r.type===wantType)||results[0];
+    if(!match) throw new Error('No FlixHQ result');
+
+    // Step 2 — get info
+    const infoRes=await fetch(`${apiBase}/movies/flixhq/info?id=${encodeURIComponent(match.id)}`);
+    if(!infoRes.ok) throw new Error('FlixHQ info failed');
+    const info=await infoRes.json();
+
+    let episodeId;
+    if(cType==='movie'){
+      episodeId=info.episodes?.[0]?.id;
+    } else {
+      const ep=info.episodes?.find(e=>e.season===parseInt(season)&&e.number===parseInt(episode));
+      episodeId=ep?.id;
+    }
+    if(!episodeId) throw new Error('Episode not found');
+
+    // Step 3 — get stream
+    const watchRes=await fetch(`${apiBase}/movies/flixhq/watch?episodeId=${encodeURIComponent(episodeId)}&mediaId=${encodeURIComponent(match.id)}`);
+    if(!watchRes.ok) throw new Error('FlixHQ watch failed');
+    const watchData=await watchRes.json();
+    const sources=watchData.sources||[];
+    const best=sources.find(s=>s.quality==='1080p')||sources.find(s=>s.quality==='720p')||sources[0];
+    if(!best?.url) throw new Error('No stream URL');
+
+    await _playNativeHLS(best.url);
+
+  } catch(err){
+    console.error('[AFlix FlixHQ]',err);
+    ov.classList.remove('show');
+    _destroyNativePlayer();
+    toast('FlixHQ unavailable — try another source','err');
+    // Auto-fallback to first iframe server
+    const fallback=Object.keys(SRVS).find(k=>!SRVS[k]._consumet);
+    if(fallback) switchServer(fallback);
+  }
+}
+
 function setFrame(src){
+  // Route consumet (FlixHQ) tokens to native HLS path
+  if(src && src.startsWith('consumet:')){
+    _consumetPlay(src);
+    return;
+  }
+  // Standard iframe path — tear down any previous native player first
+  _destroyNativePlayer();
   const iframe=document.getElementById('playerFrame'), ov=document.getElementById('pLoading');
   ov.classList.add('show');
-  // NOTE: Do NOT call aflixHardenIframe() here. All embed servers (vidsrc, vembed, etc.)
-  // break under any sandbox attribute — they redirect internally and the sandbox causes
-  // those redirects to resolve against localhost, producing Apache 404s.
-  // Ad blocking is handled entirely by the JS layers in adblock.js instead.
+  if(typeof aflixHardenIframe==='function') aflixHardenIframe(iframe);
   iframe.src=src;
   iframe.onload=()=>ov.classList.remove('show');
   setTimeout(()=>ov.classList.remove('show'),10000);
@@ -2067,10 +2181,12 @@ function switchServer(key){
 function closePlayer(){
   document.getElementById('playerModal').classList.remove('open');
   document.getElementById('playerFrame').src='about:blank';
+  _destroyNativePlayer();
   document.body.classList.remove('no-scroll','ci');
   cancelAutoNext();
-  S.srv='vidsrc-cc';
-  document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv==='vidsrc-cc'));
+  const firstSrv=Object.keys(SRVS)[0]||'vidlink';
+  S.srv=firstSrv;
+  document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv===firstSrv));
 }
 
 /* ══════════════════════════════════════════
