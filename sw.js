@@ -12,7 +12,7 @@
    iframe's JS tries to do.
 ══════════════════════════════════════════ */
 
-const CACHE_NAME = 'aflix-v3';
+const CACHE_NAME = 'aflix-v4';
 
 const SHELL_FILES = [
   './',
@@ -134,6 +134,40 @@ const AD_BLOCK_PATTERNS = [
   'btloader.com',         // Blockthrough anti-adblock
   'fundingchoicesmessages.google.com',
   'pagead2.googlesyndication.com',
+  // ── Additional domains seen injected by vidlink/videasy/vidfast ──
+  'go2jump.org',
+  'onclkads.net',
+  'pxlgnpgecom.com',      // pixel tracker used by some embeds
+  'cdn.pagesuite.com',
+  'adx1.com',
+  'bstatic.com',          // bogus static CDN used for ad payloads
+  'cdn.bmcdn1.com',
+  'cdn.bmcdn2.com',
+  'cdn.bmcdn3.com',
+  'cdn.bmcdn4.com',
+  'cdn.bmcdn5.com',
+  'ads.bmcdn1.com',
+  'adsco.re',
+  'tpc.googlesyndication.com',
+  'cdn.cpx.to',
+  'sync.outbrain.com',
+  'sync.mathtag.com',
+  'pixel.quantserve.com',
+  'static.ads-twitter.com',
+  'analytics.google.com', // analytics pings from embeds
+  'adservice.google.com',
+  'nativeads.com',
+  'adpushup.com',
+  'setupad.com',
+  'healthyadvertising.com',
+  'playerwire.com',       // video ad network used by some embeds
+  'springserve.com',
+  'pubmatic.com',
+  'video.unrulymedia.com',
+  'jwpltx.com',           // JW Player analytics/ads
+  'imasdk.googleapis.com', // Google IMA SDK (video pre-roll ads)
+  'googleads.g.doubleclick.net',
+  'stats.g.doubleclick.net',
 ];
 
 /* Quick hostname extraction — no regex, just splits */
