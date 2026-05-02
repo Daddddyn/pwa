@@ -222,6 +222,25 @@
   });
 
   /* ══════════════════════════════════════════════════════════
+     LAYER 6b — visibilitychange popunder guard
+     Some embed servers use the "popunder" pattern: they call
+     window.open() inside a visibilitychange or blur handler so
+     a new tab opens when the user switches away from the page.
+     We block window.open during those events on the parent doc.
+  ══════════════════════════════════════════════════════════ */
+  ['visibilitychange','blur','pagehide'].forEach(function(evtType) {
+    document.addEventListener(evtType, function preventPopunderOpen(e) {
+      // Temporarily replace window.open with a noop during these events
+      // (the proxy already handles it, but belt-and-suspenders)
+      const real = window.open;
+      Object.defineProperty(window, 'open', { get: () => () => _fakeWindow, configurable: true });
+      setTimeout(() => {
+        try { Object.defineProperty(window, 'open', { get: () => _openProxy, set: () => {}, configurable: false }); } catch(e2) {}
+      }, 0);
+    }, true);
+  });
+
+  /* ══════════════════════════════════════════════════════════
      LAYER 7 — MutationObserver: remove injected ad nodes
   ══════════════════════════════════════════════════════════ */
   function isAdUrl(url) {
