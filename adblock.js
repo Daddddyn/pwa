@@ -1,29 +1,41 @@
 /* ══════════════════════════════════════════════════════════════
-   AFlix Ad & Popup Blocker — adblock.js
+   AFlix Ad & Popup Blocker — adblock.js  (v2 — hardened)
    ──────────────────────────────────────────────────────────────
    Blocks popup ads, redirects, and unsafe content from embed
    servers without breaking playback.
 
-   HOW IT WORKS (3-layer defence):
-   1. window.open() override  — kills all new-tab/popup attempts
-   2. beforeunload / popstate guard — prevents top-frame hijack
-   3. MutationObserver — removes injected <a> and overlay <div>s
-      that auto-click to open ads
+   HOW IT WORKS (6-layer defence):
+   1. window.open() override         — kills new-tab/popup attempts
+   2. document.onclick/mousedown nuke — embed sites bind click on
+                                        the whole document to fire
+                                        window.open on any click;
+                                        we poll and null them out
+   3. Invisible overlay trap          — transparent div over the
+                                        iframe catches every click
+                                        before the iframe does,
+                                        consuming the user-gesture
+                                        so the iframe can't use it
+                                        to open a new tab
+   4. visibilitychange / blur guard   — sites use these to detect
+                                        when focus left the page
+                                        and fire popunders; we
+                                        intercept and suppress
+   5. beforeunload / popstate guard   — prevents top-frame hijack
+   6. MutationObserver               — removes injected <a> and
+                                        overlay <div>s that
+                                        auto-click to open ads
 
    DYNAMIC SERVER WHITELIST:
    index.html sets  window.aflixServers = [array of server URL
    strings from the loaded config] before this script runs.
    If that global is absent we fall back to a built-in list.
-   This means adblock.js never needs editing when you add a new
-   server to aflix-config.json.
    ══════════════════════════════════════════════════════════════ */
 
 (function () {
   'use strict';
 
   /* ── ADBLOCK KILL-SWITCH ────────────────────────────────────
-     If the user has toggled adblock OFF in Settings, bail out
-     immediately so none of the protection layers are applied.
+     If the user has toggled adblock OFF in Settings, bail out.
   ──────────────────────────────────────────────────────────── */
   try {
     if (localStorage.getItem('aflix_adblock_off') === '1') {
@@ -33,9 +45,7 @@
   } catch(e) {}
 
   /* ── DYNAMIC SAFE_ORIGINS ──────────────────────────────────
-     Built from window.aflixServers (set by index.html after
-     the config loads) + a permanent fallback set.
-     Hostnames only — no protocols or paths.
+     Built from window.aflixServers + a permanent fallback set.
   ──────────────────────────────────────────────────────────── */
   const PERMANENT_SAFE = [
     'themoviedb.org',
@@ -47,12 +57,9 @@
 
   function buildSafeOrigins() {
     const origins = new Set(PERMANENT_SAFE);
-    // Pull hostnames out of every server URL the config registered
     const serverUrls = window.aflixServers || [];
     for (const raw of serverUrls) {
       try {
-        // raw may be a full URL like "https://vidsrc-me.ru/embed/movie/{id}"
-        // or just a hostname — handle both
         const url = raw.startsWith('http') ? raw : 'https://' + raw;
         origins.add(new URL(url).hostname.toLowerCase());
       } catch(e) {}
@@ -60,24 +67,24 @@
     return [...origins];
   }
 
-  // Safe origins are evaluated lazily on first use so that
-  // index.html has time to set window.aflixServers even if it
-  // does so after this script executes.
   let _safeOrigins = null;
   function getSafeOrigins() {
     if (!_safeOrigins) _safeOrigins = buildSafeOrigins();
     return _safeOrigins;
   }
 
-  // index.html can call this after config loads to refresh the list
   window.aflixRefreshSafeOrigins = function() { _safeOrigins = null; };
 
   function isSafeOrigin(hostname) {
-    const h = hostname.toLowerCase();
+    const h = (hostname || '').toLowerCase();
     return getSafeOrigins().some(o => h === o || h.endsWith('.' + o));
   }
 
-  /* ── 1. BLOCK window.open() ────────────────────────────────── */
+  /* ─────────────────────────────────────────────────────────────
+     LAYER 1 — Block window.open()
+     Embed sites call window.open() directly on click. Return a
+     fake window object so any chained .focus() etc. don't throw.
+  ──────────────────────────────────────────────────────────── */
   const _noop = () => ({
     closed: true, focus: () => {}, blur: () => {},
     close: () => {}, postMessage: () => {},
@@ -85,37 +92,153 @@
   });
   window.open = _noop;
 
-  /* ── 2. BLOCK top-frame navigation hijacks ─────────────────── */
-  function _safeNav(url) {
-    try {
-      const u = new URL(url, window.location.href);
-      if (u.origin === window.location.origin) {
-        window.location.href = url;
-      } else {
-        console.warn('[AFlix AdBlock] Blocked navigation to:', url);
-      }
-    } catch(e) {}
-  }
+  /* ─────────────────────────────────────────────────────────────
+     LAYER 2 — Nuke document.onclick / document.onmousedown
+     The most common trick: embed player injects a click handler
+     on THE WHOLE DOCUMENT (not inside the iframe) that fires
+     window.open() on the very next user click. We poll every
+     200 ms for up to 60 s and null any such handler out.
+     We also use a MutationObserver to catch inline onevent
+     attributes being added to <body> / <html>.
+  ──────────────────────────────────────────────────────────── */
+  let _docClickPollCount = 0;
+  const _docClickInterval = setInterval(function() {
+    if (typeof document.onclick === 'function') {
+      console.warn('[AFlix AdBlock] Killed document.onclick popup trap');
+      document.onclick = null;
+    }
+    if (typeof document.onmousedown === 'function') {
+      console.warn('[AFlix AdBlock] Killed document.onmousedown popup trap');
+      document.onmousedown = null;
+    }
+    if (typeof document.body?.onclick === 'function') {
+      console.warn('[AFlix AdBlock] Killed body.onclick popup trap');
+      document.body.onclick = null;
+    }
+    if (typeof document.body?.onmousedown === 'function') {
+      console.warn('[AFlix AdBlock] Killed body.onmousedown popup trap');
+      document.body.onmousedown = null;
+    }
+    if (++_docClickPollCount >= 300) clearInterval(_docClickInterval); // 60 s
+  }, 200);
 
-  /* ── 3. INTERCEPT <a target="_blank"> clicks ───────────────── */
-  document.addEventListener('click', function(e) {
-    const a = e.target.closest('a[href]');
-    if (!a) return;
-    const href = a.getAttribute('href') || '';
-    if (!href || href.startsWith('#')) return;
-    if (href.startsWith('javascript:')) { e.preventDefault(); return; }
-    try {
-      const u = new URL(href, window.location.href);
-      if (!isSafeOrigin(u.hostname) &&
-          (a.target === '_blank' || a.target === '_top' || a.target === '_parent')) {
-        e.preventDefault();
+  /* ─────────────────────────────────────────────────────────────
+     LAYER 3 — Invisible click-absorbing overlay over the iframe
+     Embed sites can only call window.open() during a genuine
+     user-gesture (browser requirement). They piggyback on your
+     click inside the iframe. We place a transparent <div> on top
+     of the iframe that intercepts mousedown FIRST (capture phase),
+     then immediately re-dispatches a synthetic click to the iframe
+     so playback controls still work — but the original user-gesture
+     is consumed, so the iframe's window.open() call is blocked.
+
+     This overlay is created/destroyed by index.html calling:
+       window.aflixOverlay.attach(iframeEl)
+       window.aflixOverlay.detach()
+  ──────────────────────────────────────────────────────────── */
+  (function setupOverlay() {
+    let overlay = null;
+    let targetIframe = null;
+
+    function createOverlay() {
+      const el = document.createElement('div');
+      el.id = 'aflix-click-shield';
+      el.style.cssText = [
+        'position:absolute',
+        'inset:0',
+        'z-index:2147483646',  // max z-index - 1
+        'cursor:pointer',
+        'background:transparent',
+        '-webkit-tap-highlight-color:transparent',
+      ].join(';');
+
+      // Absorb the raw mousedown (consumes user gesture at capture phase)
+      el.addEventListener('mousedown', function(e) {
         e.stopImmediatePropagation();
-        console.warn('[AFlix AdBlock] Blocked outbound link:', href);
-      }
-    } catch(e) {}
-  }, true);
+        // Don't preventDefault — we still want click to reach controls
+      }, true);
 
-  /* ── 4. BLOCK beforeunload redirect tricks ───────────────────── */
+      // On click, forward to the underlying iframe position so controls work
+      el.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (targetIframe) {
+          // Temporarily hide the shield so the real click hits the iframe
+          el.style.pointerEvents = 'none';
+          const underneath = document.elementFromPoint(e.clientX, e.clientY);
+          if (underneath) {
+            underneath.dispatchEvent(new MouseEvent('click', {
+              bubbles: true, cancelable: true,
+              clientX: e.clientX, clientY: e.clientY
+            }));
+          }
+          setTimeout(() => { el.style.pointerEvents = ''; }, 50);
+        }
+      }, false);
+
+      return el;
+    }
+
+    function attach(iframeEl) {
+      detach();
+      if (!iframeEl || !iframeEl.parentElement) return;
+      overlay = createOverlay();
+      targetIframe = iframeEl;
+      // The iframe's parent must be position:relative for absolute overlay to work
+      const parent = iframeEl.parentElement;
+      const pos = window.getComputedStyle(parent).position;
+      if (pos === 'static') parent.style.position = 'relative';
+      parent.appendChild(overlay);
+    }
+
+    function detach() {
+      if (overlay && overlay.parentElement) overlay.parentElement.removeChild(overlay);
+      overlay = null;
+      targetIframe = null;
+    }
+
+    window.aflixOverlay = { attach, detach };
+  })();
+
+  /* ─────────────────────────────────────────────────────────────
+     LAYER 4 — Block visibilitychange / blur popunder tricks
+     Sites listen for document becoming hidden (user switches tab)
+     and fire window.open() at that moment (popunder). We override
+     addEventListener to intercept visibilitychange and blur on
+     the document/window coming from cross-origin contexts.
+
+     We can't block it inside the iframe (cross-origin), but we
+     CAN block any postMessage that tries to tell the parent to
+     open a URL, and we block top-level visibilitychange handlers
+     that weren't registered by AFlix itself.
+  ──────────────────────────────────────────────────────────── */
+  const _aflix_legit_visibility_listeners = new WeakSet();
+
+  // Mark our own listeners as legit
+  window.aflixMarkLegit = function(fn) {
+    try { _aflix_legit_visibility_listeners.add(fn); } catch(e) {}
+    return fn;
+  };
+
+  // Intercept addEventListener on document to watch for visibilitychange abuse
+  const _origDocAdd = document.addEventListener.bind(document);
+  document.addEventListener = function(type, fn, opts) {
+    if ((type === 'visibilitychange' || type === 'blur') &&
+        typeof fn === 'function' &&
+        !_aflix_legit_visibility_listeners.has(fn)) {
+      // Wrap it — if it tries to window.open(), noop
+      const wrapped = function(e) {
+        const prevOpen = window.open;
+        window.open = _noop;
+        try { fn.call(this, e); } finally { window.open = _noop; }
+      };
+      return _origDocAdd(type, wrapped, opts);
+    }
+    return _origDocAdd(type, fn, opts);
+  };
+
+  /* ─────────────────────────────────────────────────────────────
+     LAYER 5 — Block beforeunload / popstate top-frame hijacks
+  ──────────────────────────────────────────────────────────── */
   window.addEventListener('beforeunload', function(e) {
     const modal = document.getElementById('playerModal');
     if (modal && modal.classList.contains('open')) {
@@ -125,7 +248,9 @@
     }
   });
 
-  /* ── 5. MUTATION OBSERVER — remove injected ad overlays ─────── */
+  /* ─────────────────────────────────────────────────────────────
+     LAYER 6 — MutationObserver: remove injected ad nodes
+  ──────────────────────────────────────────────────────────── */
   const AD_HOSTS = [
     'doubleclick', 'googlesyndication', 'adservice', 'popads',
     'popcash', 'exoclick', 'trafficjunky', 'juicyads', 'hilltopads',
@@ -141,7 +266,6 @@
     if (!url) return false;
     try {
       const u = new URL(url, window.location.href);
-      // Never flag URLs from our own safe servers
       if (isSafeOrigin(u.hostname)) return false;
       const full = (u.hostname + u.pathname).toLowerCase();
       return AD_HOSTS.some(h => full.includes(h));
@@ -167,7 +291,7 @@
 
   const OUR_IDS = new Set([
     'playerModal','detailModal','settingsModal',
-    'wlPanel','iptvModal','toastWrap'
+    'wlPanel','iptvModal','toastWrap','aflix-click-shield'
   ]);
 
   const observer = new MutationObserver(function(mutations) {
@@ -224,21 +348,12 @@
   if (document.body) startObserver();
   else document.addEventListener('DOMContentLoaded', startObserver);
 
-  /* ── 6. SANDBOX NOTE ────────────────────────────────────────── */
-  // Sandbox attributes are intentionally NOT applied to embed iframes.
-  // All vidsrc/vembed-style players do internal same-origin redirects
-  // during player init; any sandbox token — even allow-same-origin alone
-  // — causes those redirects to resolve against localhost (Apache 404).
-  // Ad protection is handled entirely by the JS layers above.
-
-  /* ── 7. postMessage firewall ────────────────────────────────── */
-  // Only block messages that carry an actual external HTTP URL in
-  // a navigation-intent key. Plain strings like "location" that
-  // are part of normal player state objects are ignored.
+  /* ─────────────────────────────────────────────────────────────
+     LAYER 7 — postMessage firewall
+     Only block messages carrying actual external ad HTTP URLs.
+  ──────────────────────────────────────────────────────────── */
   window.addEventListener('message', function(e) {
     if (e.origin === window.location.origin) return;
-
-    // Check if the sender is a known-safe server — if so, trust it
     try {
       if (isSafeOrigin(new URL(e.origin).hostname)) return;
     } catch(err) {}
@@ -248,8 +363,6 @@
     catch(err) { return; }
     if (!data || typeof data !== 'object') return;
 
-    // Look specifically for values that are external HTTP URLs
-    // pointing to non-safe origins — that's the real ad telltale.
     const hasAdUrl = Object.values(data).some(v => {
       if (typeof v !== 'string' || !v.startsWith('http')) return false;
       try {
@@ -264,6 +377,26 @@
     }
   }, true);
 
-  console.log('[AFlix AdBlock] ✓ Active — popup & ad protection enabled');
+  /* ─────────────────────────────────────────────────────────────
+     LAYER 8 — Intercept <a target="_blank"> clicks
+  ──────────────────────────────────────────────────────────── */
+  document.addEventListener('click', function(e) {
+    const a = e.target.closest('a[href]');
+    if (!a) return;
+    const href = a.getAttribute('href') || '';
+    if (!href || href.startsWith('#')) return;
+    if (href.startsWith('javascript:')) { e.preventDefault(); return; }
+    try {
+      const u = new URL(href, window.location.href);
+      if (!isSafeOrigin(u.hostname) &&
+          (a.target === '_blank' || a.target === '_top' || a.target === '_parent')) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        console.warn('[AFlix AdBlock] Blocked outbound link:', href);
+      }
+    } catch(e) {}
+  }, true);
+
+  console.log('[AFlix AdBlock] ✓ Active (v2 hardened) — 8-layer popup protection enabled');
 
 })();
