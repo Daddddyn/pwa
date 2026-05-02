@@ -1377,6 +1377,8 @@ async function loadRemoteConfig() {
           tv:    (id,se,ep) => s.tv_url.replace('{id}',id).replace('{s}',se).replace('{e}',ep)
         };
       });
+      // Always default to the first server in the remote config
+      S.srv = cfg.servers[0].id;
     } else {
       // ── DEFAULT SERVERS ──
       // "Direct Stream" is first — uses native HLS (no iframe, no ads).
