@@ -1379,26 +1379,35 @@ async function loadRemoteConfig() {
       });
     } else {
       // ── DEFAULT SERVERS ──
+      // "Direct Stream" is first — uses native HLS (no iframe, no ads).
+      // Falls through to iframe-based servers if direct APIs are down.
       SRVS = {
+        'direct': {
+          n:'Direct Stream', badge:'1080p', badge2:'No Ads', imdb:false,
+          _consumet: true,
+          _api: 'https://api.consumet.org',
+          movie: id => `consumet:movie:${id}`,
+          tv:   (id,s,e) => `consumet:tv:${id}:${s}:${e}`
+        },
+        'videasy': {
+          n:'Videasy', badge:'1080p', badge2:'Low Ads', imdb:false,
+          movie: id => `https://player.videasy.net/movie/${id}`,
+          tv:   (id,s,e) => `https://player.videasy.net/tv/${id}/${s}/${e}`
+        },
+        'vidlink': {
+          n:'VidLink', badge:'1080p', badge2:'', imdb:false,
+          movie: id => `https://vidlink.pro/movie/${id}`,
+          tv:   (id,s,e) => `https://vidlink.pro/tv/${id}/${s}/${e}`
+        },
         'vidsrc-cc': {
           n:'VidSrc', badge:'1080p', badge2:'', imdb:false,
           movie: id => `https://vidsrc.cc/v2/embed/movie/${id}`,
           tv:   (id,s,e) => `https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}`
         },
-        'vembed': {
-          n:'VEmbed', badge:'1080p', badge2:'', imdb:false,
-          movie: id => `https://vembed.stream/play/${id}`,
-          tv:   (id,s,e) => `https://vembed.stream/play/${id}_s${s}`
-        },
         'vidsrc-to': {
           n:'VidSrc 2', badge:'1080p', badge2:'', imdb:true,
           movie: id => `https://vidsrc.to/embed/movie/${id}`,
           tv:   (id,s,e) => `https://vidsrc.to/embed/tv/${id}/${s}/${e}`
-        },
-        'vidsrc-xyz': {
-          n:'VidSrc 3', badge:'1080p', badge2:'', imdb:true,
-          movie: id => `https://vidsrc.xyz/embed/movie/${id}`,
-          tv:   (id,s,e) => `https://vidsrc.xyz/embed/tv/${id}/${s}/${e}`
         },
         'flixhq': {
           n:'FlixHQ', badge:'4K', badge2:'No Ads', imdb:false,
@@ -1440,7 +1449,7 @@ function renderSrvPills() {
    STATE
 ══════════════════════════════════════════ */
 const S = {
-  filter:'all', genre:null, srv:'vidsrc-cc',
+  filter:'all', genre:null, srv:'direct',
   content:null,
   epList:[],
   heroItems:[], heroIdx:0, heroTimer:null,
@@ -2049,64 +2058,124 @@ async function _playNativeHLS(m3u8Url){
   }
 }
 
-async function _consumetPlay(src){
-  const ov=document.getElementById('pLoading');
-  ov.classList.add('show');
+/* ── DIRECT STREAM PROVIDERS ────────────────────────────────────
+   Each provider is tried in order. A provider returns an m3u8 URL
+   string on success, or throws on failure.
+   These all return JSON with direct HLS links — no iframe, no ads.
+──────────────────────────────────────────────────────────── */
+const DIRECT_PROVIDERS = [
 
-  const srv=SRVS[S.srv];
-  const apiBase=srv._api||'https://api.consumet.org';
+  // ── Provider 1: vidsrc.rip JSON API ─────────────────────────
+  // Returns sources[] with direct .m3u8 URLs. Fast and reliable.
+  async function vidsrcRip(tmdbId, cType, season, episode){
+    const path = cType === 'movie'
+      ? `/movie/${tmdbId}`
+      : `/tv/${tmdbId}/${season}/${episode}`;
+    const r = await fetch(`https://vidsrc.rip/api${path}`, {signal: AbortSignal.timeout(6000)});
+    if (!r.ok) throw new Error('vidsrc.rip failed');
+    const d = await r.json();
+    const sources = d.sources || d.streams || [];
+    const best = sources.find(s => (s.quality||'').includes('1080'))
+               || sources.find(s => (s.quality||'').includes('720'))
+               || sources[0];
+    if (!best?.url) throw new Error('vidsrc.rip: no stream URL');
+    console.log('[AFlix] vidsrc.rip stream found');
+    return best.url;
+  },
 
-  // parse the consumet:type:id[:s:e] token
-  const parts=src.split(':');
-  const cType=parts[1];      // 'movie' or 'tv'
-  const tmdbId=parts[2];
-  const season=parts[3]||'1';
-  const episode=parts[4]||'1';
+  // ── Provider 2: vidsrc.xyz extractor ────────────────────────
+  // Uses a CORS proxy to extract the .m3u8 from vidsrc.xyz API
+  async function vidsrcXyzApi(tmdbId, cType, season, episode){
+    const path = cType === 'movie'
+      ? `/embed/movie/${tmdbId}`
+      : `/embed/tv/${tmdbId}/${season}/${episode}`;
+    // corsproxy.io allows fetching the vidsrc API endpoint
+    const proxyUrl = `https://corsproxy.io/?https://vidsrc.xyz/api/source/${tmdbId}`;
+    const r = await fetch(proxyUrl, {signal: AbortSignal.timeout(7000)});
+    if (!r.ok) throw new Error('vidsrc.xyz api failed');
+    const d = await r.json();
+    const url = d?.data?.file || d?.data?.sources?.[0]?.file;
+    if (!url || !url.includes('.m3u8')) throw new Error('vidsrc.xyz: no m3u8');
+    console.log('[AFlix] vidsrc.xyz direct stream found');
+    return url;
+  },
 
-  try{
-    // Step 1 — search FlixHQ
-    const q=encodeURIComponent(S.content?.title||tmdbId);
-    const searchRes=await fetch(`${apiBase}/movies/flixhq/${q}`);
-    if(!searchRes.ok) throw new Error('FlixHQ search failed');
-    const searchData=await searchRes.json();
-    const results=searchData.results||[];
-    const wantType=cType==='movie'?'Movie':'TV Series';
-    const match=results.find(r=>r.type===wantType)||results[0];
-    if(!match) throw new Error('No FlixHQ result');
+  // ── Provider 3: FlixHQ via consumet API ─────────────────────
+  // Original consumet path — kept as 3rd fallback since api.consumet.org is often down.
+  // The _api field from the server config overrides the base URL, so self-hosted
+  // consumet instances configured in aflix-config.json are automatically used here.
+  async function flixhqConsumet(tmdbId, cType, season, episode, apiBase, title){
+    const q = encodeURIComponent(title || tmdbId);
+    const searchRes = await fetch(`${apiBase}/movies/flixhq/${q}`, {signal: AbortSignal.timeout(8000)});
+    if (!searchRes.ok) throw new Error('FlixHQ search failed');
+    const searchData = await searchRes.json();
+    const results = searchData.results || [];
+    const wantType = cType === 'movie' ? 'Movie' : 'TV Series';
+    const match = results.find(r => r.type === wantType) || results[0];
+    if (!match) throw new Error('No FlixHQ result');
 
-    // Step 2 — get info
-    const infoRes=await fetch(`${apiBase}/movies/flixhq/info?id=${encodeURIComponent(match.id)}`);
-    if(!infoRes.ok) throw new Error('FlixHQ info failed');
-    const info=await infoRes.json();
+    const infoRes = await fetch(`${apiBase}/movies/flixhq/info?id=${encodeURIComponent(match.id)}`, {signal: AbortSignal.timeout(8000)});
+    if (!infoRes.ok) throw new Error('FlixHQ info failed');
+    const info = await infoRes.json();
 
     let episodeId;
-    if(cType==='movie'){
-      episodeId=info.episodes?.[0]?.id;
+    if (cType === 'movie'){
+      episodeId = info.episodes?.[0]?.id;
     } else {
-      const ep=info.episodes?.find(e=>e.season===parseInt(season)&&e.number===parseInt(episode));
-      episodeId=ep?.id;
+      const ep = info.episodes?.find(e => e.season === parseInt(season) && e.number === parseInt(episode));
+      episodeId = ep?.id;
     }
-    if(!episodeId) throw new Error('Episode not found');
+    if (!episodeId) throw new Error('FlixHQ: episode not found');
 
-    // Step 3 — get stream
-    const watchRes=await fetch(`${apiBase}/movies/flixhq/watch?episodeId=${encodeURIComponent(episodeId)}&mediaId=${encodeURIComponent(match.id)}`);
-    if(!watchRes.ok) throw new Error('FlixHQ watch failed');
-    const watchData=await watchRes.json();
-    const sources=watchData.sources||[];
-    const best=sources.find(s=>s.quality==='1080p')||sources.find(s=>s.quality==='720p')||sources[0];
-    if(!best?.url) throw new Error('No stream URL');
-
-    await _playNativeHLS(best.url);
-
-  } catch(err){
-    console.error('[AFlix FlixHQ]',err);
-    ov.classList.remove('show');
-    _destroyNativePlayer();
-    toast('FlixHQ unavailable — try another source','err');
-    // Auto-fallback to first iframe server
-    const fallback=Object.keys(SRVS).find(k=>!SRVS[k]._consumet);
-    if(fallback) switchServer(fallback);
+    const watchRes = await fetch(`${apiBase}/movies/flixhq/watch?episodeId=${encodeURIComponent(episodeId)}&mediaId=${encodeURIComponent(match.id)}`, {signal: AbortSignal.timeout(8000)});
+    if (!watchRes.ok) throw new Error('FlixHQ watch failed');
+    const watchData = await watchRes.json();
+    const sources = watchData.sources || [];
+    const best = sources.find(s => s.quality === '1080p')
+               || sources.find(s => s.quality === '720p')
+               || sources[0];
+    if (!best?.url) throw new Error('FlixHQ: no stream URL');
+    console.log('[AFlix] FlixHQ stream found');
+    return best.url;
   }
+];
+
+async function _consumetPlay(src){
+  const ov = document.getElementById('pLoading');
+  ov.classList.add('show');
+
+  const srv = SRVS[S.srv];
+  const apiBase = srv._api || 'https://api.consumet.org';
+
+  // parse the consumet:type:id[:s:e] token
+  const parts = src.split(':');
+  const cType   = parts[1];      // 'movie' or 'tv'
+  const tmdbId  = parts[2];
+  const season  = parts[3] || '1';
+  const episode = parts[4] || '1';
+  const title   = S.content?.title || '';
+
+  // Try each provider in sequence — first success wins
+  const errors = [];
+  for (const provider of DIRECT_PROVIDERS){
+    try {
+      const m3u8 = await provider(tmdbId, cType, season, episode, apiBase, title);
+      await _playNativeHLS(m3u8);
+      return; // success — stop trying
+    } catch(err){
+      console.warn(`[AFlix] Provider "${provider.name}" failed:`, err.message);
+      errors.push(`${provider.name}: ${err.message}`);
+    }
+  }
+
+  // All providers exhausted
+  console.error('[AFlix] All direct providers failed:', errors);
+  ov.classList.remove('show');
+  _destroyNativePlayer();
+  toast('Direct stream unavailable — switching to embed server','err');
+  // Auto-fallback to first iframe (non-consumet) server
+  const fallback = Object.keys(SRVS).find(k => !SRVS[k]._consumet);
+  if (fallback) switchServer(fallback);
 }
 
 function setFrame(src){
