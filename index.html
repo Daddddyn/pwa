@@ -1330,10 +1330,31 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
            "Please disable sandbox" block screen. Ad blocking is done entirely by
            the JS layers in adblock.js (window.open override, MutationObserver,
            click capture, postMessage firewall) and the Service Worker. -->
+      <!-- ── POPUP PERMISSION POLICY ──────────────────────────────────
+           The `allow` attribute doubles as a Permissions Policy declaration.
+           NOT including "popup" means the browser itself blocks window.open()
+           calls fired from inside the iframe — this works even for cross-origin
+           frames where parent JS cannot reach the iframe's context at all.
+           Chrome 94+, Edge 94+, Firefox 105+ enforce this at the browser level.
+           This is the single most effective popup-blocking technique available
+           to a host page embedding a cross-origin player iframe.
+           ───────────────────────────────────────────────────────────────── -->
       <iframe id="playerFrame" class="p-iframe"
         allow="autoplay; fullscreen *; picture-in-picture; encrypted-media; gyroscope; accelerometer; clipboard-write"
         referrerpolicy="strict-origin-when-cross-origin"
         allowfullscreen></iframe>
+      <!-- ── CLICK SHIELD ────────────────────────────────────────────────
+           Many embed players trigger window.open() on the FIRST click/tap
+           inside the iframe (a "user gesture" popup). This transparent overlay
+           absorbs that first click on the parent-page side, then removes itself
+           so all subsequent clicks pass through normally to the iframe for
+           playback control (play/pause, volume, seek bar, etc.).
+           The overlay is re-applied every time a new src is loaded.
+           ───────────────────────────────────────────────────────────────── -->
+      <div id="iframeClickShield" style="
+        position:absolute;inset:0;z-index:2;cursor:pointer;
+        background:transparent;display:none;
+      " title="Click to start playback"></div>
       <!-- Native HLS player — used by consumet/FlixHQ servers (no iframe, no ads) -->
       <video id="nativePlayer" class="p-iframe" controls playsinline webkit-playsinline
         style="display:none;background:#000"></video>
@@ -2192,9 +2213,39 @@ function setFrame(src){
   ov.classList.add('show');
   if(typeof aflixHardenIframe==='function') aflixHardenIframe(iframe);
   iframe.src=src;
-  iframe.onload=()=>ov.classList.remove('show');
+  iframe.onload=()=>{
+    ov.classList.remove('show');
+    // ── CLICK SHIELD: re-arm on every new load ──────────────────────
+    // Embed players fire window.open() on the first click inside the
+    // iframe (requires a "user gesture"). The shield absorbs that first
+    // click on the *parent* side so no user-gesture popup can form,
+    // then hides itself so all subsequent clicks reach the iframe normally.
+    _armClickShield();
+  };
   setTimeout(()=>ov.classList.remove('show'),10000);
 }
+
+/* ── CLICK SHIELD ───────────────────────────────────────────────────── */
+(function(){
+  let _armed = false;
+  window._armClickShield = function(){
+    const shield = document.getElementById('iframeClickShield');
+    if(!shield || _armed) return;
+    shield.style.display = 'block';
+    _armed = true;
+    function absorb(e){
+      // Absorb one click — hide shield so iframe gets all future events
+      shield.style.display = 'none';
+      _armed = false;
+      // DO NOT call e.preventDefault() — that would suppress the play action.
+      // The point is simply that this click lands on the parent-page element
+      // (the shield div), not on the iframe, so no user-gesture is delivered
+      // to the iframe's popup code.
+    }
+    shield.addEventListener('click',   absorb, {once:true});
+    shield.addEventListener('pointerdown', absorb, {once:true});
+  };
+})();
 function showUnavail(){
   document.getElementById('playerFrame').srcdoc=`<style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#000;color:#fff;font-family:'DM Sans',sans-serif;text-align:center}</style><div><h2 style="font-size:1rem;margin-bottom:.5rem">Unavailable on this server</h2><p style="color:#666;font-size:.82rem">Try switching to a different source above</p></div>`;
   document.getElementById('pLoading').classList.remove('show');
@@ -2252,6 +2303,9 @@ function switchServer(key){
 function closePlayer(){
   document.getElementById('playerModal').classList.remove('open');
   document.getElementById('playerFrame').src='about:blank';
+  // Disarm click shield
+  const shield=document.getElementById('iframeClickShield');
+  if(shield) shield.style.display='none';
   _destroyNativePlayer();
   document.body.classList.remove('no-scroll','ci');
   cancelAutoNext();
