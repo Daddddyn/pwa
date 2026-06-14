@@ -502,6 +502,7 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
   width:100%;
 }
 .iptv-video{width:100%;height:100%;display:block;object-fit:contain;background:#000}
+.iptv-embed-frame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000;display:none}
 .iptv-overlay{
   position:absolute;inset:0;display:flex;align-items:center;
   justify-content:center;flex-direction:column;gap:.7rem;
@@ -615,6 +616,44 @@ footer{border-top:1px solid var(--b2);padding:2.5rem 2.5rem;max-width:1440px;mar
 }
 .iptv-preset:hover{border-color:rgba(232,25,44,.5);color:var(--text)}
 .iptv-preset.active{background:rgba(232,25,44,.15);border-color:var(--red);color:var(--red)}
+.iptv-preset.popular{border-color:rgba(232,25,44,.35);color:var(--red)}
+.iptv-preset.popular.active{background:rgba(232,25,44,.15);border-color:var(--red);color:var(--red)}
+
+.iptv-popular-panel{display:flex;flex-direction:column;gap:.75rem;padding:.8rem;overflow-y:auto}
+.iptv-popular-editor{background:var(--bg3);border:1px solid var(--b1);border-radius:10px;padding:.8rem;display:grid;gap:.55rem}
+.iptv-popular-editor-title{font-size:.74rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text3)}
+.iptv-popular-input,.iptv-popular-textarea{
+  width:100%;background:var(--bg4);border:1px solid var(--b1);border-radius:8px;
+  color:var(--text);font-family:inherit;font-size:.82rem;outline:none;
+}
+.iptv-popular-input{padding:.5rem .7rem}
+.iptv-popular-textarea{min-height:86px;resize:vertical;padding:.65rem .7rem;line-height:1.45}
+.iptv-popular-input:focus,.iptv-popular-textarea:focus{border-color:rgba(232,25,44,.5)}
+.iptv-popular-actions{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.iptv-popular-save,.iptv-popular-clear{
+  padding:.48rem .8rem;border-radius:8px;font-size:.78rem;font-weight:700;
+  font-family:inherit;cursor:pointer;transition:all .18s;border:1px solid var(--b1);
+}
+.iptv-popular-save{background:var(--red);border-color:var(--red);color:#fff}
+.iptv-popular-save:hover{background:var(--red2);border-color:var(--red2)}
+.iptv-popular-clear{background:var(--bg4);color:var(--text2)}
+.iptv-popular-clear:hover{color:var(--text);border-color:rgba(255,255,255,.18)}
+.iptv-popular-list{display:grid;gap:.5rem}
+.iptv-popular-item{display:flex;align-items:center;gap:.7rem;padding:.65rem .75rem;background:var(--bg3);border:1px solid var(--b1);border-radius:10px;cursor:pointer;transition:all .16s}
+.iptv-popular-item:hover{border-color:rgba(255,255,255,.18);background:var(--bg4)}
+.iptv-popular-item.provider{border-color:rgba(232,25,44,.38);background:linear-gradient(90deg,rgba(232,25,44,.11),var(--bg3) 42%)}
+.iptv-popular-item.provider:hover{border-color:rgba(232,25,44,.62);background:linear-gradient(90deg,rgba(232,25,44,.16),var(--bg4) 46%)}
+.iptv-popular-item.active{border-color:var(--red);background:rgba(232,25,44,.12)}
+.iptv-popular-play{width:32px;height:32px;border-radius:50%;background:rgba(232,25,44,.14);color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.iptv-popular-play::before{content:'';width:0;height:0;border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:9px solid var(--red);margin-left:2px}
+.iptv-popular-meta{flex:1;min-width:0}
+.iptv-popular-name-row{display:flex;align-items:center;gap:.45rem;min-width:0}
+.iptv-popular-name{font-size:.84rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iptv-popular-badge{font-size:.58rem;font-weight:900;letter-spacing:.07em;text-transform:uppercase;color:#fff;background:var(--red);border:1px solid rgba(255,255,255,.12);border-radius:4px;padding:.08rem .35rem;flex-shrink:0}
+.iptv-popular-url{font-size:.7rem;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:.1rem}
+.iptv-popular-del{width:28px;height:28px;border-radius:50%;border:1px solid var(--b1);background:rgba(255,255,255,.04);color:var(--text3);cursor:pointer;transition:all .16s;flex-shrink:0}
+.iptv-popular-del:hover{background:rgba(232,25,44,.12);border-color:rgba(232,25,44,.35);color:var(--red)}
+.iptv-popular-empty{padding:1.1rem;text-align:center;color:var(--text3);font-size:.82rem;line-height:1.55;border:1px dashed var(--b1);border-radius:10px;background:rgba(255,255,255,.02)}
 
 .iptv-close-btn{
   width:32px;height:32px;border-radius:50%;
@@ -1376,6 +1415,16 @@ let TB   = 'https://api.themoviedb.org/3';
 const IMG  = 'https://image.tmdb.org/t/p';
 let SRVS = {};
 let IPTV_PLAYLISTS = [];
+const PROVIDER_POPULAR_EMBEDS = [
+  {
+    id: 'ger-cuw-2026-06-14',
+    title: 'Germany vs Curacao',
+    embed: '<iframe src="https://embedindia.st/embed/wc/2026-06-14/ger-cuw" width="100%" height="522" allowfullscreen="" frameborder="0" class="rounded"></iframe>'
+  }
+  // Add your app-wide Popular embeds here, or publish them from aflix-config.json as "popular_embeds".
+  // { id: 'exclusive-1', title: 'Exclusive Stream', embed: '<iframe src="https://example.com/embed/stream" allowfullscreen></iframe>' }
+];
+let IPTV_POPULAR_EMBEDS = [];
 
 async function loadRemoteConfig() {
   try {
@@ -1442,6 +1491,10 @@ async function loadRemoteConfig() {
       };
     }
     IPTV_PLAYLISTS = cfg.iptv_playlists || [];
+    IPTV_POPULAR_EMBEDS = normalizeProviderPopularEmbeds([
+      ...PROVIDER_POPULAR_EMBEDS,
+      ...(cfg.popular_embeds || [])
+    ]);
     renderSrvPills();
     return true;
   } catch(e) {
@@ -2396,25 +2449,28 @@ const IPTV = {
   channels: [],
   filtered: [],
   activeIdx: -1,
-  activeGroup: 'all'
+  activeGroup: 'all',
+  mode: 'channels',
+  popular: [],
+  activePopularId: null
 };
 
 function openIPTV() {
   document.getElementById('iptvModal').classList.add('open');
   document.body.classList.add('no-scroll');
-  if (IPTV_PLAYLISTS.length) renderIPTVPresets();
+  renderIPTVPresets();
 }
 function closeIPTV() {
   document.getElementById('iptvModal').classList.remove('open');
   document.body.classList.remove('no-scroll');
   iptvStop();
+  iptvStopEmbed();
 }
 
 function renderIPTVPresets() {
   const row = document.getElementById('iptvPresetRow');
-  if (!IPTV_PLAYLISTS.length) { row.style.display='none'; return; }
   row.style.display = 'flex';
-  row.innerHTML = IPTV_PLAYLISTS.map((p,i) =>
+  row.innerHTML = `<span class="iptv-preset popular${IPTV.mode==='popular'?' active':''}" onclick="openIPTVPopular()">Popular</span>` + IPTV_PLAYLISTS.map((p,i) =>
     `<span class="iptv-preset" onclick="iptvLoadPreset(${i})">${p.name}</span>`
   ).join('');
 }
@@ -2422,13 +2478,14 @@ function renderIPTVPresets() {
 async function iptvLoadPreset(idx) {
   const p = IPTV_PLAYLISTS[idx];
   document.getElementById('iptvUrlInput').value = p.url;
-  document.querySelectorAll('.iptv-preset').forEach((el,i)=>el.classList.toggle('active',i===idx));
+  document.querySelectorAll('.iptv-preset').forEach((el,i)=>el.classList.toggle('active',i===idx+1));
   await iptvLoad();
 }
 
 async function iptvLoad() {
   const raw = document.getElementById('iptvUrlInput').value.trim();
   if (!raw) return;
+  iptvShowChannelPlayer();
 
   const isM3U = /\.m3u/i.test(raw) || raw.includes('?');
   const isDirectHLS = /\.m3u8/i.test(raw);
@@ -2469,6 +2526,131 @@ async function iptvLoad() {
   renderIPTVChannels();
   document.getElementById('iptvSearchWrap').style.display = IPTV.channels.length > 8 ? '' : 'none';
   document.getElementById('iptvChCount').textContent = IPTV.channels.length + ' ch';
+}
+
+function iptvExtractEmbedSrc(block) {
+  const raw = String(block || '').trim();
+  if (!raw) return '';
+  const src = raw.match(/\ssrc=["']([^"']+)["']/i);
+  return src ? src[1] : raw;
+}
+function normalizeProviderPopularEmbeds(items) {
+  return (items || []).map((item, idx) => {
+    const embed = item.embed || item.iframe || item.src || item.url || '';
+    const id = String(item.id || `provider-${idx}-${item.title || item.name || idx}`).replace(/[^a-z0-9_-]/gi, '-');
+    return {
+      id,
+      title: item.title || item.name || 'AFlix Pick',
+      embed,
+      provider: true
+    };
+  }).filter(item => iptvExtractEmbedSrc(item.embed));
+}
+function iptvShowChannelPlayer() {
+  IPTV.mode = 'channels';
+  IPTV.activePopularId = null;
+  const video = document.getElementById('iptvVideo');
+  const frame = document.getElementById('iptvEmbedFrame');
+  if (video) video.style.display = 'block';
+  if (frame) { frame.style.display = 'none'; frame.src = 'about:blank'; frame.removeAttribute('srcdoc'); }
+  const msg = document.getElementById('iptvOverlayMsg');
+  if (msg) msg.innerHTML = 'Select a channel to start watching,<br>or load a playlist / stream URL.';
+  renderIPTVPresets();
+}
+function openIPTVPopular() {
+  IPTV.mode = 'popular';
+  IPTV.popular = IPTV_POPULAR_EMBEDS;
+  iptvStop();
+  document.getElementById('iptvSearchWrap').style.display = 'none';
+  document.getElementById('iptvChCount').textContent = IPTV.popular.length ? IPTV.popular.length + ' picks' : '';
+  document.getElementById('iptvNowBar').style.display = IPTV.activePopularId ? '' : 'none';
+  renderIPTVPresets();
+  renderIPTVPopular();
+  if (!IPTV.activePopularId && IPTV.popular.length) iptvPlayPopular(IPTV.popular[0].id);
+  if (!IPTV.popular.length) {
+    const video = document.getElementById('iptvVideo');
+    const frame = document.getElementById('iptvEmbedFrame');
+    if (video) video.style.display = 'none';
+    if (frame) { frame.style.display = 'none'; frame.src = 'about:blank'; frame.removeAttribute('srcdoc'); }
+    const msg = document.getElementById('iptvOverlayMsg');
+    if (msg) msg.innerHTML = 'Popular picks will appear here soon.';
+    document.getElementById('iptvOverlay').classList.remove('hidden');
+  }
+}
+function renderIPTVPopularLegacy() {
+  const list = document.getElementById('iptvChList');
+  const items = IPTV.popular;
+  list.innerHTML = `<div class="iptv-popular-panel">
+    <div class="iptv-popular-editor">
+      <div class="iptv-popular-editor-title">Add Popular Embed</div>
+      <input class="iptv-popular-input" id="iptvPopularTitle" type="text" placeholder="Title" autocomplete="off" spellcheck="false">
+      <textarea class="iptv-popular-textarea" id="iptvPopularEmbed" placeholder="Paste iframe embed block or iframe src URL" spellcheck="false"></textarea>
+      <div class="iptv-popular-actions">
+        <button class="iptv-popular-save" onclick="iptvSavePopular()">Save Embed</button>
+        <button class="iptv-popular-clear" onclick="iptvClearPopularForm()">Clear</button>
+      </div>
+    </div>
+    <div class="iptv-popular-list">
+      ${items.length ? items.map(item => `
+        <div class="iptv-popular-item${item.id===IPTV.activePopularId?' active':''}" onclick="iptvPlayPopular('${item.id}')">
+          <div class="iptv-popular-play">▶</div>
+          <div class="iptv-popular-meta">
+            <div class="iptv-popular-name">${esc(item.title)}</div>
+            <div class="iptv-popular-url">${esc(iptvExtractEmbedSrc(item.embed))}</div>
+          </div>
+          <button class="iptv-popular-del" onclick="iptvDeletePopular(event,'${item.id}')" title="Delete">×</button>
+        </div>
+      `).join('') : `<div class="iptv-popular-empty">No popular embeds yet. Paste an iframe block above to create one.</div>`}
+    </div>
+  </div>`;
+}
+function renderIPTVPopular() {
+  const list = document.getElementById('iptvChList');
+  const items = IPTV.popular;
+  list.innerHTML = `<div class="iptv-popular-panel">
+    <div class="iptv-popular-list">
+      ${items.length ? items.map(item => `
+        <div class="iptv-popular-item provider${item.id===IPTV.activePopularId?' active':''}" onclick="iptvPlayPopular('${item.id}')">
+          <div class="iptv-popular-play" aria-hidden="true"></div>
+          <div class="iptv-popular-meta">
+            <div class="iptv-popular-name-row">
+              <div class="iptv-popular-name">${esc(item.title)}</div>
+              <div class="iptv-popular-badge">AFlix Pick</div>
+            </div>
+            <div class="iptv-popular-url">${esc(iptvExtractEmbedSrc(item.embed))}</div>
+          </div>
+        </div>
+      `).join('') : `<div class="iptv-popular-empty">No popular picks available right now.</div>`}
+    </div>
+  </div>`;
+}
+function iptvPlayPopular(id) {
+  const item = IPTV_POPULAR_EMBEDS.find(x => x.id === id);
+  if (!item) return;
+  IPTV.mode = 'popular';
+  IPTV.activePopularId = id;
+  iptvStop();
+  const video = document.getElementById('iptvVideo');
+  const frame = document.getElementById('iptvEmbedFrame');
+  if (video) video.style.display = 'none';
+  if (frame) {
+    frame.style.display = 'block';
+    frame.removeAttribute('srcdoc');
+    frame.src = iptvExtractEmbedSrc(item.embed);
+    if (typeof aflixHardenIframe === 'function') aflixHardenIframe(frame);
+  }
+  document.getElementById('iptvOverlay').classList.add('hidden');
+  document.getElementById('iptvNowBar').style.display = '';
+  document.getElementById('iptvNowName').textContent = item.title;
+  document.getElementById('iptvNowSub').textContent = 'AFlix Pick';
+  document.getElementById('iptvChCount').textContent = IPTV_POPULAR_EMBEDS.length + ' picks';
+  IPTV.popular = IPTV_POPULAR_EMBEDS;
+  renderIPTVPresets();
+  renderIPTVPopular();
+}
+function iptvStopEmbed() {
+  const frame = document.getElementById('iptvEmbedFrame');
+  if (frame) { frame.src = 'about:blank'; frame.removeAttribute('srcdoc'); frame.style.display = 'none'; }
 }
 
 function parseM3U(text) {
@@ -2692,9 +2874,10 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="iptv-stage">
       <div class="iptv-player-wrap">
         <video class="iptv-video" id="iptvVideo" controls playsinline webkit-playsinline></video>
+        <iframe class="iptv-embed-frame" id="iptvEmbedFrame" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe>
         <div class="iptv-overlay" id="iptvOverlay">
           <div class="iptv-overlay-icon">📡</div>
-          <div class="iptv-overlay-msg">Select a channel to start watching,<br>or load a playlist / stream URL.</div>
+          <div class="iptv-overlay-msg" id="iptvOverlayMsg">Select a channel to start watching,<br>or load a playlist / stream URL.</div>
         </div>
       </div>
       <div class="iptv-now-bar" id="iptvNowBar" style="display:none">
