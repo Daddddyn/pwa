@@ -84,6 +84,22 @@ html{scroll-behavior:smooth}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased;cursor:default;padding-bottom:var(--sab);padding-left:var(--sal);padding-right:var(--sar)}
 body.no-scroll{overflow:hidden}
 
+/* ── NATIVE BUTTON RESET ──
+   Real <button> elements keep iOS's default system chrome
+   (background, border, rounded appearance) unless explicitly
+   stripped. That native chrome doesn't line up with our custom
+   shapes and is the most likely cause of a white outline/halo
+   bleeding around otherwise-transparent circular/pill buttons
+   on iPhone specifically — Safari is far stricter about this
+   than desktop Chrome/Firefox, which mostly hide it once any
+   custom background is set. */
+button{
+  -webkit-appearance:none;appearance:none;
+  background:none;border:none;
+  font:inherit;color:inherit;
+  -webkit-tap-highlight-color:transparent;
+}
+
 /* ── iOS PWA Enhancements ── */
 @media (hover:none){#cur-dot,#cur-ring{display:none!important}}
 *{-webkit-tap-highlight-color:transparent}
@@ -183,7 +199,7 @@ nav{max-width:1440px;margin:0 auto;padding:0 2.5rem;height:74px;display:flex;ali
 .hero-title{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(2.6rem,5.8vw,5rem);line-height:1.01;letter-spacing:-.03em;margin-bottom:.9rem;max-width:680px}
 .hero-desc{font-size:.95rem;color:var(--text2);line-height:1.66;max-width:490px;margin-bottom:1.4rem;font-weight:300}
 .hero-meta{display:flex;align-items:center;gap:.7rem;margin-bottom:1.9rem;flex-wrap:wrap}
-.hpill{display:inline-flex;align-items:center;gap:.3rem;font-size:.78rem;font-weight:500;color:var(--text2);background:transparent;box-shadow:inset 0 0 0 100px rgba(255,255,255,.1);padding:.28rem .65rem;border-radius:100px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.hpill{display:inline-flex;align-items:center;gap:.3rem;font-size:.78rem;font-weight:500;color:var(--text2);background:rgba(30,30,34,.92);padding:.28rem .65rem;border-radius:100px}
 .hpill.gold{color:var(--gold);box-shadow:inset 0 0 0 100px rgba(245,197,24,.09)}
 .hpill.green{color:var(--green);box-shadow:inset 0 0 0 100px rgba(61,220,132,.09)}
 .hero-btns{display:flex;gap:.7rem;align-items:center}
@@ -191,8 +207,8 @@ nav{max-width:1440px;margin:0 auto;padding:0 2.5rem;height:74px;display:flex;ali
 .btn-play::before{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(255,255,255,.16),transparent)}
 .btn-play:hover{background:var(--red2);transform:translateY(-2px);box-shadow:0 12px 32px rgba(245,197,24,.38)}
 .btn-play:active{transform:translateY(0) scale(.97)}
-.btn-info{display:inline-flex;align-items:center;justify-content:center;gap:.55rem;min-height:44px;padding:.82rem 1.6rem;background:transparent;box-shadow:inset 0 0 0 100px rgba(255,255,255,.1);color:var(--text);border:none;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:box-shadow .22s var(--ease-out),transform .22s var(--ease-out);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
-.btn-info:hover{box-shadow:inset 0 0 0 100px rgba(255,255,255,.16);transform:translateY(-2px)}
+.btn-info{display:inline-flex;align-items:center;justify-content:center;gap:.55rem;min-height:44px;padding:.82rem 1.6rem;background:rgba(30,30,34,.95);color:var(--text);border:none;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:background .22s var(--ease-out),transform .22s var(--ease-out)}
+.btn-info:hover{background:rgba(40,40,45,.95);transform:translateY(-2px)}
 .btn-wl{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:44px;padding:.82rem 1.15rem;background:rgba(255,255,255,.08);color:var(--text2);border:none;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:background .22s var(--ease-out),color .22s var(--ease-out)}
 .btn-wl:hover{background:rgba(255,255,255,.1);color:var(--text)}
 .btn-wl.in-list{color:var(--red);background:rgba(245,197,24,.12)}
@@ -251,20 +267,20 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
 .card-title{font-size:.83rem;font-weight:600;line-height:1.3;margin-bottom:.3rem}
 .card-meta{display:flex;align-items:center;gap:.45rem;font-size:.73rem;color:var(--text2)}
 .card-star{color:var(--gold);font-size:.7rem;font-weight:700}
-.ctag{position:absolute;top:.6rem;left:.6rem;font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:transparent;box-shadow:inset 0 0 0 100px rgba(7,7,8,.75);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:var(--text2);padding:.2rem .5rem;border-radius:100px}
+.ctag{position:absolute;top:.6rem;left:.6rem;font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:rgba(10,10,11,.92);color:var(--text2);padding:.2rem .5rem;border-radius:100px}
 @media (hover:hover) and (pointer:fine){
   .ctag{opacity:0;transform:translateY(-4px);transition:opacity .2s var(--ease-out),transform .2s var(--ease-out)}
   .card:hover .ctag{opacity:1;transform:translateY(0)}
 }
 .ctag.tv{color:var(--green);border-color:rgba(61,220,132,.28)}
-.card-wl-btn{position:absolute;top:.55rem;right:.55rem;width:34px;height:34px;border-radius:50%;background:transparent;box-shadow:inset 0 0 0 100px rgba(7,7,8,.7);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s var(--ease-out),box-shadow .2s var(--ease-out),color .2s var(--ease-out);font-size:.85rem;z-index:2}
+.card-wl-btn{position:absolute;top:.55rem;right:.55rem;width:34px;height:34px;border-radius:50%;background:rgba(10,10,11,.85);color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s var(--ease-out),background .2s var(--ease-out),color .2s var(--ease-out);font-size:.85rem;z-index:2}
 .card-wl-btn:active{transform:scale(.85)}
 @media (hover:hover) and (pointer:fine){
   .card-wl-btn{opacity:0;width:28px;height:28px}
   .card:hover .card-wl-btn{opacity:1}
-  .card-wl-btn:hover{box-shadow:inset 0 0 0 100px rgba(245,197,24,.2);color:var(--red)}
+  .card-wl-btn:hover{background:rgba(245,197,24,.22);color:var(--red)}
 }
-.card-wl-btn.active{color:var(--red);box-shadow:inset 0 0 0 100px rgba(245,197,24,.15)}
+.card-wl-btn.active{color:var(--red);background:rgba(245,197,24,.18)}
 
 /* ── TOP 10 ROW ── */
 .top10-grid{display:flex;gap:1rem;overflow-x:auto;padding-bottom:.5rem;scrollbar-width:none}
@@ -339,8 +355,8 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
 .detail-hero{position:relative;height:320px;overflow:hidden}
 .detail-hero-img{width:100%;height:100%;object-fit:cover;display:block}
 .detail-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,var(--bg2) 0%,transparent 60%)}
-.detail-close{position:absolute;top:.9rem;right:.9rem;width:44px;height:44px;border-radius:50%;background:transparent;box-shadow:inset 0 0 0 100px rgba(0,0,0,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:none;color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .18s var(--ease-out),box-shadow .18s var(--ease-out);font-size:1.2rem;z-index:4}
-.detail-close:hover{box-shadow:inset 0 0 0 100px rgba(0,0,0,.75)}
+.detail-close{position:absolute;top:.9rem;right:.9rem;width:44px;height:44px;border-radius:50%;background:rgba(15,15,16,.75);border:none;color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .18s var(--ease-out),background .18s var(--ease-out);font-size:1.2rem;z-index:4}
+.detail-close:hover{background:rgba(15,15,16,.92)}
 .detail-close:active{transform:scale(.88)}
 .detail-body{padding:1.4rem 1.8rem 1.8rem}
 .detail-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.7rem;letter-spacing:-.03em;margin-bottom:.5rem;line-height:1.1}
@@ -1846,16 +1862,24 @@ function vtOpenFromCard(modalEl, panelEl, originEl, domUpdate){
   panelEl.style.viewTransitionName = VT_NAME;
   panelEl.classList.add('morphing'); // suppress the keyframe entrance so it doesn't fight the native transition
 
-  const vt = document.startViewTransition(()=>{
-    domUpdate();
-    modalEl.classList.add('open');
-  });
   const cleanup = ()=>{
     originEl.style.viewTransitionName = '';
     panelEl.style.viewTransitionName = '';
     panelEl.classList.remove('morphing');
   };
-  vt.finished.then(cleanup).catch(cleanup);
+  try{
+    const vt = document.startViewTransition(()=>{
+      domUpdate();
+      modalEl.classList.add('open');
+    });
+    vt.finished.then(cleanup).catch(cleanup);
+  }catch(err){
+    // Native API misbehaved — fail safe into the tested FLIP animation instead of breaking the open entirely
+    console.warn('[AFlix] View Transition failed, using fallback:', err);
+    cleanup();
+    domUpdate();
+    morphOpenFromCard(modalEl, panelEl, originEl);
+  }
 }
 
 function vtCloseToCard(modalEl, panelEl, key, domUpdate, after){
@@ -1869,17 +1893,25 @@ function vtCloseToCard(modalEl, panelEl, key, domUpdate, after){
   panelEl.style.viewTransitionName = VT_NAME;
   panelEl.classList.add('morphing');
 
-  const vt = document.startViewTransition(()=>{
-    domUpdate();
-    modalEl.classList.remove('open','closing');
-  });
   const cleanup = ()=>{
     targetEl.style.viewTransitionName = '';
     panelEl.style.viewTransitionName = '';
     panelEl.classList.remove('morphing');
     if(after) after();
   };
-  vt.finished.then(cleanup).catch(cleanup);
+  try{
+    const vt = document.startViewTransition(()=>{
+      domUpdate();
+      modalEl.classList.remove('open','closing');
+    });
+    vt.finished.then(cleanup).catch(cleanup);
+  }catch(err){
+    console.warn('[AFlix] View Transition failed, using fallback:', err);
+    targetEl.style.viewTransitionName = '';
+    panelEl.style.viewTransitionName = '';
+    panelEl.classList.remove('morphing');
+    morphCloseToCard(modalEl, panelEl, key, ()=>{ domUpdate(); if(after) after(); });
+  }
 }
 
 function morphOpenFromCard(modalEl, panelEl, originEl){
