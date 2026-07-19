@@ -341,6 +341,7 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
   padding:calc(2rem + var(--sat)) 1.5rem 2rem;
   animation:fadeout .18s var(--ease-out) forwards}
 .player-wrap{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);max-width:1120px;width:100%;overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,.9);animation:slup .32s var(--ease-spring)}
+.player-wrap.morphing{animation:none!important;will-change:transform,opacity}
 .player-modal.closing .player-wrap{animation:sldown .18s var(--ease-out) forwards}
 .player-hd{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.4rem;border-bottom:1px solid var(--b1);background:var(--bg3)}
 .player-title-area{min-width:0}
@@ -1531,14 +1532,15 @@ function renderSrvPills() {
    STATE
 ══════════════════════════════════════════ */
 const S = {
-  filter:'all', genre:null, srv:'direct',
+  filter:'all', genre:null, srv:'',
   content:null,
   epList:[],
   heroItems:[], heroIdx:0, heroTimer:null,
   searchOpen:false, searchTimer:null,
   anTimer:null, anInterval:null,
   cache: new Map(),
-  settings:{ autoplay:true, reduceMotion:false }
+  settings:{ autoplay:true, reduceMotion:false },
+  _morphKey:null // tracks which card the open player should morph back into on close
 };
 
 /* ══════════════════════════════════════════
@@ -1572,7 +1574,7 @@ function renderWlPanel(){
   const arr=wlGet(), body=document.getElementById('wlBody');
   if(!arr.length){ body.innerHTML=`<div class="wl-empty"><div class="wl-empty-icon">🎬</div><p>Your watchlist is empty</p></div>`; return; }
   body.innerHTML=arr.map(i=>`
-    <div class="wl-item" onclick="playContent(${i.id},'${i.type}',\`${i.title.replace(/`/g,'\\`')}\`)">
+    <div class="wl-item" data-mkey="${i.type}-${i.id}" onclick="playContent(${i.id},'${i.type}',\`${i.title.replace(/`/g,'\\`')}\`,this)">
       ${i.poster?`<img src="${IMG}/w92${i.poster}" class="wl-item-img" alt="">`:`<div class="wl-item-img skel"></div>`}
       <div class="wl-item-info">
         <div class="wl-item-title">${esc(i.title)}</div>
@@ -1611,7 +1613,7 @@ function renderCW(){
   if(!arr.length){ sec.style.display='none'; return; }
   sec.style.display='block';
   grid.innerHTML=arr.map(i=>`
-    <div class="cw-card" onclick="playContent(${i.id},'${i.type}',\`${i.title.replace(/`/g,'\\`')}\`)">
+    <div class="cw-card" data-mkey="${i.type}-${i.id}" onclick="playContent(${i.id},'${i.type}',\`${i.title.replace(/`/g,'\\`')}\`,this)">
       <div class="cw-thumb-wrap">
         ${i.backdrop?`<img src="${IMG}/w300${i.backdrop}" class="cw-thumb" alt="" loading="lazy">`:`<div class="cw-thumb skel"></div>`}
         <div class="cw-play-over">
@@ -1741,6 +1743,92 @@ function closeModalAnimated(el, after){
     el.classList.remove('closing');
     if(after) after();
   }, 240); // covers the longest close animation (mobile sheet: 220ms) plus a small buffer
+}
+
+/* ══════════════════════════════════════════
+   CARD → PLAYER MORPH
+   FLIP-technique transition: the player panel
+   visibly grows out of (and shrinks back into)
+   the exact card the person tapped, instead of
+   just fading in centered on screen. Falls back
+   to the normal spring entrance/close if there's
+   no origin card (e.g. no card was tapped) or the
+   origin card is no longer on screen.
+══════════════════════════════════════════ */
+function morphOpenFromCard(modalEl, panelEl, originEl){
+  if(!originEl || S.settings.reduceMotion){ modalEl.classList.add('open'); return; }
+  const originRect = originEl.getBoundingClientRect();
+  if(originRect.width < 4 || originRect.height < 4){ modalEl.classList.add('open'); return; }
+
+  modalEl.classList.add('open');
+  const finalRect = panelEl.getBoundingClientRect();
+  if(finalRect.width < 4 || finalRect.height < 4) return; // nothing sane to animate from
+
+  const scaleX = originRect.width / finalRect.width;
+  const scaleY = originRect.height / finalRect.height;
+  const dx = (originRect.left + originRect.width/2) - (finalRect.left + finalRect.width/2);
+  const dy = (originRect.top + originRect.height/2) - (finalRect.top + finalRect.height/2);
+
+  panelEl.classList.add('morphing');
+  panelEl.style.transition = 'none';
+  panelEl.style.transform = `translate(${dx}px,${dy}px) scale(${scaleX},${scaleY})`;
+  panelEl.style.opacity = '.4';
+  void panelEl.offsetHeight; // force reflow so the browser registers the start state
+  panelEl.style.transition = 'transform .48s var(--ease-spring), opacity .3s var(--ease-out)';
+
+  requestAnimationFrame(()=>{
+    panelEl.style.transform = 'none';
+    panelEl.style.opacity = '1';
+  });
+
+  const cleanup = ()=>{
+    panelEl.classList.remove('morphing');
+    panelEl.style.transition = '';
+    panelEl.style.transform = '';
+    panelEl.style.opacity = '';
+    panelEl.removeEventListener('transitionend', onEnd);
+  };
+  function onEnd(e){ if(e.target===panelEl && e.propertyName==='transform') cleanup(); }
+  panelEl.addEventListener('transitionend', onEnd);
+  setTimeout(cleanup, 700); // safety net in case transitionend never fires
+}
+
+function morphCloseToCard(modalEl, panelEl, key, after){
+  const targetEl = (key && !S.settings.reduceMotion) ? document.querySelector(`[data-mkey="${CSS.escape(key)}"]`) : null;
+  const visible = targetEl && targetEl.offsetParent !== null;
+  if(!visible){
+    closeModalAnimated(modalEl, after);
+    return;
+  }
+  const targetRect = targetEl.getBoundingClientRect();
+  const panelRect = panelEl.getBoundingClientRect();
+  if(panelRect.width < 4 || panelRect.height < 4){ closeModalAnimated(modalEl, after); return; }
+
+  const scaleX = targetRect.width / panelRect.width;
+  const scaleY = targetRect.height / panelRect.height;
+  const dx = (targetRect.left + targetRect.width/2) - (panelRect.left + panelRect.width/2);
+  const dy = (targetRect.top + targetRect.height/2) - (panelRect.top + panelRect.height/2);
+
+  modalEl.classList.add('closing');
+  panelEl.classList.add('morphing');
+  panelEl.style.transition = 'transform .34s var(--ease-out), opacity .28s var(--ease-out)';
+  requestAnimationFrame(()=>{
+    panelEl.style.transform = `translate(${dx}px,${dy}px) scale(${scaleX},${scaleY})`;
+    panelEl.style.opacity = '0';
+  });
+
+  const finish = ()=>{
+    modalEl.classList.remove('open','closing');
+    panelEl.classList.remove('morphing');
+    panelEl.style.transition = '';
+    panelEl.style.transform = '';
+    panelEl.style.opacity = '';
+    panelEl.removeEventListener('transitionend', onEnd);
+    if(after) after();
+  };
+  function onEnd(e){ if(e.target===panelEl && e.propertyName==='transform') finish(); }
+  panelEl.addEventListener('transitionend', onEnd);
+  setTimeout(finish, 450); // safety net
 }
 
 /* ══════════════════════════════════════════
@@ -1935,7 +2023,7 @@ async function loadTop10(){
   const items=d.results.filter(i=>i.poster_path).slice(0,10);
   document.getElementById('top10Grid').innerHTML=items.map((i,n)=>{
     const t=esc(i.title||i.name||''), mt=i.media_type;
-    return `<div class="t10-card" onclick="playContent(${i.id},'${mt}',\`${t.replace(/`/g,'\\`')}\`)">
+    return `<div class="t10-card" data-mkey="${mt}-${i.id}" onclick="playContent(${i.id},'${mt}',\`${t.replace(/`/g,'\\`')}\`,this)">
       <span class="t10-num">${n+1}</span>
       <img src="${IMG}/w342${i.poster_path}" class="t10-poster" loading="lazy" alt="${t}">
       <div class="t10-over"><div class="t10-title">${t}</div></div>
@@ -1976,7 +2064,7 @@ function renderGridInto(grid, items){
     const r=item.vote_average?.toFixed(1)||'', y=(item.release_date||item.first_air_date||'').split('-')[0];
     const mt=item.media_type||'movie', isTV=mt==='tv', id=item.id;
     const inWl=wlHas(id);
-    return `<div class="card" onclick="playContent(${id},'${mt}',\`${t.replace(/`/g,'\\`')}\`)">
+    return `<div class="card" data-mkey="${mt}-${id}" onclick="playContent(${id},'${mt}',\`${t.replace(/`/g,'\\`')}\`,this)">
       ${p?`<img src="${p}" class="card-img" loading="lazy" alt="${t}">`:`<div class="card-img skel"></div>`}
       <div class="ctag${isTV?' tv':''}">${isTV?'Series':'Movie'}</div>
       <button class="card-wl-btn${inWl?' active':''}" data-id="${id}" title="${inWl?'Remove from Watchlist':'Add to Watchlist'}"
@@ -2078,8 +2166,9 @@ function closeDetail(){
 /* ══════════════════════════════════════════
    PLAYER
 ══════════════════════════════════════════ */
-async function playContent(id, mediaType, title){
+async function playContent(id, mediaType, title, originEl){
   const modal=document.getElementById('playerModal');
+  const wrap=document.getElementById('playerWrap');
   const iframe=document.getElementById('playerFrame');
   cancelAutoNext();
   iframe.src='about:blank';
@@ -2090,7 +2179,8 @@ async function playContent(id, mediaType, title){
   document.getElementById('pLoading').classList.add('show');
   document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv===S.srv));
 
-  modal.classList.add('open');
+  S._morphKey = `${mediaType}-${id}`;
+  morphOpenFromCard(modal, wrap, originEl);
   document.body.classList.add('no-scroll');
   modal.scrollTop=0;
 
@@ -2238,14 +2328,18 @@ function closePlayer(){
   const shield=document.getElementById('iframeClickShield');
   if(shield) shield.style.display='none';
   cancelAutoNext();
-  closeModalAnimated(document.getElementById('playerModal'), ()=>{
+  const modal=document.getElementById('playerModal');
+  const wrap=document.getElementById('playerWrap');
+  const doCleanup=()=>{
     document.getElementById('playerFrame').src='about:blank';
     _destroyNativePlayer();
     document.body.classList.remove('no-scroll','ci');
     const firstSrv=Object.keys(SRVS)[0]||'';
     S.srv=firstSrv;
     document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv===firstSrv));
-  });
+    S._morphKey=null;
+  };
+  morphCloseToCard(modal, wrap, S._morphKey, doCleanup);
 }
 
 /* ══════════════════════════════════════════
