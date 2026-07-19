@@ -82,13 +82,7 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased;cursor:default;padding-bottom:var(--sab);padding-left:var(--sal);padding-right:var(--sar)}
-/* iOS Safari doesn't reliably block touch-driven scroll with plain
-   `overflow:hidden` on the body (confirmed across many iOS Safari
-   write-ups, worse still in standalone/home-screen PWA mode, which is
-   how this app is installed). Pinning the body with `position:fixed`
-   and restoring the offset via `top` is the technique that actually
-   holds — see lockBodyScroll()/unlockBodyScroll() below. */
-body.no-scroll{overflow:hidden;position:fixed;left:0;right:0;width:100%}
+body.no-scroll{overflow:hidden}
 
 /* ── iOS PWA Enhancements ── */
 @media (hover:none){#cur-dot,#cur-ring{display:none!important}}
@@ -379,7 +373,26 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
   padding:calc(2rem + var(--sat)) 1.5rem 2rem;
   animation:fadeout .18s var(--ease-out) forwards}
 .player-wrap{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);max-width:1120px;width:100%;overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,.9);animation:slup .32s var(--ease-spring)}
-.player-wrap.morphing{animation:none!important;will-change:transform,opacity,border-radius;backface-visibility:hidden;-webkit-backface-visibility:hidden;-webkit-transform-style:preserve-3d}
+.player-wrap.morphing{animation:none!important;will-change:transform,opacity}
+
+/* ── NATIVE VIEW TRANSITION (card ↔ player morph) ──
+   Safari 18+ (current iOS) supports this natively. Default browser
+   behavior cross-fades old/new snapshots with mix-blend-mode:plus-lighter,
+   which looks washed-out/double-exposed when the two images are very
+   different (a poster vs. a dark video panel) — documented W3C behavior,
+   not a bug. Switching to a normal blend gives a clean crossfade instead,
+   while the group itself still morphs position/size automatically. */
+::view-transition-group(aflix-poster-morph){
+  animation-duration:.42s;
+  animation-timing-function:cubic-bezier(.22,1,.36,1);
+}
+::view-transition-image-pair(aflix-poster-morph){ isolation:isolate }
+::view-transition-old(aflix-poster-morph),
+::view-transition-new(aflix-poster-morph){
+  mix-blend-mode:normal;
+  animation-duration:.3s;
+  height:100%;
+}
 .player-modal.closing .player-wrap{animation:sldown .18s var(--ease-out) forwards}
 .player-hd{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.4rem;border-bottom:1px solid var(--b1);background:var(--bg3)}
 .player-title-area{min-width:0}
@@ -1791,29 +1804,6 @@ function closeModalAnimated(el, after){
 }
 
 /* ══════════════════════════════════════════
-   iOS-SAFE SCROLL LOCK
-   Plain `overflow:hidden` on the body does not
-   reliably stop touch-driven scrolling on iOS
-   Safari (confirmed across many iOS write-ups),
-   and it's worse in standalone/home-screen PWA
-   mode, which is how this app gets installed.
-   Pinning the body with position:fixed and
-   restoring the scroll offset via `top` is the
-   technique that actually holds up.
-══════════════════════════════════════════ */
-let _scrollLockY = 0;
-function lockBodyScroll(){
-  _scrollLockY = window.scrollY || window.pageYOffset || 0;
-  document.body.style.top = `-${_scrollLockY}px`;
-  document.body.classList.add('no-scroll');
-}
-function unlockBodyScroll(){
-  document.body.classList.remove('no-scroll');
-  document.body.style.top = '';
-  window.scrollTo(0, _scrollLockY);
-}
-
-/* ══════════════════════════════════════════
    CARD → PLAYER MORPH
    FLIP-technique transition: the player panel
    visibly grows out of (and shrinks back into)
@@ -1822,26 +1812,84 @@ function unlockBodyScroll(){
    to the normal spring entrance/close if there's
    no origin card (e.g. no card was tapped) or the
    origin card is no longer on screen.
+
+   Primary technique: the native View Transitions API
+   (document.startViewTransition), supported in Safari
+   18+ — i.e. current iOS — and Chrome/Edge/Firefox.
+   This is the browser's own built-in mechanism for
+   exactly this kind of shared-element morph: it
+   measures the real before/after position and size
+   itself, so a card on the right morphs from the
+   right and a card on the left morphs from the left,
+   automatically and pixel-accurately — no manual math.
+
+   Fallback: the hand-built FLIP transform animation
+   below, used only when the native API isn't available
+   (older Safari, or reduceMotion).
 ══════════════════════════════════════════ */
+const VT_NAME = 'aflix-poster-morph';
+function supportsViewTransitions(){
+  const osReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return typeof document.startViewTransition === 'function' && !S.settings.reduceMotion && !osReduced;
+}
+
+function vtOpenFromCard(modalEl, panelEl, originEl, domUpdate){
+  if(!originEl || !supportsViewTransitions()){
+    domUpdate();
+    morphOpenFromCard(modalEl, panelEl, originEl);
+    return;
+  }
+  const rect = originEl.getBoundingClientRect();
+  if(rect.width < 4 || rect.height < 4){ domUpdate(); modalEl.classList.add('open'); return; }
+
+  originEl.style.viewTransitionName = VT_NAME;
+  panelEl.style.viewTransitionName = VT_NAME;
+  panelEl.classList.add('morphing'); // suppress the keyframe entrance so it doesn't fight the native transition
+
+  const vt = document.startViewTransition(()=>{
+    domUpdate();
+    modalEl.classList.add('open');
+  });
+  const cleanup = ()=>{
+    originEl.style.viewTransitionName = '';
+    panelEl.style.viewTransitionName = '';
+    panelEl.classList.remove('morphing');
+  };
+  vt.finished.then(cleanup).catch(cleanup);
+}
+
+function vtCloseToCard(modalEl, panelEl, key, domUpdate, after){
+  const targetEl = key ? document.querySelector(`[data-mkey="${CSS.escape(key)}"]`) : null;
+  const visible = targetEl && targetEl.offsetParent !== null;
+  if(!visible || !supportsViewTransitions()){
+    morphCloseToCard(modalEl, panelEl, key, ()=>{ domUpdate(); if(after) after(); });
+    return;
+  }
+  targetEl.style.viewTransitionName = VT_NAME;
+  panelEl.style.viewTransitionName = VT_NAME;
+  panelEl.classList.add('morphing');
+
+  const vt = document.startViewTransition(()=>{
+    domUpdate();
+    modalEl.classList.remove('open','closing');
+  });
+  const cleanup = ()=>{
+    targetEl.style.viewTransitionName = '';
+    panelEl.style.viewTransitionName = '';
+    panelEl.classList.remove('morphing');
+    if(after) after();
+  };
+  vt.finished.then(cleanup).catch(cleanup);
+}
+
 function morphOpenFromCard(modalEl, panelEl, originEl){
   if(!originEl || S.settings.reduceMotion){ modalEl.classList.add('open'); return; }
   const originRect = originEl.getBoundingClientRect();
   if(originRect.width < 4 || originRect.height < 4){ modalEl.classList.add('open'); return; }
-  // Capture the card's rounded corner so the panel can visibly "unround"
-  // as it grows to full-bleed — the detail that makes this read as an
-  // Apple-style shared-element transition (App Store, Photos) instead
-  // of a generic zoom.
-  const originRadius = getComputedStyle(originEl).borderRadius || '0px';
 
   modalEl.classList.add('open');
-  // Force a synchronous reflow before measuring. On iOS the modal's
-  // `min-height:100dvh` panel can report a stale rect for one frame
-  // while the dynamic toolbar is still settling — reading offsetHeight
-  // forces layout to catch up before we lock in the target geometry.
-  void panelEl.offsetHeight;
   const finalRect = panelEl.getBoundingClientRect();
   if(finalRect.width < 4 || finalRect.height < 4) return; // nothing sane to animate from
-  const finalRadius = getComputedStyle(panelEl).borderRadius || '0px';
 
   const scaleX = originRect.width / finalRect.width;
   const scaleY = originRect.height / finalRect.height;
@@ -1849,27 +1897,15 @@ function morphOpenFromCard(modalEl, panelEl, originEl){
   const dy = (originRect.top + originRect.height/2) - (finalRect.top + finalRect.height/2);
 
   panelEl.classList.add('morphing');
-  panelEl.style.transformOrigin = 'center center';
   panelEl.style.transition = 'none';
   panelEl.style.transform = `translate(${dx}px,${dy}px) scale(${scaleX},${scaleY})`;
   panelEl.style.opacity = '.4';
-  panelEl.style.borderRadius = originRadius;
   void panelEl.offsetHeight; // force reflow so the browser registers the start state
+  panelEl.style.transition = 'transform .48s var(--ease-spring), opacity .3s var(--ease-out)';
 
-  // Double rAF: Safari can fire a single requestAnimationFrame in the
-  // same paint as the style change above, which collapses the "from"
-  // and "to" states into one frame and makes the panel just snap into
-  // place instead of animating — this is the #1 reason a working-on-
-  // desktop FLIP transition looks broken on an iPhone. Waiting a full
-  // extra frame (the documented "double rAF" pattern) guarantees the
-  // start state has actually painted before the transition begins.
   requestAnimationFrame(()=>{
-    requestAnimationFrame(()=>{
-      panelEl.style.transition = 'transform .48s var(--ease-spring), opacity .3s var(--ease-out), border-radius .48s var(--ease-spring)';
-      panelEl.style.transform = 'none';
-      panelEl.style.opacity = '1';
-      panelEl.style.borderRadius = finalRadius;
-    });
+    panelEl.style.transform = 'none';
+    panelEl.style.opacity = '1';
   });
 
   const cleanup = ()=>{
@@ -1877,13 +1913,11 @@ function morphOpenFromCard(modalEl, panelEl, originEl){
     panelEl.style.transition = '';
     panelEl.style.transform = '';
     panelEl.style.opacity = '';
-    panelEl.style.borderRadius = '';
-    panelEl.style.transformOrigin = '';
     panelEl.removeEventListener('transitionend', onEnd);
   };
   function onEnd(e){ if(e.target===panelEl && e.propertyName==='transform') cleanup(); }
   panelEl.addEventListener('transitionend', onEnd);
-  setTimeout(cleanup, 750); // safety net in case transitionend never fires (iOS can drop it under load)
+  setTimeout(cleanup, 700); // safety net in case transitionend never fires
 }
 
 function morphCloseToCard(modalEl, panelEl, key, after){
@@ -1896,7 +1930,6 @@ function morphCloseToCard(modalEl, panelEl, key, after){
   const targetRect = targetEl.getBoundingClientRect();
   const panelRect = panelEl.getBoundingClientRect();
   if(panelRect.width < 4 || panelRect.height < 4){ closeModalAnimated(modalEl, after); return; }
-  const targetRadius = getComputedStyle(targetEl).borderRadius || '10px';
 
   const scaleX = targetRect.width / panelRect.width;
   const scaleY = targetRect.height / panelRect.height;
@@ -1905,20 +1938,10 @@ function morphCloseToCard(modalEl, panelEl, key, after){
 
   modalEl.classList.add('closing');
   panelEl.classList.add('morphing');
-  panelEl.style.transformOrigin = 'center center';
-  panelEl.style.transition = 'transform .34s var(--ease-out), opacity .28s var(--ease-out), border-radius .34s var(--ease-out)';
-  void panelEl.offsetHeight;
-
-  // Same double-rAF guard as the open transition — without it, Safari
-  // occasionally applies the end transform on the very next paint with
-  // no visible in-between frames, i.e. an instant cut rather than a
-  // shrink-back-into-the-card animation.
+  panelEl.style.transition = 'transform .34s var(--ease-out), opacity .28s var(--ease-out)';
   requestAnimationFrame(()=>{
-    requestAnimationFrame(()=>{
-      panelEl.style.transform = `translate(${dx}px,${dy}px) scale(${scaleX},${scaleY})`;
-      panelEl.style.opacity = '0';
-      panelEl.style.borderRadius = targetRadius;
-    });
+    panelEl.style.transform = `translate(${dx}px,${dy}px) scale(${scaleX},${scaleY})`;
+    panelEl.style.opacity = '0';
   });
 
   const finish = ()=>{
@@ -1927,14 +1950,12 @@ function morphCloseToCard(modalEl, panelEl, key, after){
     panelEl.style.transition = '';
     panelEl.style.transform = '';
     panelEl.style.opacity = '';
-    panelEl.style.borderRadius = '';
-    panelEl.style.transformOrigin = '';
     panelEl.removeEventListener('transitionend', onEnd);
     if(after) after();
   };
   function onEnd(e){ if(e.target===panelEl && e.propertyName==='transform') finish(); }
   panelEl.addEventListener('transitionend', onEnd);
-  setTimeout(finish, 500); // safety net
+  setTimeout(finish, 450); // safety net
 }
 
 /* ══════════════════════════════════════════
@@ -2190,7 +2211,7 @@ function renderGridInto(grid, items){
 ══════════════════════════════════════════ */
 async function openDetail(id, mediaType){
   const modal=document.getElementById('detailModal');
-  modal.classList.add('open'); lockBodyScroll();
+  modal.classList.add('open'); document.body.classList.add('no-scroll');
   document.getElementById('detailBody').innerHTML=`<div style="padding:2rem;text-align:center"><div class="spin"></div></div>`;
   document.getElementById('detailHeroImg').src='';
 
@@ -2265,7 +2286,7 @@ function detailWlToggle(id,type,title,poster,rating,year){
 }
 function closeDetail(){
   closeModalAnimated(document.getElementById('detailModal'), ()=>{
-    unlockBodyScroll();
+    document.body.classList.remove('no-scroll');
   });
 }
 
@@ -2286,8 +2307,8 @@ async function playContent(id, mediaType, title, originEl){
   document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv===S.srv));
 
   S._morphKey = `${mediaType}-${id}`;
-  morphOpenFromCard(modal, wrap, originEl);
-  lockBodyScroll();
+  vtOpenFromCard(modal, wrap, originEl, ()=>{});
+  document.body.classList.add('no-scroll');
   modal.scrollTop=0;
 
   const details=await api(`/${mediaType}/${id}`,{append_to_response:'external_ids'});
@@ -2439,14 +2460,16 @@ function closePlayer(){
   const doCleanup=()=>{
     document.getElementById('playerFrame').src='about:blank';
     _destroyNativePlayer();
-    unlockBodyScroll();
-    document.body.classList.remove('ci');
+    document.body.classList.remove('no-scroll','ci');
     const firstSrv=Object.keys(SRVS)[0]||'';
     S.srv=firstSrv;
     document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv===firstSrv));
     S._morphKey=null;
   };
-  morphCloseToCard(modal, wrap, S._morphKey, doCleanup);
+  // domUpdate is empty on purpose: keep the live video visible while it
+  // visually shrinks back into the card. Teardown (blanking the iframe,
+  // destroying the player) happens only after the shrink finishes.
+  vtCloseToCard(modal, wrap, S._morphKey, ()=>{}, doCleanup);
 }
 
 /* ══════════════════════════════════════════
@@ -2539,12 +2562,12 @@ const IPTV = {
 
 function openIPTV() {
   document.getElementById('iptvModal').classList.add('open');
-  lockBodyScroll();
+  document.body.classList.add('no-scroll');
   renderIPTVPresets();
 }
 function closeIPTV() {
   document.getElementById('iptvModal').classList.remove('open');
-  unlockBodyScroll();
+  document.body.classList.remove('no-scroll');
   iptvStop();
   iptvStopEmbed();
 }
