@@ -52,53 +52,68 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:    #070708;
-  --bg2:   #0c0c0e;
-  --bg3:   #111113;
-  --bg4:   #17171a;
-  --bg5:   #1e1e22;
-  --red:   #f5c518;
-  --red2:  #ffd83d;
-  --rglow: rgba(245,197,24,0.22);
-  --gold:  #f5c518;
-  --green: #3ddc84;
-  --text:  #f0f0f2;
-  --text2: #8e8e9e;
-  --text3: #4e4e5a;
-  --b1: rgba(255,255,255,0.08);
-  --b2: rgba(255,255,255,0.04);
-  --r: 10px;
-  --rl: 14px;
-  /* Safe area variables */
+  /* ── TRUE GOLD/BLACK PALETTE ── */
+  /* Deepest blacks — layered obsidian */
+  --bg:    #05050A;
+  --bg2:   #09090F;
+  --bg3:   #0E0E16;
+  --bg4:   #14141E;
+  --bg5:   #1A1A27;
+
+  /* Gold — metallic, not yellow. Based on 18k brushed gold #C9A84C */
+  --red:   #C9A84C;   /* primary gold — all accents, CTAs, active states */
+  --red2:  #E2BF6A;   /* lighter gold — hover brightening */
+  --rglow: rgba(201,168,76,0.20);
+  --gold:  #C9A84C;
+
+  /* Metallic gold gradient used for glossy effects */
+  --gold-grad: linear-gradient(135deg, #A0802A 0%, #E8C566 40%, #C9A84C 60%, #8A6A1E 100%);
+  --gold-shine: linear-gradient(to bottom, rgba(255,220,120,0.18) 0%, rgba(201,168,76,0.06) 50%, transparent 100%);
+
+  /* Accent — emerald for secondary states (series, badges) */
+  --green: #30C47A;
+
+  /* Text */
+  --text:  #F2EFE8;   /* warm near-white — not pure white, has gold warmth */
+  --text2: #8A8070;   /* mid — warm grey-brown */
+  --text3: #4A4438;   /* dim — dark warm grey */
+
+  /* Borders */
+  --b1: rgba(201,168,76,0.12);   /* gold-tinted border */
+  --b2: rgba(201,168,76,0.06);   /* ultra-subtle divider */
+
+  /* Corner radii */
+  --r: 12px;
+  --rl: 18px;
+
+  /* Safe area */
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
-  /* Motion — spring-style easing for open/entrance moments,
-     a smoother decel curve for closes and general hovers */
+
+  /* Motion */
   --ease-spring: cubic-bezier(.34,1.56,.64,1);
   --ease-out:    cubic-bezier(.22,1,.36,1);
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased;cursor:default;padding-bottom:var(--sab);padding-left:var(--sal);padding-right:var(--sar)}
-body.no-scroll{overflow:hidden}
-
-/* ── NATIVE BUTTON RESET ──
-   Real <button> elements keep iOS's default system chrome
-   (background, border, rounded appearance) unless explicitly
-   stripped. That native chrome doesn't line up with our custom
-   shapes and is the most likely cause of a white outline/halo
-   bleeding around otherwise-transparent circular/pill buttons
-   on iPhone specifically — Safari is far stricter about this
-   than desktop Chrome/Firefox, which mostly hide it once any
-   custom background is set. */
-button{
-  -webkit-appearance:none;appearance:none;
-  background:none;border:none;
-  font:inherit;color:inherit;
-  -webkit-tap-highlight-color:transparent;
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  cursor:default;
+  padding-bottom:var(--sab);
+  padding-left:var(--sal);
+  padding-right:var(--sar);
+  /* Subtle deep radial warmth — anchors the gold theme */
+  background-image: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(201,168,76,0.07) 0%, transparent 65%);
+  background-attachment: fixed;
 }
+body.no-scroll{overflow:hidden}
 
 /* ── iOS PWA Enhancements ── */
 @media (hover:none){#cur-dot,#cur-ring{display:none!important}}
@@ -121,39 +136,65 @@ footer{padding-bottom:calc(2.5rem + var(--sab))}
     font-size: 16px !important;
   }
 }
-::selection{background:var(--red);color:#fff}
-::-webkit-scrollbar{width:4px;height:4px}
+::selection{background:rgba(201,168,76,0.35);color:var(--text)}
+::-webkit-scrollbar{width:3px;height:3px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:9px}
-::-webkit-scrollbar-thumb:hover{background:var(--red)}
+::-webkit-scrollbar-thumb{background:rgba(201,168,76,0.2);border-radius:9px}
+::-webkit-scrollbar-thumb:hover{background:rgba(201,168,76,0.45)}
 
 /* ── CURSOR ── */
 #cur-dot,#cur-ring{position:fixed;top:0;left:0;pointer-events:none;border-radius:50%;transform:translate(-50%,-50%);z-index:99999}
-#cur-dot{width:7px;height:7px;background:var(--red);transition:width .15s,height .15s,opacity .2s}
-#cur-ring{width:30px;height:30px;border:1.5px solid rgba(245,197,24,.45);z-index:99998;transition:width .3s cubic-bezier(.17,.67,.83,.67),height .3s,border-color .2s,opacity .2s}
-body.ch #cur-dot{width:11px;height:11px}
-body.ch #cur-ring{width:46px;height:46px;border-color:rgba(245,197,24,.8)}
+#cur-dot{width:6px;height:6px;background:var(--red);box-shadow:0 0 8px rgba(201,168,76,0.6);transition:width .15s,height .15s,opacity .2s}
+#cur-ring{width:28px;height:28px;border:1px solid rgba(201,168,76,.38);z-index:99998;transition:width .3s cubic-bezier(.17,.67,.83,.67),height .3s,border-color .2s,opacity .2s}
+body.ch #cur-dot{width:10px;height:10px}
+body.ch #cur-ring{width:42px;height:42px;border-color:rgba(201,168,76,.75)}
 body.ci #cur-dot,body.ci #cur-ring{opacity:0}
 
 /* ── GRAIN ── */
-body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.022;pointer-events:none;z-index:99997}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.028;pointer-events:none;z-index:99997}
 
 /* ── HEADER ── */
-header{position:fixed;top:0;left:0;right:0;z-index:1000;transition:background .4s,border-color .4s;
-  /* Dynamic Island / notch safe area */
+header{position:fixed;top:0;left:0;right:0;z-index:1000;transition:background .45s var(--ease-out),border-color .45s;
   padding-top:var(--sat);
 }
 header.top{background:transparent;border-bottom:1px solid transparent}
-header.scrolled{background:rgba(7,7,8,.94);-webkit-backdrop-filter:blur(22px) saturate(180%);backdrop-filter:blur(22px) saturate(180%);border-bottom:1px solid var(--b1)}
-.header-line{position:fixed;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent 0%,var(--red) 50%,transparent 100%);z-index:1001;opacity:0;transition:opacity .4s}
+header.scrolled{
+  background:rgba(5,5,10,.92);
+  -webkit-backdrop-filter:blur(28px) saturate(160%);
+  backdrop-filter:blur(28px) saturate(160%);
+  border-bottom:1px solid var(--b1);
+}
+/* Gold shimmer line on scroll */
+.header-line{
+  position:fixed;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent 0%,rgba(201,168,76,.0) 15%,rgba(232,197,102,1) 50%,rgba(201,168,76,.0) 85%,transparent 100%);
+  z-index:1001;opacity:0;transition:opacity .5s;
+}
 .header-line.show{opacity:1}
-nav{max-width:1440px;margin:0 auto;padding:0 2.5rem;height:74px;display:flex;align-items:center;gap:1.7rem}
-.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;letter-spacing:-.04em;cursor:pointer;user-select:none;flex-shrink:0;display:flex;align-items:center}
-.logo em{color:var(--red);font-style:normal}
-.nav-links{display:flex;gap:.25rem;align-items:center}
-.nav-link{font-size:.87rem;font-weight:600;color:var(--text2);cursor:pointer;padding:.55rem 1.05rem;border-radius:100px;transition:color .2s var(--ease-out),background .2s var(--ease-out);white-space:nowrap;letter-spacing:.005em}
-.nav-link:hover{color:var(--text);background:rgba(255,255,255,.06)}
-.nav-link.active{color:#070708;background:var(--red)}
+nav{max-width:1440px;margin:0 auto;padding:0 2.5rem;height:72px;display:flex;align-items:center;gap:1.7rem}
+.logo{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:1.55rem;
+  letter-spacing:-.05em;cursor:pointer;user-select:none;flex-shrink:0;
+  display:flex;align-items:center;
+  background:var(--gold-grad);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.logo em{font-style:normal}
+.nav-links{display:flex;gap:.2rem;align-items:center}
+.nav-link{
+  font-size:.85rem;font-weight:600;color:var(--text2);cursor:pointer;
+  padding:.52rem 1rem;border-radius:100px;
+  transition:color .2s var(--ease-out),background .2s var(--ease-out);
+  white-space:nowrap;letter-spacing:.01em;
+}
+.nav-link:hover{color:var(--text);background:rgba(201,168,76,.08)}
+.nav-link.active{
+  color:#08080F;
+  background:var(--red);
+  background:linear-gradient(135deg,#C9A84C,#E8C566);
+  font-weight:700;
+}
 .nav-spacer{flex:1}
 
 /* ── SEARCH ── */
@@ -199,16 +240,16 @@ nav{max-width:1440px;margin:0 auto;padding:0 2.5rem;height:74px;display:flex;ali
 .hero-title{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(2.6rem,5.8vw,5rem);line-height:1.01;letter-spacing:-.03em;margin-bottom:.9rem;max-width:680px}
 .hero-desc{font-size:.95rem;color:var(--text2);line-height:1.66;max-width:490px;margin-bottom:1.4rem;font-weight:300}
 .hero-meta{display:flex;align-items:center;gap:.7rem;margin-bottom:1.9rem;flex-wrap:wrap}
-.hpill{display:inline-flex;align-items:center;gap:.3rem;font-size:.78rem;font-weight:500;color:var(--text2);background:rgba(30,30,34,.92);padding:.28rem .65rem;border-radius:100px}
-.hpill.gold{color:var(--gold);box-shadow:inset 0 0 0 100px rgba(245,197,24,.09)}
-.hpill.green{color:var(--green);box-shadow:inset 0 0 0 100px rgba(61,220,132,.09)}
+.hpill{display:inline-flex;align-items:center;gap:.3rem;font-size:.78rem;font-weight:500;color:var(--text2);background:rgba(255,255,255,.1);padding:.28rem .65rem;border-radius:100px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.hpill.gold{color:var(--gold);border-color:rgba(245,197,24,.2);background:rgba(245,197,24,.07)}
+.hpill.green{color:var(--green);border-color:rgba(61,220,132,.2);background:rgba(61,220,132,.07)}
 .hero-btns{display:flex;gap:.7rem;align-items:center}
 .btn-play{display:inline-flex;align-items:center;justify-content:center;gap:.55rem;min-height:44px;padding:.82rem 1.9rem;background:var(--red);color:#070708;border:none;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;transition:transform .22s var(--ease-out),box-shadow .22s var(--ease-out),background .22s var(--ease-out);position:relative;overflow:hidden}
 .btn-play::before{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(255,255,255,.16),transparent)}
 .btn-play:hover{background:var(--red2);transform:translateY(-2px);box-shadow:0 12px 32px rgba(245,197,24,.38)}
 .btn-play:active{transform:translateY(0) scale(.97)}
-.btn-info{display:inline-flex;align-items:center;justify-content:center;gap:.55rem;min-height:44px;padding:.82rem 1.6rem;background:rgba(30,30,34,.95);color:var(--text);border:none;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:background .22s var(--ease-out),transform .22s var(--ease-out)}
-.btn-info:hover{background:rgba(40,40,45,.95);transform:translateY(-2px)}
+.btn-info{display:inline-flex;align-items:center;justify-content:center;gap:.55rem;min-height:44px;padding:.82rem 1.6rem;background:rgba(255,255,255,.1);color:var(--text);border:none;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:background .22s var(--ease-out),transform .22s var(--ease-out);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.btn-info:hover{background:rgba(255,255,255,.16);transform:translateY(-2px)}
 .btn-wl{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:44px;padding:.82rem 1.15rem;background:rgba(255,255,255,.08);color:var(--text2);border:none;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:background .22s var(--ease-out),color .22s var(--ease-out)}
 .btn-wl:hover{background:rgba(255,255,255,.1);color:var(--text)}
 .btn-wl.in-list{color:var(--red);background:rgba(245,197,24,.12)}
@@ -267,20 +308,20 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
 .card-title{font-size:.83rem;font-weight:600;line-height:1.3;margin-bottom:.3rem}
 .card-meta{display:flex;align-items:center;gap:.45rem;font-size:.73rem;color:var(--text2)}
 .card-star{color:var(--gold);font-size:.7rem;font-weight:700}
-.ctag{position:absolute;top:.6rem;left:.6rem;font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:rgba(10,10,11,.92);color:var(--text2);padding:.2rem .5rem;border-radius:100px}
+.ctag{position:absolute;top:.6rem;left:.6rem;font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:rgba(7,7,8,.75);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:var(--text2);padding:.2rem .5rem;border-radius:100px}
 @media (hover:hover) and (pointer:fine){
   .ctag{opacity:0;transform:translateY(-4px);transition:opacity .2s var(--ease-out),transform .2s var(--ease-out)}
   .card:hover .ctag{opacity:1;transform:translateY(0)}
 }
 .ctag.tv{color:var(--green);border-color:rgba(61,220,132,.28)}
-.card-wl-btn{position:absolute;top:.55rem;right:.55rem;width:34px;height:34px;border-radius:50%;background:rgba(10,10,11,.85);color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s var(--ease-out),background .2s var(--ease-out),color .2s var(--ease-out);font-size:.85rem;z-index:2}
+.card-wl-btn{position:absolute;top:.55rem;right:.55rem;width:34px;height:34px;border-radius:50%;background:rgba(7,7,8,.7);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s var(--ease-out),background .2s var(--ease-out),color .2s var(--ease-out);font-size:.85rem;z-index:2}
 .card-wl-btn:active{transform:scale(.85)}
 @media (hover:hover) and (pointer:fine){
   .card-wl-btn{opacity:0;width:28px;height:28px}
   .card:hover .card-wl-btn{opacity:1}
-  .card-wl-btn:hover{background:rgba(245,197,24,.22);color:var(--red)}
+  .card-wl-btn:hover{background:rgba(245,197,24,.2);color:var(--red)}
 }
-.card-wl-btn.active{color:var(--red);background:rgba(245,197,24,.18)}
+.card-wl-btn.active{color:var(--red);background:rgba(245,197,24,.15)}
 
 /* ── TOP 10 ROW ── */
 .top10-grid{display:flex;gap:1rem;overflow-x:auto;padding-bottom:.5rem;scrollbar-width:none}
@@ -355,8 +396,8 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
 .detail-hero{position:relative;height:320px;overflow:hidden}
 .detail-hero-img{width:100%;height:100%;object-fit:cover;display:block}
 .detail-hero-grad{position:absolute;inset:0;background:linear-gradient(to top,var(--bg2) 0%,transparent 60%)}
-.detail-close{position:absolute;top:.9rem;right:.9rem;width:44px;height:44px;border-radius:50%;background:rgba(15,15,16,.75);border:none;color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .18s var(--ease-out),background .18s var(--ease-out);font-size:1.2rem;z-index:4}
-.detail-close:hover{background:rgba(15,15,16,.92)}
+.detail-close{position:absolute;top:.9rem;right:.9rem;width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:none;color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .18s var(--ease-out),background .18s var(--ease-out);font-size:1.2rem;z-index:4}
+.detail-close:hover{background:rgba(0,0,0,.75)}
 .detail-close:active{transform:scale(.88)}
 .detail-body{padding:1.4rem 1.8rem 1.8rem}
 .detail-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.7rem;letter-spacing:-.03em;margin-bottom:.5rem;line-height:1.1}
@@ -390,25 +431,6 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
   animation:fadeout .18s var(--ease-out) forwards}
 .player-wrap{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rl);max-width:1120px;width:100%;overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,.9);animation:slup .32s var(--ease-spring)}
 .player-wrap.morphing{animation:none!important;will-change:transform,opacity}
-
-/* ── NATIVE VIEW TRANSITION (card ↔ player morph) ──
-   Safari 18+ (current iOS) supports this natively. Default browser
-   behavior cross-fades old/new snapshots with mix-blend-mode:plus-lighter,
-   which looks washed-out/double-exposed when the two images are very
-   different (a poster vs. a dark video panel) — documented W3C behavior,
-   not a bug. Switching to a normal blend gives a clean crossfade instead,
-   while the group itself still morphs position/size automatically. */
-::view-transition-group(aflix-poster-morph){
-  animation-duration:.42s;
-  animation-timing-function:cubic-bezier(.22,1,.36,1);
-}
-::view-transition-image-pair(aflix-poster-morph){ isolation:isolate }
-::view-transition-old(aflix-poster-morph),
-::view-transition-new(aflix-poster-morph){
-  mix-blend-mode:normal;
-  animation-duration:.3s;
-  height:100%;
-}
 .player-modal.closing .player-wrap{animation:sldown .18s var(--ease-out) forwards}
 .player-hd{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.4rem;border-bottom:1px solid var(--b1);background:var(--bg3)}
 .player-title-area{min-width:0}
@@ -1828,92 +1850,7 @@ function closeModalAnimated(el, after){
    to the normal spring entrance/close if there's
    no origin card (e.g. no card was tapped) or the
    origin card is no longer on screen.
-
-   Primary technique: the native View Transitions API
-   (document.startViewTransition), supported in Safari
-   18+ — i.e. current iOS — and Chrome/Edge/Firefox.
-   This is the browser's own built-in mechanism for
-   exactly this kind of shared-element morph: it
-   measures the real before/after position and size
-   itself, so a card on the right morphs from the
-   right and a card on the left morphs from the left,
-   automatically and pixel-accurately — no manual math.
-
-   Fallback: the hand-built FLIP transform animation
-   below, used only when the native API isn't available
-   (older Safari, or reduceMotion).
 ══════════════════════════════════════════ */
-const VT_NAME = 'aflix-poster-morph';
-function supportsViewTransitions(){
-  const osReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  return typeof document.startViewTransition === 'function' && !S.settings.reduceMotion && !osReduced;
-}
-
-function vtOpenFromCard(modalEl, panelEl, originEl, domUpdate){
-  if(!originEl || !supportsViewTransitions()){
-    domUpdate();
-    morphOpenFromCard(modalEl, panelEl, originEl);
-    return;
-  }
-  const rect = originEl.getBoundingClientRect();
-  if(rect.width < 4 || rect.height < 4){ domUpdate(); modalEl.classList.add('open'); return; }
-
-  originEl.style.viewTransitionName = VT_NAME;
-  panelEl.style.viewTransitionName = VT_NAME;
-  panelEl.classList.add('morphing'); // suppress the keyframe entrance so it doesn't fight the native transition
-
-  const cleanup = ()=>{
-    originEl.style.viewTransitionName = '';
-    panelEl.style.viewTransitionName = '';
-    panelEl.classList.remove('morphing');
-  };
-  try{
-    const vt = document.startViewTransition(()=>{
-      domUpdate();
-      modalEl.classList.add('open');
-    });
-    vt.finished.then(cleanup).catch(cleanup);
-  }catch(err){
-    // Native API misbehaved — fail safe into the tested FLIP animation instead of breaking the open entirely
-    console.warn('[AFlix] View Transition failed, using fallback:', err);
-    cleanup();
-    domUpdate();
-    morphOpenFromCard(modalEl, panelEl, originEl);
-  }
-}
-
-function vtCloseToCard(modalEl, panelEl, key, domUpdate, after){
-  const targetEl = key ? document.querySelector(`[data-mkey="${CSS.escape(key)}"]`) : null;
-  const visible = targetEl && targetEl.offsetParent !== null;
-  if(!visible || !supportsViewTransitions()){
-    morphCloseToCard(modalEl, panelEl, key, ()=>{ domUpdate(); if(after) after(); });
-    return;
-  }
-  targetEl.style.viewTransitionName = VT_NAME;
-  panelEl.style.viewTransitionName = VT_NAME;
-  panelEl.classList.add('morphing');
-
-  const cleanup = ()=>{
-    targetEl.style.viewTransitionName = '';
-    panelEl.style.viewTransitionName = '';
-    panelEl.classList.remove('morphing');
-    if(after) after();
-  };
-  try{
-    const vt = document.startViewTransition(()=>{
-      domUpdate();
-      modalEl.classList.remove('open','closing');
-    });
-    vt.finished.then(cleanup).catch(cleanup);
-  }catch(err){
-    console.warn('[AFlix] View Transition failed, using fallback:', err);
-    targetEl.style.viewTransitionName = '';
-    panelEl.style.viewTransitionName = '';
-    panelEl.classList.remove('morphing');
-    morphCloseToCard(modalEl, panelEl, key, ()=>{ domUpdate(); if(after) after(); });
-  }
-}
-
 function morphOpenFromCard(modalEl, panelEl, originEl){
   if(!originEl || S.settings.reduceMotion){ modalEl.classList.add('open'); return; }
   const originRect = originEl.getBoundingClientRect();
@@ -2339,7 +2276,7 @@ async function playContent(id, mediaType, title, originEl){
   document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv===S.srv));
 
   S._morphKey = `${mediaType}-${id}`;
-  vtOpenFromCard(modal, wrap, originEl, ()=>{});
+  morphOpenFromCard(modal, wrap, originEl);
   document.body.classList.add('no-scroll');
   modal.scrollTop=0;
 
@@ -2498,10 +2435,7 @@ function closePlayer(){
     document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv===firstSrv));
     S._morphKey=null;
   };
-  // domUpdate is empty on purpose: keep the live video visible while it
-  // visually shrinks back into the card. Teardown (blanking the iframe,
-  // destroying the player) happens only after the shrink finishes.
-  vtCloseToCard(modal, wrap, S._morphKey, ()=>{}, doCleanup);
+  morphCloseToCard(modal, wrap, S._morphKey, doCleanup);
 }
 
 /* ══════════════════════════════════════════
