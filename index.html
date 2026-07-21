@@ -1547,6 +1547,33 @@ footer{
     btn.disabled = false;
     btn.textContent = 'Access AFlix';
   }
+
+  /* ── RE-LOCK ON BACKGROUND ──
+     iOS PWAs usually don't reload when reopened from the home screen —
+     they just resume the same live page that was sitting in the
+     background, gate-and-all still unlocked from before. So instead of
+     relying on a fresh page load to show the gate, we force it back to
+     its locked state the instant the app leaves the foreground. That way
+     it's already locked by the time the user returns, no matter whether
+     the OS actually reloads the page or just resumes it. */
+  function relock() {
+    var gate = document.getElementById('aflixGate');
+    if (!gate) return;
+    gate.style.transition = 'none';
+    gate.style.opacity = '1';
+    gate.style.display = 'flex';
+    var u = document.getElementById('gateUserInput');
+    var c = document.getElementById('gateCodeInput');
+    if (u) u.value = '';
+    if (c) c.value = '';
+    var msg = document.getElementById('gateMsg');
+    if (msg) { msg.className = 'gate-msg'; msg.textContent = ''; msg.style.display = 'none'; }
+    resetBtn();
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') relock();
+  });
+  window.addEventListener('pagehide', relock);
 })();
 </script>
 <!-- END LICENSE GATE -->
