@@ -1294,9 +1294,13 @@ footer{
     border-left:1px solid var(--b1);
   }
 }
+
+/* ── GATE LOCK: app hidden until auth passes ── */
+body.gate-locked #aflixApp { visibility: hidden; pointer-events: none; }
+body:not(.gate-locked) #aflixGate { display: none !important; }
 </style>
 </head>
-<body>
+<body class="gate-locked">
 
 <!-- ══════════════════════════════════════════
      AFLIX LICENSE GATE — Google Sheets backend
@@ -1398,11 +1402,6 @@ footer{
 }
 </style>
 
-<!-- Gate always visible on load; JS reveals app only after auth -->
-<style>
-  #aflixApp { display: none !important; }
-  #aflixApp.unlocked { display: block !important; }
-</style>
 <div id="aflixGate">
   <div class="gate-box">
     <div class="gate-logo">A<em>F</em>LIX</div>
@@ -1546,10 +1545,14 @@ footer{
     showMsg('ok', 'Welcome, ' + match.username + '!');
     setTimeout(function () {
       var gate = document.getElementById('aflixGate');
+      var app  = document.getElementById('aflixApp');
       if (gate) {
-        gate.style.transition = 'opacity .4s';
+        gate.style.transition = 'opacity .35s';
         gate.style.opacity = '0';
-        setTimeout(function () { gate.remove(); }, 420);
+        setTimeout(function () {
+          gate.style.display = 'none';
+          if (app) app.classList.add('unlocked');
+        }, 370);
       }
     }, 800);
   };
