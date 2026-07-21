@@ -7,7 +7,7 @@
 
 <!-- ── PWA / iOS HOME SCREEN ── -->
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#070708">
+<meta name="theme-color" content="#05050A">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1175,8 +1175,8 @@ footer{
     bottom:0; left:0; right:0;
     height:calc(56px + var(--sab));
     padding-bottom:var(--sab);
-    background:rgba(7,7,8,.96);
-    -webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);
+    background:rgba(5,5,10,.96);
+    -webkit-backdrop-filter:blur(28px) saturate(160%);backdrop-filter:blur(28px) saturate(160%);
     border-top:1px solid var(--b1);
     z-index:990;
     align-items:center;
@@ -1186,14 +1186,14 @@ footer{
     flex:1;
     display:flex;flex-direction:column;align-items:center;
     justify-content:center;gap:.2rem;cursor:pointer;
-    padding:.5rem 0;color:var(--text3);transition:color .18s var(--ease-out),transform .12s var(--ease-out);
+    padding:.5rem 0;color:var(--text3);transition:color .2s var(--ease-out),transform .12s var(--ease-out);
     -webkit-tap-highlight-color:transparent;user-select:none;
   }
-  .tab-item:active{ transform:scale(.88); }
-  .tab-item.active{ color:var(--red); }
-  .tab-item.active svg{ transform:scale(1.08); transition:transform .3s var(--ease-spring); }
+  .tab-item:active{ transform:scale(.85); }
+  .tab-item.active{ color:var(--gold); }
+  .tab-item.active svg{ transform:scale(1.1); transition:transform .3s var(--ease-spring); }
   .tab-item svg{ width:20px; height:20px; flex-shrink:0; }
-  .tab-item span{ font-size:.58rem; font-weight:600; letter-spacing:.02em; }
+  .tab-item span{ font-size:.58rem; font-weight:700; letter-spacing:.03em; }
 
   main{ padding:0 1rem calc(80px + var(--sab)); }
   footer{ display:none; }
@@ -1240,7 +1240,7 @@ footer{
   }
   .sheet-handle{
     display:block;width:36px;height:5px;border-radius:100px;
-    background:rgba(255,255,255,.28);
+    background:rgba(201,168,76,.25);
     margin:.6rem auto .2rem;
     position:relative;z-index:3;
   }
@@ -1306,7 +1306,8 @@ footer{
 <style>
 #aflixGate{
   position:fixed;inset:0;z-index:999999;
-  background:#070708;
+  background:#05050A;
+  background-image:radial-gradient(ellipse 70% 50% at 50% 0%, rgba(201,168,76,.08) 0%, transparent 65%);
   display:flex;align-items:center;justify-content:center;
   padding:1.5rem;
   padding-top:env(safe-area-inset-top,0px);
@@ -1315,70 +1316,85 @@ footer{
 }
 #aflixGate .gate-box{
   width:100%;max-width:380px;
-  background:#0c0c0e;
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:16px;
-  padding:2rem 1.75rem 1.75rem;
+  background:rgba(14,14,22,.96);
+  border:1px solid rgba(201,168,76,.15);
+  border-radius:20px;
+  padding:2.2rem 1.9rem 1.9rem;
   display:flex;flex-direction:column;gap:1.1rem;
+  box-shadow:0 48px 100px rgba(0,0,0,.9),0 0 0 1px rgba(201,168,76,.06);
 }
 #aflixGate .gate-logo{
-  font-family:'Syne',sans-serif;font-weight:800;font-size:1.7rem;
-  letter-spacing:-.04em;text-align:center;margin-bottom:.2rem;
-  color:#f0f0f2;
+  font-family:'Syne',sans-serif;font-weight:800;font-size:1.8rem;
+  letter-spacing:-.05em;text-align:center;margin-bottom:.2rem;
+  background:linear-gradient(135deg,#A0802A 0%,#E8C566 40%,#C9A84C 60%,#8A6A1E 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
 }
-#aflixGate .gate-logo em{color:#f5c518;font-style:normal}
+#aflixGate .gate-logo em{font-style:normal}
 #aflixGate .gate-sub{
-  font-size:.82rem;color:#8e8e9e;text-align:center;margin-top:-.6rem;
+  font-size:.82rem;color:#8A8070;text-align:center;margin-top:-.6rem;
 }
 #aflixGate label{
-  font-size:.75rem;font-weight:600;color:#8e8e9e;
-  text-transform:uppercase;letter-spacing:.08em;
+  font-size:.72rem;font-weight:700;color:#6A6058;
+  text-transform:uppercase;letter-spacing:.1em;
   display:block;margin-bottom:.38rem;
 }
 #aflixGate input{
-  width:100%;padding:.72rem 1rem;
-  background:#17171a;border:1px solid rgba(255,255,255,0.08);
-  border-radius:9px;color:#f0f0f2;
+  width:100%;padding:.75rem 1rem;
+  background:rgba(20,20,30,.95);border:1px solid rgba(201,168,76,.12);
+  border-radius:10px;color:#F2EFE8;
   font-size:1rem;font-family:'DM Sans',sans-serif;
   outline:none;-webkit-appearance:none;
-  transition:border-color .18s;
+  transition:border-color .2s,box-shadow .2s;
 }
-#aflixGate input:focus{border-color:rgba(245,197,24,0.55);}
-#aflixGate input::placeholder{color:#4e4e5a}
+#aflixGate input:focus{
+  border-color:rgba(201,168,76,.5);
+  box-shadow:0 0 0 3px rgba(201,168,76,.07);
+}
+#aflixGate input::placeholder{color:#3A342C}
 #aflixGate #gateCodeInput{
   letter-spacing:.25em;font-size:1.2rem;font-weight:600;text-align:center;
 }
 #aflixGate .gate-btn{
-  width:100%;padding:.82rem;
-  background:#f5c518;color:#fff;border:none;border-radius:9px;
-  font-family:'DM Sans',sans-serif;font-size:.93rem;font-weight:600;
-  cursor:pointer;transition:background .2s,transform .15s;
+  width:100%;padding:.85rem;
+  background:linear-gradient(135deg,#C9A84C 0%,#E8C566 50%,#C9A84C 100%);
+  background-size:200% 100%;
+  color:#06060A;border:none;border-radius:10px;
+  font-family:'DM Sans',sans-serif;font-size:.93rem;font-weight:700;
+  cursor:pointer;transition:background-position .4s,transform .15s,box-shadow .2s;
   margin-top:.2rem;
+  box-shadow:0 4px 20px rgba(201,168,76,.28);
+  position:relative;overflow:hidden;
 }
-#aflixGate .gate-btn:hover{background:#ffd83d}
+#aflixGate .gate-btn::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(to bottom,rgba(255,255,255,.18) 0%,transparent 55%);
+  pointer-events:none;
+}
+#aflixGate .gate-btn:hover{background-position:100% 0;box-shadow:0 8px 32px rgba(201,168,76,.4)}
 #aflixGate .gate-btn:active{transform:scale(.98)}
-#aflixGate .gate-btn:disabled{background:#2a2a2e;color:#4e4e5a;cursor:not-allowed;transform:none}
+#aflixGate .gate-btn:disabled{background:rgba(30,30,40,.8);background-image:none;color:#4A4438;cursor:not-allowed;transform:none;box-shadow:none}
 #aflixGate .gate-msg{
   font-size:.82rem;text-align:center;
   padding:.55rem .8rem;border-radius:8px;display:none;
 }
 #aflixGate .gate-msg.err{
-  display:block;background:rgba(232,25,44,.1);
-  border:1px solid rgba(232,25,44,.3);color:#ff6b7a;
+  display:block;background:rgba(232,25,44,.08);
+  border:1px solid rgba(232,25,44,.25);color:#ff6b7a;
 }
 #aflixGate .gate-msg.ok{
-  display:block;background:rgba(61,220,132,.08);
-  border:1px solid rgba(61,220,132,.25);color:#3ddc84;
+  display:block;background:rgba(48,196,122,.07);
+  border:1px solid rgba(48,196,122,.22);color:#30C47A;
 }
 #aflixGate .gate-spin{
   display:inline-block;width:16px;height:16px;
-  border:2px solid rgba(255,255,255,.15);border-top-color:#fff;
+  border:2px solid rgba(6,6,10,.2);border-top-color:#06060A;
   border-radius:50%;animation:gspin .65s linear infinite;
   vertical-align:middle;margin-right:6px;
 }
 @keyframes gspin{to{transform:rotate(360deg)}}
 #aflixGate .gate-footer{
-  font-size:.73rem;color:#4e4e5a;text-align:center;margin-top:.3rem;
+  font-size:.73rem;color:#4A4438;text-align:center;margin-top:.3rem;
 }
 </style>
 
@@ -1415,13 +1431,7 @@ footer{
     '2PACX-1vQ12vBXZ7C6vJrg8eGJHzR-8iEtzWbNZd-Zinc7JhLwWfGMDZ6-go0nPUKsn3_C6Q9x3OkYGpLsIU--' +
     '/pub?output=csv&cachebust=' + Date.now();
 
-  var SESSION_KEY = 'aflix-gate-passed';
-
-  /* Already verified this tab session — skip gate instantly */
-  if (sessionStorage.getItem(SESSION_KEY) === '1') {
-    document.getElementById('aflixGate').remove();
-    return;
-  }
+  /* Gate always shows on every load — no session bypass */
 
   /* Enter key on either input triggers verify */
   ['gateUserInput', 'gateCodeInput'].forEach(function (id) {
@@ -1529,7 +1539,6 @@ footer{
 
     /* ✓ Valid & active */
     showMsg('ok', 'Welcome, ' + match.username + '!');
-    sessionStorage.setItem(SESSION_KEY, '1');
     setTimeout(function () {
       var gate = document.getElementById('aflixGate');
       if (gate) {
@@ -1984,7 +1993,7 @@ function renderCW(){
       <div class="cw-thumb-wrap">
         ${i.backdrop?`<img src="${IMG}/w300${i.backdrop}" class="cw-thumb" alt="" loading="lazy">`:`<div class="cw-thumb skel"></div>`}
         <div class="cw-play-over">
-          <div style="width:36px;height:36px;background:rgba(245,197,24,.9);border-radius:50%;display:flex;align-items:center;justify-content:center">
+          <div style="width:36px;height:36px;background:linear-gradient(135deg,#C9A84C,#E8C566);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(201,168,76,.4)">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="white"><path d="M2 1L10 6L2 11V1Z"/></svg>
           </div>
         </div>
