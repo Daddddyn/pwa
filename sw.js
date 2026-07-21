@@ -15,8 +15,6 @@
 const CACHE_NAME = 'aflix-v5';
 
 const SHELL_FILES = [
-  './',
-  './index.html',
   './adblock.js',
   './manifest.json',
   './icon-192.png',
@@ -261,25 +259,19 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  /* NETWORK FIRST: the app shell HTML itself.
-     This is critical — index.html contains the login gate. If this were
-     served cache-first, the device would keep replaying whatever HTML/JS
-     was cached on first install forever, even after the real file changes
-     on the server. Always try the network first so updates (like gate
-     logic) take effect immediately; fall back to cache only when offline. */
+  /* NEVER INTERCEPT PAGE NAVIGATION AT ALL.
+     index.html contains the login gate. Any caching of this file — even
+     "network first with cache fallback" — creates a window where a stale
+     snapshot can get locked in and replayed forever. The only bulletproof
+     fix is to not call respondWith() for these requests at all, which
+     makes the browser fetch them exactly as if no service worker existed. */
   const isPageNav =
     request.mode === 'navigate' ||
     url.pathname.endsWith('/index.html') ||
     url.pathname === '/' ||
     url.pathname.endsWith('/');
   if (isPageNav) {
-    event.respondWith(
-      fetch(request, { cache: 'no-store' }).then(r => {
-        if (r.ok) caches.open(CACHE_NAME).then(c => c.put(request, r.clone()));
-        return r;
-      }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html')))
-    );
-    return;
+    return; // let the browser handle this request natively — no SW involvement
   }
 
   /* STALE-WHILE-REVALIDATE: fonts, CDN */
@@ -300,17 +292,14 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  /* CACHE FIRST: app shell */
+  /* CACHE FIRST: remaining static assets only (navigation already handled above) */
   event.respondWith(
     caches.match(request).then(cached => {
       if (cached) return cached;
       return fetch(request).then(r => {
         if (r.ok) caches.open(CACHE_NAME).then(c => c.put(request, r.clone()));
         return r;
-      }).catch(() => {
-        if (request.mode === 'navigate') return caches.match('./index.html');
-        return new Response('', { status: 503 });
-      });
+      }).catch(() => new Response('', { status: 503 }));
     })
   );
 });
