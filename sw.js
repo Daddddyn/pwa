@@ -12,7 +12,7 @@
    iframe's JS tries to do.
 ══════════════════════════════════════════ */
 
-const CACHE_NAME = 'aflix-v4';
+const CACHE_NAME = 'aflix-v5';
 
 const SHELL_FILES = [
   './',
@@ -258,6 +258,27 @@ self.addEventListener('fetch', event => {
   ];
   if (networkOnly.some(h => url.hostname.includes(h))) {
     event.respondWith(fetch(request).catch(() => new Response('', { status: 503 })));
+    return;
+  }
+
+  /* NETWORK FIRST: the app shell HTML itself.
+     This is critical — index.html contains the login gate. If this were
+     served cache-first, the device would keep replaying whatever HTML/JS
+     was cached on first install forever, even after the real file changes
+     on the server. Always try the network first so updates (like gate
+     logic) take effect immediately; fall back to cache only when offline. */
+  const isPageNav =
+    request.mode === 'navigate' ||
+    url.pathname.endsWith('/index.html') ||
+    url.pathname === '/' ||
+    url.pathname.endsWith('/');
+  if (isPageNav) {
+    event.respondWith(
+      fetch(request, { cache: 'no-store' }).then(r => {
+        if (r.ok) caches.open(CACHE_NAME).then(c => c.put(request, r.clone()));
+        return r;
+      }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html')))
+    );
     return;
   }
 
