@@ -1574,6 +1574,17 @@ footer{
     if (document.visibilityState === 'hidden') relock();
   });
   window.addEventListener('pagehide', relock);
+  /* window blur is the most reliable signal on iOS standalone PWAs —
+     visibilitychange is known to be inconsistent in that context, while
+     blur fires synchronously the instant the app loses focus, before
+     iOS suspends JS execution. Keeping all three as redundant signals. */
+  window.addEventListener('blur', relock);
+  /* Defensive: also relock the instant focus returns, in case every
+     "leaving" signal above somehow failed to fire while backgrounded. */
+  window.addEventListener('focus', relock);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') relock();
+  });
 })();
 </script>
 <!-- END LICENSE GATE -->
