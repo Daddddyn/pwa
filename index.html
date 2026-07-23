@@ -1454,6 +1454,28 @@ footer{
   aflixLog('performance.navigation type = ' +
     (performance.getEntriesByType('navigation')[0] ?
       performance.getEntriesByType('navigation')[0].type : 'unknown'));
+  aflixLog('gate computed opacity: ' + (gateEl ? getComputedStyle(gateEl).opacity : 'n/a') +
+    ' | z-index: ' + (gateEl ? getComputedStyle(gateEl).zIndex : 'n/a'));
+
+  /* ── FORCE REPAINT WORKAROUND ──
+     On some reload navigations, WebKit can fail to composite a
+     position:fixed layer on top even though its computed style is
+     completely correct underneath — a known class of iOS Safari
+     rendering bug, not a logic bug. Forcing the browser to drop and
+     rebuild this element's layer (toggle display, force a reflow read,
+     restore it) makes it actually repaint on top where it belongs. */
+  if (gateEl) {
+    requestAnimationFrame(function () {
+      gateEl.style.display = 'none';
+      void gateEl.offsetHeight; /* force synchronous reflow */
+      gateEl.style.display = 'flex';
+      requestAnimationFrame(function () {
+        aflixLog('forced repaint applied — computed display now: ' +
+          getComputedStyle(gateEl).display + ' | opacity: ' +
+          getComputedStyle(gateEl).opacity);
+      });
+    });
+  }
 
   /* ── CONFIG ──────────────────────────────────────────────────────────────
      Published Google Sheet → File › Share › Publish to web › CSV format.
