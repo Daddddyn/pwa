@@ -20,7 +20,31 @@
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW registration failed:', err));
+      navigator.serviceWorker.register('sw.js').then(function (reg) {
+        /* Force an immediate check for a newer sw.js right now, instead
+           of waiting for the browser's own lazy update schedule (which
+           can be delayed by up to 24 hours, or longer if the host serves
+           sw.js with aggressive HTTP caching). This is what actually lets
+           already-installed PWAs pick up updates without reinstalling. */
+        reg.update();
+
+        /* Also re-check every time the user comes back to the app —
+           covers PWAs that stay suspended in the background for days. */
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'visible') reg.update();
+        });
+      }).catch(err => console.warn('SW registration failed:', err));
+
+      /* The moment a NEW service worker takes control (it finished
+         installing + activating, per skipWaiting/clients.claim in sw.js),
+         reload once so this page — and everything on it — is served
+         fresh under the new worker instead of lingering on the old one. */
+      var reloadedOnce = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (reloadedOnce) return;
+        reloadedOnce = true;
+        window.location.reload();
+      });
     });
   }
   // ── iOS INPUT ZOOM RESET ──
