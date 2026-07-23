@@ -1477,6 +1477,19 @@ footer{
     });
   }
 
+  /* ── SCROLL-NUDGE WORKAROUND ──
+     If the CSS is proven correct (confirmed above) but the screen still
+     shows stale content, that points at a native browser-chrome overlay
+     (e.g. a cached "reload preview" bitmap) sitting on top of the real,
+     already-correct page — not anything in our DOM. A tiny forced scroll
+     is a known trick to make iOS Safari drop stuck native overlays like
+     this and re-settle on the real underlying content. */
+  setTimeout(function () {
+    window.scrollTo(0, 1);
+    window.scrollTo(0, 0);
+    aflixLog('scroll-nudge applied');
+  }, 60);
+
   /* ── CONFIG ──────────────────────────────────────────────────────────────
      Published Google Sheet → File › Share › Publish to web › CSV format.
      The sheet must have these column headers in row 1 (case-insensitive):
