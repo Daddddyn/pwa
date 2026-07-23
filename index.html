@@ -1608,6 +1608,20 @@ footer{
   /* Defensive: also relock the instant focus returns, in case every
      "leaving" signal above somehow failed to fire while backgrounded. */
   window.addEventListener('focus', relock);
+
+  /* ── DEFEAT BACK-FORWARD CACHE (bfcache) ──
+     Some "refresh" actions — and switching away from a tab and back —
+     don't actually re-run this script at all. The browser just restores
+     a frozen snapshot of the page exactly as it last looked, gate already
+     hidden included, with zero JS re-execution. relock() above can't help
+     here because it never gets a chance to run. The only real fix is to
+     detect that a bfcache restore just happened and force a genuine
+     reload, which guarantees the whole script runs fresh from scratch. */
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') relock();
   });
