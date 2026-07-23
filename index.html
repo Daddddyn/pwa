@@ -1409,6 +1409,8 @@ footer{
 }
 </style>
 
+<div id="aflixDebugLog" style="position:fixed;top:0;left:0;right:0;z-index:9999999;background:rgba(0,0,0,.92);color:#4f4;font:9px/1.4 monospace;padding:6px 8px;max-height:140px;overflow-y:auto;white-space:pre-wrap;border-bottom:2px solid #0f0;"></div>
+
 <div id="aflixGate">
   <div class="gate-box">
     <div class="gate-logo">A<em>F</em>LIX</div>
@@ -1432,6 +1434,27 @@ footer{
 
 <script>
 (function () {
+  /* ── TEMPORARY DIAGNOSTIC LOGGER ──
+     Prints a live, on-screen, timestamped log of every lifecycle event
+     related to the gate, so we can see the REAL sequence of what happens
+     on this device instead of guessing. Remove once the bug is found. */
+  var dbg = document.getElementById('aflixDebugLog');
+  window.aflixLog = function (msg) {
+    var line = new Date().toISOString().slice(11, 23) + '  ' + msg;
+    if (dbg) {
+      dbg.textContent += (dbg.textContent ? '\n' : '') + line;
+      dbg.scrollTop = dbg.scrollHeight;
+    }
+  };
+  var gateEl = document.getElementById('aflixGate');
+  aflixLog('SCRIPT START — gate computed display: ' +
+    (gateEl ? getComputedStyle(gateEl).display : 'GATE NOT FOUND') +
+    ' | inline style.display: "' + (gateEl ? gateEl.style.display : 'n/a') + '"');
+  aflixLog('document.visibilityState = ' + document.visibilityState);
+  aflixLog('performance.navigation type = ' +
+    (performance.getEntriesByType('navigation')[0] ?
+      performance.getEntriesByType('navigation')[0].type : 'unknown'));
+
   /* ── CONFIG ──────────────────────────────────────────────────────────────
      Published Google Sheet → File › Share › Publish to web › CSV format.
      The sheet must have these column headers in row 1 (case-insensitive):
@@ -1550,13 +1573,17 @@ footer{
     }
 
     /* ✓ Valid & active */
+    aflixLog('LOGIN SUCCESS for ' + match.username + ' — hiding gate in 800ms');
     showMsg('ok', 'Welcome, ' + match.username + '!');
     setTimeout(function () {
       var gate = document.getElementById('aflixGate');
       if (gate) {
         gate.style.transition = 'opacity .4s';
         gate.style.opacity = '0';
-        setTimeout(function () { gate.style.display = 'none'; }, 420);
+        setTimeout(function () {
+          gate.style.display = 'none';
+          aflixLog('gate.style.display set to none (post-login)');
+        }, 420);
       }
     }, 800);
   };
@@ -1583,8 +1610,9 @@ footer{
      it's already locked by the time the user returns, no matter whether
      the OS actually reloads the page or just resumes it. */
   function relock() {
+    aflixLog('relock() called');
     var gate = document.getElementById('aflixGate');
-    if (!gate) return;
+    if (!gate) { aflixLog('relock(): GATE ELEMENT NOT FOUND'); return; }
     gate.style.transition = 'none';
     gate.style.opacity = '1';
     gate.style.display = 'flex';
@@ -1595,19 +1623,30 @@ footer{
     var msg = document.getElementById('gateMsg');
     if (msg) { msg.className = 'gate-msg'; msg.textContent = ''; msg.style.display = 'none'; }
     resetBtn();
+    aflixLog('relock(): gate display now set to flex');
   }
   document.addEventListener('visibilitychange', function () {
+    aflixLog('visibilitychange fired — state: ' + document.visibilityState);
     if (document.visibilityState === 'hidden') relock();
   });
-  window.addEventListener('pagehide', relock);
+  window.addEventListener('pagehide', function (e) {
+    aflixLog('pagehide fired — persisted: ' + e.persisted);
+    relock();
+  });
   /* window blur is the most reliable signal on iOS standalone PWAs —
      visibilitychange is known to be inconsistent in that context, while
      blur fires synchronously the instant the app loses focus, before
      iOS suspends JS execution. Keeping all three as redundant signals. */
-  window.addEventListener('blur', relock);
+  window.addEventListener('blur', function () {
+    aflixLog('window blur fired');
+    relock();
+  });
   /* Defensive: also relock the instant focus returns, in case every
      "leaving" signal above somehow failed to fire while backgrounded. */
-  window.addEventListener('focus', relock);
+  window.addEventListener('focus', function () {
+    aflixLog('window focus fired');
+    relock();
+  });
 
   /* ── DEFEAT BACK-FORWARD CACHE (bfcache) ──
      Some "refresh" actions — and switching away from a tab and back —
@@ -1618,7 +1657,9 @@ footer{
      detect that a bfcache restore just happened and force a genuine
      reload, which guarantees the whole script runs fresh from scratch. */
   window.addEventListener('pageshow', function (event) {
+    aflixLog('pageshow fired — persisted: ' + event.persisted);
     if (event.persisted) {
+      aflixLog('bfcache restore detected — forcing reload NOW');
       window.location.reload();
     }
   });
