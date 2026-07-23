@@ -1456,6 +1456,20 @@ footer{
       performance.getEntriesByType('navigation')[0].type : 'unknown'));
   aflixLog('gate computed opacity: ' + (gateEl ? getComputedStyle(gateEl).opacity : 'n/a') +
     ' | z-index: ' + (gateEl ? getComputedStyle(gateEl).zIndex : 'n/a'));
+  if (gateEl) {
+    var cs = getComputedStyle(gateEl);
+    var rect = gateEl.getBoundingClientRect();
+    aflixLog('gate position: ' + cs.position + ' | visibility: ' + cs.visibility +
+      ' | transform: ' + cs.transform);
+    aflixLog('gate rect: top=' + rect.top + ' left=' + rect.left +
+      ' w=' + rect.width + ' h=' + rect.height);
+    aflixLog('window inner size: ' + window.innerWidth + 'x' + window.innerHeight +
+      ' | elementFromPoint center = ' +
+      (function () {
+        var el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+        return el ? (el.id || el.className || el.tagName) : 'null';
+      })());
+  }
 
   /* ── FORCE REPAINT WORKAROUND ──
      On some reload navigations, WebKit can fail to composite a
