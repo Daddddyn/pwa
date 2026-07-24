@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>AFlix — Sign In</title>
+
+<!-- ── PWA / iOS HOME SCREEN ── -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#05050A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AFlix">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
+<link rel="apple-touch-startup-image" href="icon-512.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:#05050A;
+  background-image:radial-gradient(ellipse 70% 50% at 50% 0%, rgba(201,168,76,.08) 0%, transparent 65%);
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  padding:1.5rem;
+  padding-top:calc(1.5rem + env(safe-area-inset-top,0px));
+  padding-bottom:calc(1.5rem + env(safe-area-inset-bottom,0px));
+  -webkit-font-smoothing:antialiased;
+}
+.gate-box{
+  width:100%;max-width:380px;
+  background:#0c0c0e;
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:16px;
+  padding:2rem 1.75rem 1.75rem;
+  display:flex;flex-direction:column;gap:1.1rem;
+  box-shadow:0 40px 90px rgba(0,0,0,.7);
+}
+.gate-logo{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:1.7rem;
+  letter-spacing:-.04em;text-align:center;margin-bottom:.2rem;
+  color:#f0f0f2;
+}
+.gate-logo em{color:#C9A84C;font-style:normal}
+.gate-sub{
+  font-size:.82rem;color:#8e8e9e;text-align:center;margin-top:-.6rem;
+}
+label{
+  font-size:.75rem;font-weight:600;color:#8e8e9e;
+  text-transform:uppercase;letter-spacing:.08em;
+  display:block;margin-bottom:.38rem;
+}
+input{
+  width:100%;padding:.72rem 1rem;
+  background:#17171a;border:1px solid rgba(255,255,255,0.08);
+  border-radius:9px;color:#f0f0f2;
+  font-size:1rem;font-family:'DM Sans',sans-serif;
+  outline:none;-webkit-appearance:none;
+  transition:border-color .18s;
+}
+input:focus{border-color:rgba(201,168,76,0.55);}
+input::placeholder{color:#4e4e5a}
+#gateCodeInput{
+  letter-spacing:.25em;font-size:1.2rem;font-weight:600;text-align:center;
+}
+.gate-btn{
+  width:100%;padding:.82rem;
+  background:#C9A84C;color:#07070a;border:none;border-radius:9px;
+  font-family:'DM Sans',sans-serif;font-size:.93rem;font-weight:700;
+  cursor:pointer;transition:background .2s,transform .15s;
+  margin-top:.2rem;
+}
+.gate-btn:hover{background:#E8C566}
+.gate-btn:active{transform:scale(.98)}
+.gate-btn:disabled{background:#2a2a2e;color:#4e4e5a;cursor:not-allowed;transform:none}
+.gate-msg{
+  font-size:.82rem;text-align:center;
+  padding:.55rem .8rem;border-radius:8px;display:none;
+}
+.gate-msg.err{
+  display:block;background:rgba(232,25,44,.1);
+  border:1px solid rgba(232,25,44,.3);color:#ff6b7a;
+}
+.gate-msg.ok{
+  display:block;background:rgba(61,220,132,.08);
+  border:1px solid rgba(61,220,132,.25);color:#3ddc84;
+}
+.gate-spin{
+  display:inline-block;width:16px;height:16px;
+  border:2px solid rgba(255,255,255,.15);border-top-color:#fff;
+  border-radius:50%;animation:gspin .65s linear infinite;
+  vertical-align:middle;margin-right:6px;
+}
+@keyframes gspin{to{transform:rotate(360deg)}}
+.gate-footer{
+  font-size:.73rem;color:#4e4e5a;text-align:center;margin-top:.3rem;
+}
+</style>
+</head>
+<body>
+
+<div class="gate-box">
+  <div class="gate-logo">A<em>F</em>LIX</div>
+  <div class="gate-sub">Enter your license to continue</div>
+  <div>
+    <label for="gateUserInput">Username</label>
+    <input type="text" id="gateUserInput" placeholder="your username"
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  </div>
+  <div>
+    <label for="gateCodeInput">License code</label>
+    <input type="password" id="gateCodeInput" placeholder="000000"
+           maxlength="6" autocomplete="off" inputmode="numeric">
+  </div>
+  <div class="gate-msg" id="gateMsg"></div>
+  <button class="gate-btn" id="gateBtn" onclick="aflixVerifyLicense()">Access AFlix</button>
+  <div class="gate-footer">Need access? Contact the administrator.</div>
+</div>
+
+<script>
+(function () {
+  /* ── CONFIG ──────────────────────────────────────────────────────────────
+     Published Google Sheet → File › Share › Publish to web › CSV format.
+     The sheet must have these column headers in row 1 (case-insensitive):
+       username | code | status | date
+     status must be "active" for access to be granted; anything else = denied.
+  ─────────────────────────────────────────────────────────────────────────*/
+  var SHEET_CSV_URL =
+    'https://docs.google.com/spreadsheets/d/e/' +
+    '2PACX-1vQ12vBXZ7C6vJrg8eGJHzR-8iEtzWbNZd-Zinc7JhLwWfGMDZ6-go0nPUKsn3_C6Q9x3OkYGpLsIU--' +
+    '/pub?output=csv&cachebust=' + Date.now();
+
+  /* Enter key on either input triggers verify */
+  ['gateUserInput', 'gateCodeInput'].forEach(function (id) {
+    document.getElementById(id).addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') aflixVerifyLicense();
+    });
+  });
+
+  /* ── CSV PARSER ──────────────────────────────────────────────────────── */
+  function parseCSV(text) {
+    var lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) return [];
+
+    var headers = splitCSVRow(lines[0]).map(function (h) {
+      return h.trim().toLowerCase().replace(/[^a-z]/g, '');
+    });
+    var iUser   = headers.indexOf('username');
+    var iCode   = headers.indexOf('code');
+    var iStatus = headers.indexOf('status');
+
+    if (iUser   === -1) iUser   = 0;
+    if (iCode   === -1) iCode   = 1;
+    if (iStatus === -1) iStatus = 2;
+
+    var rows = [];
+    for (var i = 1; i < lines.length; i++) {
+      var cols = splitCSVRow(lines[i]);
+      if (!cols[iUser] && !cols[iCode]) continue;
+      rows.push({
+        username: (cols[iUser]   || '').trim(),
+        code:     (cols[iCode]   || '').trim(),
+        status:   (cols[iStatus] || 'active').trim().toLowerCase()
+      });
+    }
+    return rows;
+  }
+
+  function splitCSVRow(row) {
+    var result = [], cur = '', inQ = false;
+    for (var i = 0; i < row.length; i++) {
+      var ch = row[i];
+      if (ch === '"') { inQ = !inQ; continue; }
+      if (ch === ',' && !inQ) { result.push(cur); cur = ''; continue; }
+      cur += ch;
+    }
+    result.push(cur);
+    return result;
+  }
+
+  /* ── MAIN VERIFY FUNCTION ────────────────────────────────────────────── */
+  window.aflixVerifyLicense = async function () {
+    var username = (document.getElementById('gateUserInput').value  || '').trim();
+    var code     = (document.getElementById('gateCodeInput').value  || '').trim();
+    var btn      = document.getElementById('gateBtn');
+    var msg      = document.getElementById('gateMsg');
+
+    msg.className = 'gate-msg';
+    msg.style.display = 'none';
+
+    if (!username) { showMsg('err', 'Please enter your username.'); return; }
+    if (!code || !/^\d{6}$/.test(code)) {
+      showMsg('err', 'Please enter your 6-digit license code.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="gate-spin"></span>Checking…';
+
+    var licenses = [];
+    try {
+      var res = await fetch(SHEET_CSV_URL, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var csv = await res.text();
+      licenses = parseCSV(csv);
+    } catch (e) {
+      showMsg('err', 'Could not reach the license server. Check your connection and try again.');
+      resetBtn(); return;
+    }
+
+    if (licenses.length === 0) {
+      showMsg('err', 'License list is empty. Contact the administrator.');
+      resetBtn(); return;
+    }
+
+    var match = licenses.find(function (l) {
+      return l.username.toLowerCase() === username.toLowerCase() && l.code === code;
+    });
+
+    if (!match) {
+      showMsg('err', 'Invalid username or code. Please try again.');
+      resetBtn(); return;
+    }
+
+    if (match.status !== 'active') {
+      showMsg('err', 'This license has been revoked. Contact the administrator.');
+      resetBtn(); return;
+    }
+
+    /* ✓ Valid & active — hand off to index.html via a REAL navigation.
+       A one-time, single-use flag is set right before leaving; index.html
+       consumes (removes) it immediately on arrival. Because it's consumed
+       on first read, any later reload of index.html — or any direct visit
+       to it without coming from here — will find the flag already gone
+       and bounce straight back to this login page. */
+    showMsg('ok', 'Welcome, ' + match.username + '!');
+    sessionStorage.setItem('aflix_just_authed', '1');
+    setTimeout(function () {
+      window.location.replace('index.html');
+    }, 700);
+  };
+
+  function showMsg(type, text) {
+    var msg = document.getElementById('gateMsg');
+    msg.className = 'gate-msg ' + type;
+    msg.textContent = text;
+    msg.style.display = 'block';
+  }
+
+  function resetBtn() {
+    var btn = document.getElementById('gateBtn');
+    btn.disabled = false;
+    btn.textContent = 'Access AFlix';
+  }
+})();
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW registration failed:', err));
+    });
+  }
+</script>
+
+</body>
+</html>
