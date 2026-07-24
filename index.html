@@ -2,6 +2,24 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- ══════════════════════════════════════════
+     AUTH GUARD — runs before anything else loads.
+     This page only ever shows if it was reached via a fresh, one-time
+     flag set by login.html the moment credentials were verified. That
+     flag is consumed (removed) immediately below, so ANY later reload
+     of this exact page — or any direct/bookmarked visit — finds the
+     flag already gone and bounces straight back to login.html before
+     wasting any time loading fonts, styles, or anything else here.
+══════════════════════════════════════════ -->
+<script>
+(function () {
+  if (sessionStorage.getItem('aflix_just_authed') === '1') {
+    sessionStorage.removeItem('aflix_just_authed'); /* one-time use */
+  } else {
+    window.location.replace('login.html');
+  }
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>AFlix — Legal Stream Movies & TV</title>
 
@@ -18,6 +36,24 @@
 <!-- ── POPUP & AD BLOCKER — load first, before any embed can run ── -->
 <script src="adblock.js"></script>
 <script>
+  /* ── RETURN TO LOGIN ON BACKGROUND ──
+     Instead of toggling a DOM overlay's visibility (which ran into an
+     unresolved iOS rendering/compositing bug where the overlay's CSS was
+     provably correct but never actually painted on screen), this forces
+     a REAL page navigation back to login.html the instant the app leaves
+     the foreground. A real navigation discards this page's entire live
+     state outright — there's no "is it suspended or reloaded" ambiguity
+     to fight, since the browser will simply have login.html loaded
+     whenever the user returns, no matter how the OS handles the process
+     in between. blur/pagehide are used rather than visibilitychange,
+     since visibilitychange can fire for in-page reasons (e.g. a video
+     going fullscreen) that don't mean the user is actually leaving. */
+  function returnToLogin() {
+    window.location.replace('login.html');
+  }
+  window.addEventListener('blur', returnToLogin);
+  window.addEventListener('pagehide', returnToLogin);
+
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       /* Was this page already controlled by a service worker the moment
@@ -1319,405 +1355,9 @@ footer{
     border-left:1px solid var(--b1);
   }
 }
-
-/* ── GATE LOCK: app hidden until auth passes ── */
 </style>
 </head>
 <body>
-
-<!-- ══════════════════════════════════════════
-     AFLIX LICENSE GATE — Google Sheets backend
-     Fetches the published sheet as CSV on every
-     load and checks username + code + status.
-══════════════════════════════════════════ -->
-<style>
-#aflixGate{
-  position:fixed;inset:0;z-index:999999;
-  background:#070708;
-  display:flex;align-items:center;justify-content:center;
-  padding:1.5rem;
-  padding-top:env(safe-area-inset-top,0px);
-  padding-bottom:env(safe-area-inset-bottom,0px);
-  font-family:'DM Sans',sans-serif;
-}
-#aflixGate .gate-box{
-  width:100%;max-width:380px;
-  background:#0c0c0e;
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:16px;
-  padding:2rem 1.75rem 1.75rem;
-  display:flex;flex-direction:column;gap:1.1rem;
-}
-#aflixGate .gate-logo{
-  font-family:'Syne',sans-serif;font-weight:800;font-size:1.7rem;
-  letter-spacing:-.04em;text-align:center;margin-bottom:.2rem;
-  color:#f0f0f2;
-}
-#aflixGate .gate-logo em{color:#C9A84C;font-style:normal}
-#aflixGate .gate-sub{
-  font-size:.82rem;color:#8e8e9e;text-align:center;margin-top:-.6rem;
-}
-#aflixGate label{
-  font-size:.75rem;font-weight:600;color:#8e8e9e;
-  text-transform:uppercase;letter-spacing:.08em;
-  display:block;margin-bottom:.38rem;
-}
-#aflixGate input{
-  width:100%;padding:.72rem 1rem;
-  background:#17171a;border:1px solid rgba(255,255,255,0.08);
-  border-radius:9px;color:#f0f0f2;
-  font-size:1rem;font-family:'DM Sans',sans-serif;
-  outline:none;-webkit-appearance:none;
-  transition:border-color .18s;
-}
-#aflixGate input:focus{border-color:rgba(201,168,76,0.55);}
-#aflixGate input::placeholder{color:#4e4e5a}
-#aflixGate #gateCodeInput{
-  letter-spacing:.25em;font-size:1.2rem;font-weight:600;text-align:center;
-}
-#aflixGate .gate-btn{
-  width:100%;padding:.82rem;
-  background:#C9A84C;color:#07070a;border:none;border-radius:9px;
-  font-family:'DM Sans',sans-serif;font-size:.93rem;font-weight:700;
-  cursor:pointer;transition:background .2s,transform .15s;
-  margin-top:.2rem;
-}
-#aflixGate .gate-btn:hover{background:#E8C566}
-#aflixGate .gate-btn:active{transform:scale(.98)}
-#aflixGate .gate-btn:disabled{background:#2a2a2e;color:#4e4e5a;cursor:not-allowed;transform:none}
-#aflixGate .gate-msg{
-  font-size:.82rem;text-align:center;
-  padding:.55rem .8rem;border-radius:8px;display:none;
-}
-#aflixGate .gate-msg.err{
-  display:block;background:rgba(232,25,44,.1);
-  border:1px solid rgba(232,25,44,.3);color:#ff6b7a;
-}
-#aflixGate .gate-msg.ok{
-  display:block;background:rgba(61,220,132,.08);
-  border:1px solid rgba(61,220,132,.25);color:#3ddc84;
-}
-#aflixGate .gate-spin{
-  display:inline-block;width:16px;height:16px;
-  border:2px solid rgba(255,255,255,.15);border-top-color:#fff;
-  border-radius:50%;animation:gspin .65s linear infinite;
-  vertical-align:middle;margin-right:6px;
-}
-@keyframes gspin{to{transform:rotate(360deg)}}
-#aflixGate .gate-footer{
-  font-size:.73rem;color:#4e4e5a;text-align:center;margin-top:.3rem;
-}
-</style>
-
-<div id="aflixDebugLog" style="position:fixed;top:0;left:0;right:0;z-index:9999999;background:rgba(0,0,0,.92);color:#4f4;font:9px/1.4 monospace;padding:6px 8px;max-height:140px;overflow-y:auto;white-space:pre-wrap;border-bottom:2px solid #0f0;"></div>
-
-<div id="aflixGate">
-  <div class="gate-box">
-    <div class="gate-logo">A<em>F</em>LIX</div>
-    <div class="gate-sub">Enter your license to continue</div>
-    <div>
-      <label for="gateUserInput">Username</label>
-      <input type="text" id="gateUserInput" placeholder="your username"
-             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-    </div>
-    <div>
-      <label for="gateCodeInput">License code</label>
-      <input type="password" id="gateCodeInput" placeholder="000000"
-             maxlength="6" autocomplete="off" inputmode="numeric">
-    </div>
-    <div class="gate-msg" id="gateMsg"></div>
-    <button class="gate-btn" id="gateBtn" onclick="aflixVerifyLicense()">Access AFlix</button>
-    <div class="gate-footer">Need access? Contact the administrator.</div>
-    <div class="gate-footer" style="opacity:.5;margin-top:-.4rem">Build: GATE-REV9</div>
-  </div>
-</div>
-
-<script>
-(function () {
-  /* ── TEMPORARY DIAGNOSTIC LOGGER ──
-     Prints a live, on-screen, timestamped log of every lifecycle event
-     related to the gate, so we can see the REAL sequence of what happens
-     on this device instead of guessing. Remove once the bug is found. */
-  var dbg = document.getElementById('aflixDebugLog');
-  window.aflixLog = function (msg) {
-    var line = new Date().toISOString().slice(11, 23) + '  ' + msg;
-    if (dbg) {
-      dbg.textContent += (dbg.textContent ? '\n' : '') + line;
-      dbg.scrollTop = dbg.scrollHeight;
-    }
-  };
-  var gateEl = document.getElementById('aflixGate');
-  aflixLog('SCRIPT START — gate computed display: ' +
-    (gateEl ? getComputedStyle(gateEl).display : 'GATE NOT FOUND') +
-    ' | inline style.display: "' + (gateEl ? gateEl.style.display : 'n/a') + '"');
-  aflixLog('document.visibilityState = ' + document.visibilityState);
-  aflixLog('performance.navigation type = ' +
-    (performance.getEntriesByType('navigation')[0] ?
-      performance.getEntriesByType('navigation')[0].type : 'unknown'));
-  aflixLog('gate computed opacity: ' + (gateEl ? getComputedStyle(gateEl).opacity : 'n/a') +
-    ' | z-index: ' + (gateEl ? getComputedStyle(gateEl).zIndex : 'n/a'));
-  if (gateEl) {
-    var cs = getComputedStyle(gateEl);
-    var rect = gateEl.getBoundingClientRect();
-    aflixLog('gate position: ' + cs.position + ' | visibility: ' + cs.visibility +
-      ' | transform: ' + cs.transform);
-    aflixLog('gate rect: top=' + rect.top + ' left=' + rect.left +
-      ' w=' + rect.width + ' h=' + rect.height);
-    aflixLog('window inner size: ' + window.innerWidth + 'x' + window.innerHeight +
-      ' | elementFromPoint center = ' +
-      (function () {
-        var el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
-        return el ? (el.id || el.className || el.tagName) : 'null';
-      })());
-  }
-
-  /* ── FORCE REPAINT WORKAROUND ──
-     On some reload navigations, WebKit can fail to composite a
-     position:fixed layer on top even though its computed style is
-     completely correct underneath — a known class of iOS Safari
-     rendering bug, not a logic bug. Forcing the browser to drop and
-     rebuild this element's layer (toggle display, force a reflow read,
-     restore it) makes it actually repaint on top where it belongs. */
-  if (gateEl) {
-    requestAnimationFrame(function () {
-      gateEl.style.display = 'none';
-      void gateEl.offsetHeight; /* force synchronous reflow */
-      gateEl.style.display = 'flex';
-      requestAnimationFrame(function () {
-        aflixLog('forced repaint applied — computed display now: ' +
-          getComputedStyle(gateEl).display + ' | opacity: ' +
-          getComputedStyle(gateEl).opacity);
-      });
-    });
-  }
-
-  /* ── SCROLL-NUDGE WORKAROUND ──
-     If the CSS is proven correct (confirmed above) but the screen still
-     shows stale content, that points at a native browser-chrome overlay
-     (e.g. a cached "reload preview" bitmap) sitting on top of the real,
-     already-correct page — not anything in our DOM. A tiny forced scroll
-     is a known trick to make iOS Safari drop stuck native overlays like
-     this and re-settle on the real underlying content. */
-  setTimeout(function () {
-    window.scrollTo(0, 1);
-    window.scrollTo(0, 0);
-    aflixLog('scroll-nudge applied');
-  }, 60);
-
-  /* ── CONFIG ──────────────────────────────────────────────────────────────
-     Published Google Sheet → File › Share › Publish to web › CSV format.
-     The sheet must have these column headers in row 1 (case-insensitive):
-       username | code | status | date
-     status must be "active" for access to be granted; anything else = denied.
-  ─────────────────────────────────────────────────────────────────────────*/
-  var SHEET_CSV_URL =
-    'https://docs.google.com/spreadsheets/d/e/' +
-    '2PACX-1vQ12vBXZ7C6vJrg8eGJHzR-8iEtzWbNZd-Zinc7JhLwWfGMDZ6-go0nPUKsn3_C6Q9x3OkYGpLsIU--' +
-    '/pub?output=csv&cachebust=' + Date.now();
-
-  /* Gate always shows on every load — no session bypass */
-
-  /* Enter key on either input triggers verify */
-  ['gateUserInput', 'gateCodeInput'].forEach(function (id) {
-    document.getElementById(id).addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') aflixVerifyLicense();
-    });
-  });
-
-  /* ── CSV PARSER ──────────────────────────────────────────────────────── */
-  function parseCSV(text) {
-    var lines = text.trim().split(/\r?\n/);
-    if (lines.length < 2) return [];
-
-    /* Parse header row to find column indices */
-    var headers = splitCSVRow(lines[0]).map(function (h) {
-      return h.trim().toLowerCase().replace(/[^a-z]/g, '');
-    });
-    var iUser   = headers.indexOf('username');
-    var iCode   = headers.indexOf('code');
-    var iStatus = headers.indexOf('status');
-
-    /* Fallback: treat columns 0,1,2 as username,code,status if headers missing */
-    if (iUser   === -1) iUser   = 0;
-    if (iCode   === -1) iCode   = 1;
-    if (iStatus === -1) iStatus = 2;
-
-    var rows = [];
-    for (var i = 1; i < lines.length; i++) {
-      var cols = splitCSVRow(lines[i]);
-      if (!cols[iUser] && !cols[iCode]) continue; /* skip blank rows */
-      rows.push({
-        username: (cols[iUser]   || '').trim(),
-        code:     (cols[iCode]   || '').trim(),
-        status:   (cols[iStatus] || 'active').trim().toLowerCase()
-      });
-    }
-    return rows;
-  }
-
-  /* Handles quoted fields with commas inside */
-  function splitCSVRow(row) {
-    var result = [], cur = '', inQ = false;
-    for (var i = 0; i < row.length; i++) {
-      var ch = row[i];
-      if (ch === '"') { inQ = !inQ; continue; }
-      if (ch === ',' && !inQ) { result.push(cur); cur = ''; continue; }
-      cur += ch;
-    }
-    result.push(cur);
-    return result;
-  }
-
-  /* ── MAIN VERIFY FUNCTION ────────────────────────────────────────────── */
-  window.aflixVerifyLicense = async function () {
-    var username = (document.getElementById('gateUserInput').value  || '').trim();
-    var code     = (document.getElementById('gateCodeInput').value  || '').trim();
-    var btn      = document.getElementById('gateBtn');
-    var msg      = document.getElementById('gateMsg');
-
-    /* Reset message */
-    msg.className = 'gate-msg';
-    msg.style.display = 'none';
-
-    /* Basic validation */
-    if (!username) { showMsg('err', 'Please enter your username.'); return; }
-    if (!code || !/^\d{6}$/.test(code)) {
-      showMsg('err', 'Please enter your 6-digit license code.');
-      return;
-    }
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="gate-spin"></span>Checking…';
-
-    /* Fetch the sheet */
-    var licenses = [];
-    try {
-      var res = await fetch(SHEET_CSV_URL, { cache: 'no-store' });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      var csv = await res.text();
-      licenses = parseCSV(csv);
-    } catch (e) {
-      showMsg('err', 'Could not reach the license server. Check your connection and try again.');
-      resetBtn(); return;
-    }
-
-    if (licenses.length === 0) {
-      showMsg('err', 'License list is empty. Contact the administrator.');
-      resetBtn(); return;
-    }
-
-    /* Find matching entry */
-    var match = licenses.find(function (l) {
-      return l.username.toLowerCase() === username.toLowerCase() && l.code === code;
-    });
-
-    if (!match) {
-      showMsg('err', 'Invalid username or code. Please try again.');
-      resetBtn(); return;
-    }
-
-    if (match.status !== 'active') {
-      showMsg('err', 'This license has been revoked. Contact the administrator.');
-      resetBtn(); return;
-    }
-
-    /* ✓ Valid & active */
-    aflixLog('LOGIN SUCCESS for ' + match.username + ' — hiding gate in 800ms');
-    showMsg('ok', 'Welcome, ' + match.username + '!');
-    setTimeout(function () {
-      var gate = document.getElementById('aflixGate');
-      if (gate) {
-        gate.style.transition = 'opacity .4s';
-        gate.style.opacity = '0';
-        setTimeout(function () {
-          gate.style.display = 'none';
-          aflixLog('gate.style.display set to none (post-login)');
-        }, 420);
-      }
-    }, 800);
-  };
-
-  function showMsg(type, text) {
-    var msg = document.getElementById('gateMsg');
-    msg.className = 'gate-msg ' + type;
-    msg.textContent = text;
-    msg.style.display = 'block';
-  }
-
-  function resetBtn() {
-    var btn = document.getElementById('gateBtn');
-    btn.disabled = false;
-    btn.textContent = 'Access AFlix';
-  }
-
-  /* ── RE-LOCK ON BACKGROUND ──
-     iOS PWAs usually don't reload when reopened from the home screen —
-     they just resume the same live page that was sitting in the
-     background, gate-and-all still unlocked from before. So instead of
-     relying on a fresh page load to show the gate, we force it back to
-     its locked state the instant the app leaves the foreground. That way
-     it's already locked by the time the user returns, no matter whether
-     the OS actually reloads the page or just resumes it. */
-  function relock() {
-    aflixLog('relock() called');
-    var gate = document.getElementById('aflixGate');
-    if (!gate) { aflixLog('relock(): GATE ELEMENT NOT FOUND'); return; }
-    gate.style.transition = 'none';
-    gate.style.opacity = '1';
-    gate.style.display = 'flex';
-    var u = document.getElementById('gateUserInput');
-    var c = document.getElementById('gateCodeInput');
-    if (u) u.value = '';
-    if (c) c.value = '';
-    var msg = document.getElementById('gateMsg');
-    if (msg) { msg.className = 'gate-msg'; msg.textContent = ''; msg.style.display = 'none'; }
-    resetBtn();
-    aflixLog('relock(): gate display now set to flex');
-  }
-  document.addEventListener('visibilitychange', function () {
-    aflixLog('visibilitychange fired — state: ' + document.visibilityState);
-    if (document.visibilityState === 'hidden') relock();
-  });
-  window.addEventListener('pagehide', function (e) {
-    aflixLog('pagehide fired — persisted: ' + e.persisted);
-    relock();
-  });
-  /* window blur is the most reliable signal on iOS standalone PWAs —
-     visibilitychange is known to be inconsistent in that context, while
-     blur fires synchronously the instant the app loses focus, before
-     iOS suspends JS execution. Keeping all three as redundant signals. */
-  window.addEventListener('blur', function () {
-    aflixLog('window blur fired');
-    relock();
-  });
-  /* Defensive: also relock the instant focus returns, in case every
-     "leaving" signal above somehow failed to fire while backgrounded. */
-  window.addEventListener('focus', function () {
-    aflixLog('window focus fired');
-    relock();
-  });
-
-  /* ── DEFEAT BACK-FORWARD CACHE (bfcache) ──
-     Some "refresh" actions — and switching away from a tab and back —
-     don't actually re-run this script at all. The browser just restores
-     a frozen snapshot of the page exactly as it last looked, gate already
-     hidden included, with zero JS re-execution. relock() above can't help
-     here because it never gets a chance to run. The only real fix is to
-     detect that a bfcache restore just happened and force a genuine
-     reload, which guarantees the whole script runs fresh from scratch. */
-  window.addEventListener('pageshow', function (event) {
-    aflixLog('pageshow fired — persisted: ' + event.persisted);
-    if (event.persisted) {
-      aflixLog('bfcache restore detected — forcing reload NOW');
-      window.location.reload();
-    }
-  });
-  document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') relock();
-  });
-})();
-</script>
-<!-- END LICENSE GATE -->
 
 <div id="aflixApp">
 <!-- cursor -->
