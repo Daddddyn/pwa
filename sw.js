@@ -12,7 +12,7 @@
    iframe's JS tries to do.
 ══════════════════════════════════════════ */
 
-const CACHE_NAME = 'aflix-v5';
+const CACHE_NAME = 'aflix-v6';
 
 const SHELL_FILES = [
   './adblock.js',
@@ -260,14 +260,18 @@ self.addEventListener('fetch', event => {
   }
 
   /* NEVER INTERCEPT PAGE NAVIGATION AT ALL.
-     index.html contains the login gate. Any caching of this file — even
-     "network first with cache fallback" — creates a window where a stale
-     snapshot can get locked in and replayed forever. The only bulletproof
-     fix is to not call respondWith() for these requests at all, which
-     makes the browser fetch them exactly as if no service worker existed. */
+     Both login.html and index.html must always come straight from the
+     network — login.html is the auth gate, index.html re-checks its
+     one-time session flag on every load. Any caching here, even
+     "network first with cache fallback", creates a window where a stale
+     snapshot could get served instead of running that fresh check. The
+     only bulletproof fix is to not call respondWith() for these requests
+     at all, so the browser fetches them exactly as if no service worker
+     existed. */
   const isPageNav =
     request.mode === 'navigate' ||
     url.pathname.endsWith('/index.html') ||
+    url.pathname.endsWith('/login.html') ||
     url.pathname === '/' ||
     url.pathname.endsWith('/');
   if (isPageNav) {
