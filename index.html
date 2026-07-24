@@ -40,19 +40,38 @@
      Instead of toggling a DOM overlay's visibility (which ran into an
      unresolved iOS rendering/compositing bug where the overlay's CSS was
      provably correct but never actually painted on screen), this forces
-     a REAL page navigation back to login.html the instant the app leaves
-     the foreground. A real navigation discards this page's entire live
-     state outright — there's no "is it suspended or reloaded" ambiguity
-     to fight, since the browser will simply have login.html loaded
-     whenever the user returns, no matter how the OS handles the process
-     in between. blur/pagehide are used rather than visibilitychange,
-     since visibilitychange can fire for in-page reasons (e.g. a video
-     going fullscreen) that don't mean the user is actually leaving. */
+     a REAL page navigation back to login.html when the app leaves the
+     foreground. A 30-second grace period prevents popup ads from the
+     iframe player triggering a false logout — the popup steals window
+     focus (firing blur) for a moment then returns it, so if focus comes
+     back within 30 seconds we cancel the countdown entirely. Only a
+     genuine "user left the app" scenario (home button, app switcher,
+     locking the screen) keeps focus away long enough to trigger the
+     redirect. pagehide bypasses the delay since that's a definitive
+     real navigation away, not a temporary focus steal. */
+  var lockTimer = null;
+
+  function scheduleLock() {
+    if (lockTimer) return; /* already counting down */
+    lockTimer = setTimeout(function () {
+      window.location.replace('login.html');
+    }, 30000); /* 30 seconds */
+  }
+
+  function cancelLock() {
+    if (lockTimer) {
+      clearTimeout(lockTimer);
+      lockTimer = null;
+    }
+  }
+
   function returnToLogin() {
     window.location.replace('login.html');
   }
-  window.addEventListener('blur', returnToLogin);
-  window.addEventListener('pagehide', returnToLogin);
+
+  window.addEventListener('blur', scheduleLock);
+  window.addEventListener('focus', cancelLock);
+  window.addEventListener('pagehide', returnToLogin); /* definitive — no delay */
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
