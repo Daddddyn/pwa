@@ -2,12 +2,12 @@
   "name": "AFlix — Stream Movies & TV",
   "short_name": "AFlix",
   "description": "Stream movies and TV shows with AFlix",
-  "start_url": "./index.html",
+  "start_url": "./login.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#070708",
-  "theme_color": "#070708",
+  "background_color": "#05050A",
+  "theme_color": "#05050A",
   "icons": [
     {
       "src": "icon-192.png",
