@@ -37,30 +37,41 @@
 <script src="adblock.js"></script>
 <script>
   /* ── RETURN TO LOGIN ON BACKGROUND ──
-     Uses the Page Visibility API (visibilitychange) exclusively.
-     This only fires when the user genuinely hides the app — home button,
-     app switcher, lock screen, closing the tab. It does NOT fire for:
-       • popup/ad windows stealing focus momentarily
-       • notifications or permission dialogs briefly taking focus
-       • switching between browser tabs and coming straight back
-     The old blur/focus/pagehide approach caused false logouts because
-     iframe ad popups steal window focus (firing blur) for a moment.
-     visibilitychange is immune to all of those — it only cares about
-     whether the page itself is visible to the user, not which window
-     has focus. Login is only triggered on a full page refresh now. */
-  document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'hidden') {
-      /* Page is genuinely hidden — store a flag so that IF the user
-         comes back via a full reload (refresh), index.html will find
-         no valid auth token and bounce to login. But if they simply
-         resume the app (tab/app switcher), visibilityState goes back
-         to 'visible' and nothing happens — no redirect. */
-      sessionStorage.setItem('aflix_was_hidden', '1');
-    } else if (document.visibilityState === 'visible') {
-      /* User came back without a reload — clear the flag, stay on page */
-      sessionStorage.removeItem('aflix_was_hidden');
+     Instead of toggling a DOM overlay's visibility (which ran into an
+     unresolved iOS rendering/compositing bug where the overlay's CSS was
+     provably correct but never actually painted on screen), this forces
+     a REAL page navigation back to login.html when the app leaves the
+     foreground. A 30-second grace period prevents popup ads from the
+     iframe player triggering a false logout — the popup steals window
+     focus (firing blur) for a moment then returns it, so if focus comes
+     back within 30 seconds we cancel the countdown entirely. Only a
+     genuine "user left the app" scenario (home button, app switcher,
+     locking the screen) keeps focus away long enough to trigger the
+     redirect. pagehide bypasses the delay since that's a definitive
+     real navigation away, not a temporary focus steal. */
+  var lockTimer = null;
+
+  function scheduleLock() {
+    if (lockTimer) return; /* already counting down */
+    lockTimer = setTimeout(function () {
+      window.location.replace('login.html');
+    }, 30000); /* 30 seconds */
+  }
+
+  function cancelLock() {
+    if (lockTimer) {
+      clearTimeout(lockTimer);
+      lockTimer = null;
     }
-  });
+  }
+
+  function returnToLogin() {
+    window.location.replace('login.html');
+  }
+
+  window.addEventListener('blur', scheduleLock);
+  window.addEventListener('focus', cancelLock);
+  window.addEventListener('pagehide', returnToLogin); /* definitive — no delay */
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -587,6 +598,46 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
 .cw-bar-wrap{height:2px;background:var(--bg5);border-radius:2px;margin-top:.5rem}
 .cw-bar{height:100%;background:linear-gradient(to right,#C9A84C,#E8C566);border-radius:2px;transition:width .3s}
 
+/* ── SEE ALL PAGE ── */
+.seeall-modal{
+  position:fixed;inset:0;background:var(--bg);z-index:8800;
+  display:none;flex-direction:column;
+  padding-top:var(--sat);
+  animation:fadein .22s var(--ease-out);
+}
+.seeall-modal.open{display:flex}
+.seeall-hd{
+  display:flex;align-items:center;gap:1rem;
+  padding:1rem 1.5rem;border-bottom:1px solid var(--b1);
+  background:rgba(5,5,10,.95);
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+  flex-shrink:0;
+}
+.seeall-back{
+  width:38px;height:38px;border-radius:50%;
+  background:rgba(201,168,76,.08);border:1px solid var(--b1);
+  color:var(--text2);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .18s;flex-shrink:0;font-size:1.1rem;
+}
+.seeall-back:hover{background:rgba(201,168,76,.18);color:var(--text)}
+.seeall-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;letter-spacing:-.02em;flex:1}
+.seeall-body{flex:1;overflow-y:auto;padding:1.5rem;max-width:1440px;width:100%;margin:0 auto}
+.seeall-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:1.1rem}
+.seeall-load-more{
+  display:flex;justify-content:center;padding:2rem 0 1rem;
+}
+.seeall-load-btn{
+  padding:.72rem 2rem;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);
+  border-radius:100px;color:var(--gold);font-size:.88rem;font-weight:600;
+  cursor:pointer;transition:all .2s;font-family:inherit;
+}
+.seeall-load-btn:hover{background:rgba(201,168,76,.2)}
+.seeall-load-btn:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:640px){
+  .seeall-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.7rem}
+  .seeall-body{padding:1rem}
+}
+
 /* ── WATCHLIST SIDEBAR ── */
 .wl-panel{
   position:fixed;top:0;right:0;bottom:0;width:340px;
@@ -802,8 +853,10 @@ main{max-width:1440px;margin:0 auto;padding:0 2.5rem 6rem}
 .ep-info{padding:.45rem .5rem}
 .ep-num{font-size:.65rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.18rem}
 .ep-name{font-size:.72rem;font-weight:500;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ep-overview{font-size:.68rem;color:var(--text3);line-height:1.4;margin-top:.2rem;font-weight:300;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .ep-card.active .ep-num{color:var(--gold)}
 .ep-card.active .ep-name{color:var(--text)}
+.ep-card.active .ep-overview{color:var(--text2)}
 
 /* video stage */
 .stage{position:relative;width:100%;padding-top:56.25%;background:#000}
@@ -1457,7 +1510,7 @@ footer{
       <div id="adblock-warn" style="display:none;margin:.5rem .2rem .2rem;padding:.65rem .85rem;background:rgba(232,25,44,.08);border:1px solid rgba(232,25,44,.28);border-radius:9px;font-size:.75rem;color:#ff8a8a;line-height:1.5">
         ⚠ <strong>Ad blocker is OFF.</strong> Embed servers may show popups or redirect ads. Toggle back on to re-enable protection. App will reload to apply.
       </div>
-      <div class="s-ver">AFlix v3.1 · Built with TMDB</div>
+      <div class="s-ver" id="sVer">AFlix · Built with TMDB</div>
     </div>
   </div>
 </div>
@@ -1493,7 +1546,7 @@ footer{
   <div class="section reveal" id="trendSection">
     <div class="sec-head">
       <h2 class="sec-title"><span class="sec-dot"></span>Trending Now</h2>
-      <span class="sec-all">See all →</span>
+      <span class="sec-all" onclick="openSeeAll('Trending Now','/trending/all/week',{},null)">See all →</span>
     </div>
     <div class="grid" id="trendGrid"></div>
   </div>
@@ -1503,7 +1556,7 @@ footer{
   <div class="section reveal" id="movSection">
     <div class="sec-head">
       <h2 class="sec-title"><span class="sec-dot"></span>Popular Movies</h2>
-      <span class="sec-all">See all →</span>
+      <span class="sec-all" onclick="openSeeAll('Popular Movies','/movie/popular',{},'movie')">See all →</span>
     </div>
     <div class="grid" id="movGrid"></div>
   </div>
@@ -1513,7 +1566,7 @@ footer{
   <div class="section reveal" id="tvSection">
     <div class="sec-head">
       <h2 class="sec-title"><span class="sec-dot"></span>Top Series</h2>
-      <span class="sec-all">See all →</span>
+      <span class="sec-all" onclick="openSeeAll('Top Series','/tv/popular',{},'tv')">See all →</span>
     </div>
     <div class="grid" id="tvGrid"></div>
   </div>
@@ -1537,6 +1590,22 @@ footer{
     <span class="foot-link" onclick="openSettings()">Settings</span>
   </div>
 </footer>
+
+<!-- ── SEE ALL PAGE ── -->
+<div class="seeall-modal" id="seeallModal">
+  <div class="seeall-hd">
+    <button class="seeall-back" onclick="closeSeeAll()" title="Back">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="seeall-title" id="seeallTitle">All</div>
+  </div>
+  <div class="seeall-body">
+    <div class="seeall-grid" id="seeallGrid"></div>
+    <div class="seeall-load-more" id="seeallLoadMore" style="display:none">
+      <button class="seeall-load-btn" id="seeallLoadBtn" onclick="seeallNextPage()">Load more</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── DETAIL MODAL ── -->
 <div class="detail-modal" id="detailModal">
@@ -1631,6 +1700,7 @@ footer{
 /* ══════════════════════════════════════════
    REMOTE CONFIG
 ══════════════════════════════════════════ */
+const AFLIX_VERSION = '3.2';
 const CONFIG_URL = 'https://raw.githubusercontent.com/themillsteam11-code/tmd/refs/heads/main/aflix-config.json';
 
 let AK   = '';
@@ -1668,8 +1738,9 @@ async function loadRemoteConfig() {
           tv:    (id,se,ep) => s.tv_url.replace('{id}',id).replace('{s}',se).replace('{e}',ep)
         };
       });
-      // Always default to the first server in the remote config
-      S.srv = cfg.servers[0].id;
+      // Restore saved server preference, fall back to first server
+      const savedSrv = localStorage.getItem('aflix_srv');
+      S.srv = (savedSrv && SRVS[savedSrv]) ? savedSrv : cfg.servers[0].id;
     } else {
       // No servers defined in aflix-config.json — nothing to show
       // until the config is populated. See CONFIG_URL above.
@@ -1779,8 +1850,8 @@ function closeWatchlist(){ document.getElementById('wlPanel').classList.remove('
 /* ══════════════════════════════════════════
    CONTINUE WATCHING
 ══════════════════════════════════════════ */
-function cwGet(){ try{ return JSON.parse(sessionStorage.getItem('aflix_cw')||'[]'); }catch{ return []; } }
-function cwSet(arr){ try{ sessionStorage.setItem('aflix_cw',JSON.stringify(arr.slice(0,8))); }catch{} }
+function cwGet(){ try{ return JSON.parse(localStorage.getItem('aflix_cw')||'[]'); }catch{ return []; } }
+function cwSet(arr){ try{ localStorage.setItem('aflix_cw',JSON.stringify(arr.slice(0,20))); }catch{} }
 function cwAdd(item){
   let arr=cwGet().filter(i=>i.id!==item.id);
   arr.unshift(item); cwSet(arr);
@@ -2040,7 +2111,31 @@ function setupHeader(){
 ══════════════════════════════════════════ */
 function setupEvents(){
   document.addEventListener('keydown',e=>{
-    if(e.key==='Escape'){ closePlayer(); closeDetail(); closeSettings(); closeWatchlist(); closeIPTV(); if(S.searchOpen) closeSearch(); }
+    if(e.key==='Escape'){ closePlayer(); closeDetail(); closeSettings(); closeWatchlist(); closeIPTV(); closeSeeAll(); if(S.searchOpen) closeSearch(); return; }
+    /* Player keyboard shortcuts — only when player is open and focus is not in an input */
+    const playerOpen = document.getElementById('playerModal').classList.contains('open');
+    const inInput = e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.isContentEditable;
+    if(!playerOpen || inInput) return;
+    if(e.key==='ArrowRight'||e.key==='n'||e.key==='N'){
+      /* Next episode */
+      if(S.content?.type==='tv'&&S.epList.length){
+        const idx=S.epList.findIndex(ep=>ep.number===S.content.episode);
+        if(idx!==-1&&idx<S.epList.length-1){ e.preventDefault(); selectEpisode(S.epList[idx+1].number); toast('▶ Next episode'); }
+      }
+    } else if(e.key==='ArrowLeft'||e.key==='p'||e.key==='P'){
+      /* Previous episode */
+      if(S.content?.type==='tv'&&S.epList.length){
+        const idx=S.epList.findIndex(ep=>ep.number===S.content.episode);
+        if(idx>0){ e.preventDefault(); selectEpisode(S.epList[idx-1].number); toast('◀ Previous episode'); }
+      }
+    } else if(e.key==='s'||e.key==='S'){
+      /* Cycle to next server */
+      const keys=Object.keys(SRVS);
+      if(keys.length>1){
+        const cur=keys.indexOf(S.srv), next=keys[(cur+1)%keys.length];
+        e.preventDefault(); switchServer(next); toast(`Switched to ${SRVS[next].n}`);
+      }
+    }
   });
   document.addEventListener('click',e=>{
     if(!e.target.closest('#searchWrap')) closeSearch();
@@ -2096,7 +2191,10 @@ async function doSearch(q){
     drop.innerHTML=`<div style="padding:1.4rem;text-align:center;color:var(--text3);font-size:.84rem">No results for "${esc(q)}"</div>`;
     drop.classList.add('open'); return;
   }
-  const items=data.results.filter(i=>i.media_type==='movie'||i.media_type==='tv').slice(0,7);
+  const allItems=data.results.filter(i=>i.media_type==='movie'||i.media_type==='tv');
+  const items=allItems.slice(0,6);
+  const total=data.total_results||allItems.length;
+  const qEsc=esc(q);
   drop.innerHTML=`<div class="sdrop-hd">Results</div>`+items.map(i=>{
     const t=esc(i.title||i.name||''), p=i.poster_path?`${IMG}/w92${i.poster_path}`:'';
     const y=(i.release_date||i.first_air_date||'').split('-')[0];
@@ -2110,10 +2208,16 @@ async function doSearch(q){
         <span class="sitem-type">${tp}</span></div>
       </div>
     </div>`;
-  }).join('');
+  }).join('')+
+  (total>6?`<div style="padding:.65rem 1rem;border-top:1px solid var(--b2);cursor:pointer;font-size:.8rem;color:var(--gold);font-weight:600;text-align:center"
+    onclick="openSearchResults(\`${q.replace(/`/g,'\\`')}\`)">See all ${total.toLocaleString()} results →</div>`:'');
   drop.classList.add('open');
 }
 function pickSearch(id,type,title){ closeSearch(); playContent(id,type,title); }
+function openSearchResults(q){
+  closeSearch();
+  openSeeAll(`Results for "${q}"`, '/search/multi', {query:q}, null);
+}
 
 /* ══════════════════════════════════════════
    HERO
@@ -2175,13 +2279,19 @@ function heroWlToggle(id,type,title,poster,rating,year){
 /* ══════════════════════════════════════════
    GENRES
 ══════════════════════════════════════════ */
+/* genre registry: id → {name, movie:bool, tv:bool} */
+const GENRE_MAP = {};
 async function loadGenres(){
   const [m,tv]=await Promise.all([api('/genre/movie/list'),api('/genre/tv/list')]);
   if(!m||!tv) return;
-  const all=[...m.genres,...tv.genres];
-  const uniq=Array.from(new Map(all.map(g=>[g.id,g])).values()).slice(0,18);
+  (m.genres||[]).forEach(g=>{ GENRE_MAP[g.id]={name:g.name,movie:true,tv:false}; });
+  (tv.genres||[]).forEach(g=>{
+    if(GENRE_MAP[g.id]) GENRE_MAP[g.id].tv=true;
+    else GENRE_MAP[g.id]={name:g.name,movie:false,tv:true};
+  });
+  const uniq=Object.entries(GENRE_MAP).slice(0,20);
   const strip=document.getElementById('genreStrip');
-  strip.innerHTML=`<button class="gchip active" data-genre="all">All</button>`+uniq.map(g=>`<button class="gchip" data-genre="${g.id}">${g.name}</button>`).join('');
+  strip.innerHTML=`<button class="gchip active" data-genre="all">All</button>`+uniq.map(([id,g])=>`<button class="gchip" data-genre="${id}">${g.name}</button>`).join('');
   strip.querySelectorAll('.gchip').forEach(c=>c.addEventListener('click',()=>{
     strip.querySelectorAll('.gchip').forEach(x=>x.classList.remove('active'));
     c.classList.add('active');
@@ -2234,27 +2344,23 @@ async function filterContent(){
     skelGrid('trendGrid'); document.getElementById('movGrid').innerHTML=''; document.getElementById('tvGrid').innerHTML='';
     const d=await api('/discover/tv',p);
     if(d) renderGridInto(document.getElementById('trendGrid'),d.results.map(m=>({...m,media_type:'tv'})));
+  } else if(S.genre){
+    /* "All" tab with a genre selected — query both endpoints if genre applies to both,
+       otherwise only query the relevant one, so we never send a TV genre ID to /discover/movie */
+    const gInfo = GENRE_MAP[S.genre] || {movie:true, tv:true};
+    skelGrid('trendGrid'); document.getElementById('movGrid').innerHTML=''; document.getElementById('tvGrid').innerHTML='';
+    const results=[];
+    const fetches=[];
+    if(gInfo.movie) fetches.push(api('/discover/movie',p).then(d=>{ if(d) results.push(...d.results.map(m=>({...m,media_type:'movie'}))); }));
+    if(gInfo.tv)    fetches.push(api('/discover/tv',p).then(d=>{ if(d) results.push(...d.results.map(m=>({...m,media_type:'tv'}))); }));
+    await Promise.all(fetches);
+    results.sort((a,b)=>(b.vote_average||0)-(a.vote_average||0));
+    renderGridInto(document.getElementById('trendGrid'), results);
   } else { await Promise.all([loadTrend(),loadMovies(),loadTV()]); }
 }
 function renderGridInto(grid, items){
   if(!items?.length){ grid.innerHTML=`<div class="empty"><div class="empty-icon">📺</div><p>Nothing here yet</p></div>`; return; }
-  grid.innerHTML=items.slice(0,18).map(item=>{
-    const t=esc(item.title||item.name||''), p=item.poster_path?`${IMG}/w500${item.poster_path}`:'';
-    const r=item.vote_average?.toFixed(1)||'', y=(item.release_date||item.first_air_date||'').split('-')[0];
-    const mt=item.media_type||'movie', isTV=mt==='tv', id=item.id;
-    const inWl=wlHas(id);
-    return `<div class="card" data-mkey="${mt}-${id}" onclick="playContent(${id},'${mt}',\`${t.replace(/`/g,'\\`')}\`,this)">
-      ${p?`<img src="${p}" class="card-img" loading="lazy" alt="${t}">`:`<div class="card-img skel"></div>`}
-      <div class="ctag${isTV?' tv':''}">${isTV?'Series':'Movie'}</div>
-      <button class="card-wl-btn${inWl?' active':''}" data-id="${id}" title="${inWl?'Remove from Watchlist':'Add to Watchlist'}"
-        onclick="event.stopPropagation();wlToggle({id:${id},type:'${mt}',title:\`${t.replace(/`/g,'\\`')}\`,poster:${item.poster_path?`'${item.poster_path}'`:'null'},rating:${item.vote_average||0},year:'${y}'})">♥</button>
-      <div class="card-play-btn"><svg width="13" height="13" viewBox="0 0 13 13" fill="white"><path d="M2 1L11 6.5L2 12V1Z"/></svg></div>
-      <div class="card-over">
-        <div class="card-title">${t}</div>
-        <div class="card-meta">${r?`<span class="card-star">★ ${r}</span>`:''} ${y?`<span>${y}</span>`:''}</div>
-      </div>
-    </div>`;
-  }).join('');
+  grid.innerHTML=items.slice(0,18).map(item=>renderCardHTML(item)).join('');
   grid.querySelectorAll('.card').forEach((c,i)=>{ c.style.transitionDelay=`${Math.min(i,8)*.04}s`; revealNew(c); });
 }
 
@@ -2361,6 +2467,7 @@ async function playContent(id, mediaType, title, originEl){
   S._morphKey = `${mediaType}-${id}`;
   morphOpenFromCard(modal, wrap, originEl);
   document.body.classList.add('no-scroll');
+  startProgressTracking();
   modal.scrollTop=0;
 
   const details=await api(`/${mediaType}/${id}`,{append_to_response:'external_ids'});
@@ -2370,7 +2477,9 @@ async function playContent(id, mediaType, title, originEl){
   const imdbId=details.external_ids?.imdb_id||null;
   S.content={id,imdbId,type:mediaType,season:1,episode:1,title};
 
-  cwAdd({id,type:mediaType,title,backdrop:details.backdrop_path||null,year:(details.release_date||details.first_air_date||'').split('-')[0],season:1,episode:1,progress:Math.floor(Math.random()*30+5)});
+  S._cwStartTime = Date.now();
+  S._cwRuntime = (details.runtime||details.episode_run_time?.[0]||45) * 60 * 1000; /* ms */
+  cwAdd({id,type:mediaType,title,backdrop:details.backdrop_path||null,year:(details.release_date||details.first_air_date||'').split('-')[0],season:1,episode:1,progress:2});
 
   const useId=srv.imdb?imdbId:id;
   if(srv.imdb&&!imdbId){ showUnavail(); }
@@ -2396,6 +2505,34 @@ async function playContent(id, mediaType, title, originEl){
       <div><div class="p-stat-lbl">Year</div><div class="p-stat-val">${yr}</div></div>
       <div><div class="p-stat-lbl">Genre</div><div class="p-stat-val">${genres}</div></div>
     </div>`;
+}
+
+/* ── PROGRESS TRACKING ─────────────────────────────────────────
+   Updates CW progress every 20 s based on elapsed wall-clock time.
+   Not perfectly accurate (we can't read inside the iframe) but far
+   better than a random number, and it survives server switches. */
+let _progressTimer = null;
+function startProgressTracking(){
+  stopProgressTracking();
+  _progressTimer = setInterval(()=>{
+    if(!S.content || !S._cwStartTime || !S._cwRuntime) return;
+    const elapsed = Date.now() - S._cwStartTime;
+    const pct = Math.min(Math.round((elapsed/S._cwRuntime)*100), 95);
+    const arr = cwGet();
+    const idx = arr.findIndex(i=>i.id===S.content.id);
+    if(idx!==-1){
+      arr[idx].progress = pct;
+      arr[idx].season   = S.content.season  || arr[idx].season;
+      arr[idx].episode  = S.content.episode || arr[idx].episode;
+      cwSet(arr);
+      /* Update the progress bar in the CW strip without a full re-render */
+      const bar = document.querySelector(`.cw-card[data-mkey="${arr[idx].type}-${arr[idx].id}"] .cw-bar`);
+      if(bar) bar.style.width = pct+'%';
+    }
+  }, 20000);
+}
+function stopProgressTracking(){
+  if(_progressTimer){ clearInterval(_progressTimer); _progressTimer=null; }
 }
 
 // Shared HLS instance for the native player
@@ -2464,13 +2601,14 @@ async function loadEpisodes(tvId,season){
   S.epList=[];
   const data=await api(`/tv/${tvId}/season/${season}`);
   if(!data?.episodes?.length){ grid.innerHTML=`<p style="color:var(--text3);font-size:.8rem;padding:.5rem">No episodes</p>`; return; }
-  S.epList=data.episodes.map(ep=>({number:ep.episode_number, name:ep.name||`Episode ${ep.episode_number}`, still:ep.still_path||null}));
+  S.epList=data.episodes.map(ep=>({number:ep.episode_number, name:ep.name||`Episode ${ep.episode_number}`, still:ep.still_path||null, overview:ep.overview||''}));
   grid.innerHTML=S.epList.map(ep=>`
     <div class="ep-card${ep.number===1?' active':''}" data-ep="${ep.number}" onclick="selectEpisode(${ep.number})">
       ${ep.still?`<img src="${IMG}/w300${ep.still}" class="ep-thumb" loading="lazy" alt="">`:`<div class="ep-thumb skel"></div>`}
       <div class="ep-info">
         <div class="ep-num">EP ${ep.number}</div>
         <div class="ep-name">${esc(ep.name)}</div>
+        ${ep.overview?`<div class="ep-overview">${esc(ep.overview.slice(0,120)+(ep.overview.length>120?'…':''))}</div>`:''}
       </div>
     </div>`).join('');
 }
@@ -2496,6 +2634,7 @@ function selectEpisode(ep){
 }
 function switchServer(key){
   S.srv=key;
+  try{ localStorage.setItem('aflix_srv', key); }catch{}
   document.querySelectorAll('.srv-card').forEach(p=>p.classList.toggle('active',p.dataset.srv===key));
   if(!S.content) return;
   const srv=SRVS[key];
@@ -2510,6 +2649,7 @@ function closePlayer(){
   const modal=document.getElementById('playerModal');
   const wrap=document.getElementById('playerWrap');
   const doCleanup=()=>{
+    stopProgressTracking();
     document.getElementById('playerFrame').src='about:blank';
     _destroyNativePlayer();
     document.body.classList.remove('no-scroll','ci');
@@ -2572,6 +2712,70 @@ function advanceEpisode(){
 }
 
 /* ══════════════════════════════════════════
+   SEE ALL PAGE
+══════════════════════════════════════════ */
+const SA = { endpoint:'', params:{}, page:1, total:1, mediaType:null, title:'' };
+
+async function openSeeAll(title, endpoint, params, mediaType){
+  SA.title=title; SA.endpoint=endpoint; SA.params=params; SA.mediaType=mediaType; SA.page=1;
+  document.getElementById('seeallTitle').textContent=title;
+  document.getElementById('seeallGrid').innerHTML=Array(18).fill(0).map(()=>`<div class="skel" style="aspect-ratio:2/3;border-radius:var(--r)"></div>`).join('');
+  document.getElementById('seeallLoadMore').style.display='none';
+  document.getElementById('seeallModal').classList.add('open');
+  document.body.classList.add('no-scroll');
+  await seeallLoad(true);
+}
+function closeSeeAll(){
+  document.getElementById('seeallModal').classList.remove('open');
+  document.body.classList.remove('no-scroll');
+}
+async function seeallLoad(replace){
+  const btn=document.getElementById('seeallLoadBtn');
+  if(btn) btn.disabled=true;
+  const data=await api(SA.endpoint,{...SA.params, page:SA.page});
+  if(!data){ if(btn) btn.disabled=false; return; }
+  SA.total=data.total_pages||1;
+  const items=(data.results||[]).map(m=>SA.mediaType?{...m,media_type:SA.mediaType}:m).filter(i=>i.poster_path);
+  const grid=document.getElementById('seeallGrid');
+  if(replace){
+    grid.innerHTML='';
+  }
+  const frag=document.createDocumentFragment();
+  items.forEach(item=>{
+    const div=document.createElement('div');
+    div.innerHTML=renderCardHTML(item);
+    Array.from(div.children).forEach(c=>{ revealNew(c); frag.appendChild(c); });
+  });
+  grid.appendChild(frag);
+  const morePossible=SA.page<SA.total;
+  document.getElementById('seeallLoadMore').style.display=morePossible?'flex':'none';
+  if(btn) btn.disabled=false;
+}
+async function seeallNextPage(){
+  SA.page++;
+  await seeallLoad(false);
+}
+
+/* Shared card HTML renderer (extracted so See All and main grids share logic) */
+function renderCardHTML(item){
+  const t=esc(item.title||item.name||''), p=item.poster_path?`${IMG}/w500${item.poster_path}`:'';
+  const r=item.vote_average?.toFixed(1)||'', y=(item.release_date||item.first_air_date||'').split('-')[0];
+  const mt=item.media_type||'movie', isTV=mt==='tv', id=item.id;
+  const inWl=wlHas(id);
+  return `<div class="card" data-mkey="${mt}-${id}" onclick="playContent(${id},'${mt}',\`${t.replace(/`/g,'\\`')}\`,this)">
+    ${p?`<img src="${p}" class="card-img" loading="lazy" alt="${t}">`:`<div class="card-img skel"></div>`}
+    <div class="ctag${isTV?' tv':''}">${isTV?'Series':'Movie'}</div>
+    <button class="card-wl-btn${inWl?' active':''}" data-id="${id}" title="${inWl?'Remove from Watchlist':'Add to Watchlist'}"
+      onclick="event.stopPropagation();wlToggle({id:${id},type:'${mt}',title:\`${t.replace(/`/g,'\\`')}\`,poster:${item.poster_path?`'${item.poster_path}'`:'null'},rating:${item.vote_average||0},year:'${y}'})">♥</button>
+    <div class="card-play-btn"><svg width="13" height="13" viewBox="0 0 13 13" fill="white"><path d="M2 1L11 6.5L2 12V1Z"/></svg></div>
+    <div class="card-over">
+      <div class="card-title">${t}</div>
+      <div class="card-meta">${r?`<span class="card-star">★ ${r}</span>`:''} ${y?`<span>${y}</span>`:''}</div>
+    </div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════
    UTIL
 ══════════════════════════════════════════ */
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -2588,6 +2792,8 @@ function goHome(){
 async function init(){
   loadSettings(); updateWlCount(); renderWlPanel(); renderWlSection(); renderCW();
   setupHeader(); setupReveal(); setupEvents(); setupAutoNext();
+  const verEl=document.getElementById('sVer');
+  if(verEl) verEl.textContent=`AFlix v${AFLIX_VERSION} · Built with TMDB`;
   const ok = await loadRemoteConfig();
   if (!ok) return;
   await Promise.all([loadHero(),loadGenres(),loadTop10(),loadTrend(),loadMovies(),loadTV()]);
@@ -3117,6 +3323,16 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- ── BOTTOM TAB BAR (mobile only) ── -->
 <style>
   .bottom-tab-bar{ display:none; }
+  .live-tab-dot{
+    position:absolute;top:-2px;right:-4px;
+    width:7px;height:7px;border-radius:50%;
+    background:#e8194c;
+    box-shadow:0 0 6px rgba(232,25,76,.8);
+    animation:livePulse 1.6s ease-in-out infinite;
+  }
+  @keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.75)}}
+  .tab-live svg{ color:#e8194c; }
+  .tab-live span:last-child{ color:#e8194c; }
 </style>
 <nav class="bottom-tab-bar" id="bottomTabBar" aria-label="Main navigation">
   <div class="tab-item active" id="tab-home" onclick="tabNav('all')" role="button" aria-label="Home">
@@ -3131,8 +3347,11 @@ document.addEventListener('DOMContentLoaded', () => {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M16 3l-4 4-4-4"/></svg>
     <span>Series</span>
   </div>
-  <div class="tab-item" id="tab-live" onclick="openIPTV()" role="button" aria-label="Live TV">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 000 11.4M17.7 17.7a8 8 0 000-11.4"/><path d="M3.5 3.5a13 13 0 000 17M20.5 20.5a13 13 0 000-17"/></svg>
+  <div class="tab-item tab-live" id="tab-live" onclick="openIPTV()" role="button" aria-label="Live TV">
+    <div style="position:relative;display:inline-flex">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 000 11.4M17.7 17.7a8 8 0 000-11.4"/><path d="M3.5 3.5a13 13 0 000 17M20.5 20.5a13 13 0 000-17"/></svg>
+      <span class="live-tab-dot"></span>
+    </div>
     <span>Live</span>
   </div>
   <div class="tab-item" id="tab-wl" onclick="openWatchlist()" role="button" aria-label="Watchlist">
